@@ -1,0 +1,70 @@
+mqtt:
+  enabled: true
+  host: 192.168.0.13
+  port: 1883
+model:
+  width: 300
+  height: 300
+  input_tensor: nhwc
+  input_pixel_format: bgr
+  path: /openvino-model/ssdlite_mobilenet_v2.xml
+  labelmap_path: /openvino-model/coco_91cl_bkgr.txt
+detectors:
+  ov:
+    type: openvino
+    device: GPU
+ffmpeg:
+  hwaccel_args: preset-vaapi
+# ---- Tiered retention ----
+# Tier 1: full footage, short window
+# Tier 2: motion/event clips, medium window
+# Tier 3: snapshots, long window (tiny files)
+record:
+  enabled: true
+  alerts:
+    retain:
+      days: 14
+      mode: motion
+  detections:
+    retain:
+      days: 7
+      mode: motion
+  continuous:
+    days: 2
+  motion:
+    days: 2
+snapshots:
+  enabled: true
+  retain:
+    default: 60
+    objects:
+      person: 180
+      car: 90
+objects:
+  track: [person, car, dog, cat]
+cameras:
+  driveway:
+    ffmpeg:
+      inputs:
+        - path: 
+            rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.201:554/cam/realmonitor?channel=1&subtype=1
+          roles: [detect]
+        - path: 
+            rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.201:554/cam/realmonitor?channel=1&subtype=0
+          roles: [record]
+    detect:
+      width: 704
+      height: 480
+      fps: 5
+  backyard:
+    ffmpeg:
+      inputs:
+        - path: rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.202:554/cam/realmonitor?channel=1&subtype=1
+          roles: [detect]
+        - path: rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.202:554/cam/realmonitor?channel=1&subtype=0
+          roles: [record]
+    detect:
+      width: 704
+      height: 480
+      fps: 5
+version: 0.17-0

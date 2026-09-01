@@ -1,0 +1,33 @@
+
+# Loads default set of integrations. Do not remove.
+default_config:
+
+# Load frontend themes from the themes folder
+frontend:
+  themes: !include_dir_merge_named themes
+
+automation: !include automations.yaml
+script: !include scripts.yaml
+scene: !include scenes.yaml
+
+# White light on FrontCam (10.10.10.201).
+# The Dahua integration's illuminator entity drives the V1 Lighting table, which on
+# this model is the INFRARED emitter. The white light lives at Lighting_V2[0][0][1],
+# so it needs its own control path. Camera requires digest auth; credentials are in
+# /config/.camcreds so they stay out of this file.
+command_line:
+  - switch:
+      name: FrontCam White Light
+      unique_id: frontcam_white_light
+      scan_interval: 30
+      command_on: >-
+        curl -s -g -K /config/.camcreds
+        "http://10.10.10.201/cgi-bin/configManager.cgi?action=setConfig&Lighting_V2[0][0][1].Mode=Manual&Lighting_V2[0][0][1].NearLight[0].Light=100"
+      command_off: >-
+        curl -s -g -K /config/.camcreds
+        "http://10.10.10.201/cgi-bin/configManager.cgi?action=setConfig&Lighting_V2[0][0][1].Mode=Off"
+      command_state: >-
+        curl -s -g -K /config/.camcreds
+        "http://10.10.10.201/cgi-bin/configManager.cgi?action=getConfig&name=Lighting_V2"
+        | grep -cF "Lighting_V2[0][0][1].Mode=Manual" || true
+      value_template: "{{ value | int(0) > 0 }}"

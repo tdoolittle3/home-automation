@@ -1,0 +1,8 @@
+[Unit]
+Description=Storage guard for /srv/storage (publishes to MQTT for Home Assistant)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/stacks/net/disk-guard.sh

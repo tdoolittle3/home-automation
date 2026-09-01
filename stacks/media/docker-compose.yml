@@ -1,0 +1,16 @@
+services:
+  jellyfin:
+    container_name: jellyfin
+    image: jellyfin/jellyfin:latest
+    restart: unless-stopped
+    user: 1000:1000
+    group_add:
+      - "992"          # render group GID
+    devices:
+      - /dev/dri:/dev/dri
+    volumes:
+      - ./config:/config
+      - ./cache:/cache
+      - /srv/storage/media:/media:ro
+    ports:
+      - "8096:8096"

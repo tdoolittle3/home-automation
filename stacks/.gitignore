@@ -1,0 +1,16 @@
+*/.env
+# Frigate runtime state (container-owned)
+frigate/config/.jwt_secret
+frigate/config/*.db*
+frigate/config/model_cache/
+# Home Assistant runtime state — track only if curated later
+home/homeassistant/*
+!home/homeassistant/configuration.yaml
+!home/homeassistant/automations.yaml
+!home/homeassistant/scripts.yaml
+!home/homeassistant/scenes.yaml
+home/mosquitto/data/
+# Jellyfin/Kuma runtime state
+media/config/
+media/cache/
+net/uptime-kuma/

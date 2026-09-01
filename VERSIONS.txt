@@ -1,0 +1,21 @@
+# Captured 2026-08-31T18:32:42-06:00 from ladybird
+os: Debian GNU/Linux 13 (trixie)
+kernel: 6.12.107+deb13-amd64
+docker: Docker version 29.7.2, build a7dcaa6
+compose: Docker Compose version v5.5.0
+
+# running images
+frigate	ghcr.io/blakeblackshear/frigate:stable
+homeassistant	ghcr.io/home-assistant/home-assistant:stable
+jellyfin	jellyfin/jellyfin:latest
+mosquitto	eclipse-mosquitto:2
+uptime-kuma	louislam/uptime-kuma:1
+
+# image digests
+debian:trixie	sha256:f324c7ff54321e8d9c588493a20244965938ce0aa50bbd1022d38010e9ffc4b1
+eclipse-mosquitto:2	sha256:6f8d8a947c506f8a2290ec65cd4bd2bc7cb4d43fb5f6271f861cb013e2ef9797
+ghcr.io/blakeblackshear/frigate:stable	sha256:d4351369984d4a9e2a49ac59736f6490856a7ea11f7790040746d21496967010
+ghcr.io/home-assistant/home-assistant:stable	sha256:14931c6b13756317849f46da1d01b45937a1150db66c081cfe529d48215943fe
+hello-world:latest	sha256:5dd0d3e6e255913fc30f90b9f2b1d359cc2cbdb48090cc4b65f1676e203243cc
+jellyfin/jellyfin:latest	sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a7f6a2016ad2b35db
+louislam/uptime-kuma:1	sha256:3d632903e6af34139a37f18055c4f1bfd9b7205ae1138f1e5e8940ddc1d176f9

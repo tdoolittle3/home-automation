@@ -1,0 +1,24 @@
+services:
+  frigate:
+    container_name: frigate
+    image: ghcr.io/blakeblackshear/frigate:stable
+    restart: unless-stopped
+    shm_size: "256mb"          # raise to 512mb at 4+ cameras
+    devices:
+      - /dev/dri/renderD128:/dev/dri/renderD128
+    volumes:
+      - ./config:/config
+      - /srv/storage/frigate:/media/frigate
+      - /etc/localtime:/etc/localtime:ro
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1g
+    ports:
+      - "8971:8971"    # authenticated UI
+      - "5000:5000"    # unauthenticated API — LAN only, never forward
+      - "8554:8554"    # RTSP restream
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+    environment:
+      FRIGATE_RTSP_PASSWORD: "${FRIGATE_RTSP_PASSWORD}"

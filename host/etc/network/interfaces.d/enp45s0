@@ -1,0 +1,5 @@
+# Camera island — no gateway on purpose
+auto enp45s0
+iface enp45s0 inet static
+    address 10.10.10.50
+    netmask 255.255.255.0
