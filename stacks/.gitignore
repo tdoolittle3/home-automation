@@ -14,3 +14,7 @@ home/mosquitto/data/
 media/config/
 media/cache/
 net/uptime-kuma/
+# Push/heartbeat URLs are secrets - they authenticate the beat
+net/kuma-push-url.txt
+net/kuma-frigate-push-url.txt
+net/healthchecks-url.txt

@@ -1,0 +1,8 @@
+[Unit]
+Description=External heartbeat proving Uptime Kuma is alive
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/stacks/net/kuma-watchdog.sh
