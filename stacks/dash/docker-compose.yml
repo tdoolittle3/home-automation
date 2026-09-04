@@ -1,0 +1,27 @@
+services:
+  dash:
+    container_name: home-dashboard
+    # No registry image exists for this one - it is built on the host from a
+    # checkout of the separate `home-dashboard` repo at /opt/src/home-dashboard.
+    # Build and update steps are in docs/operations.md.
+    build:
+      context: /opt/src/home-dashboard
+    image: home-dashboard:local
+    restart: unless-stopped
+    # HA_TOKEN and the Jellyfin API key live here, mode 600, gitignored.
+    # See the home-dashboard repo's .env.example for every variable.
+    env_file: .env
+    ports:
+      - "8099:8099"
+    environment:
+      # Bridge networking, so the other services are addressed by LAN IP rather
+      # than localhost - Home Assistant runs with host networking.
+      HA_BASE_URL: http://192.168.0.13:8123
+      FRIGATE_BASE_URL: http://192.168.0.13:5000
+      JELLYFIN_BASE_URL: http://192.168.0.13:8096
+      UPTIME_KUMA_BASE_URL: http://192.168.0.13:3001
+    # The panel layout ships inside the image (config/dashboard.json in the
+    # home-dashboard repo) so there is one source of truth. To edit panels on
+    # the host without a rebuild, bind-mount a copy over it:
+    #   volumes:
+    #     - ./dashboard.json:/app/config/dashboard.json:ro

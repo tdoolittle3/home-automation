@@ -7,7 +7,7 @@ Day-to-day commands for `ladybird` (192.168.0.13). Connect with `ssh thomas@192.
 ## Health check
 
 ```bash
-docker ps                                    # all five containers should be Up (healthy)
+docker ps                                    # every container should be Up (healthy)
 df -h /srv/storage                           # disk headroom
 docker logs --tail 50 frigate                # recent Frigate activity
 /opt/stacks/net/disk-guard.sh                # one-line storage summary
@@ -63,6 +63,40 @@ echo "$(( (B-A)*288/1000000 )) MB/day"
 Optional external watchdog: create a Push monitor in Uptime Kuma and drop its URL into
 `/opt/stacks/net/kuma-push-url.txt`. The guard beats it only while healthy, so a hung or dead
 server alerts by silence.
+
+---
+
+## Dashboard
+
+The custom UI at `http://192.168.0.13:8099`. The application lives in the separate
+`home-dashboard` repo; only its compose file lives here. It is a read-mostly client of Home
+Assistant's WebSocket API, so it holds no state of its own — losing it loses nothing.
+
+```bash
+curl -s http://127.0.0.1:8099/api/health     # ha.connected, plus the last HA error if any
+docker logs --tail 50 home-dashboard
+```
+
+`ha.connected: false` with `authFailed: true` means the long-lived access token was revoked or
+expired. Issue a new one in HA, update `HA_TOKEN` in `/opt/stacks/dash/.env`, then **force-recreate**
+— a plain restart does not reload environment variables:
+
+```bash
+cd /opt/stacks/dash && docker compose up -d --force-recreate
+```
+
+**Update after changing the app:** pull the new code into `/opt/src/home-dashboard`, then rebuild.
+Compose will not rebuild on its own.
+
+```bash
+cd /opt/stacks/dash && docker compose up -d --build
+```
+
+**Change which panels appear:** edit `config/dashboard.json` in the `home-dashboard` checkout and
+rebuild. The file is validated at startup, so a typo fails loudly in the logs rather than rendering
+an empty panel. Its `controls` panels are also the write allowlist — an entity not listed there
+cannot be actuated through the dashboard, by design. For quick iteration without rebuilds,
+uncomment the bind-mount in `stacks/dash/docker-compose.yml`.
 
 ---
 

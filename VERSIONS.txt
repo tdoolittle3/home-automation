@@ -10,6 +10,7 @@ homeassistant	ghcr.io/home-assistant/home-assistant:stable
 jellyfin	jellyfin/jellyfin:latest
 mosquitto	eclipse-mosquitto:2
 uptime-kuma	louislam/uptime-kuma:1
+home-dashboard	home-dashboard:local	# built on the host from the home-dashboard repo - no registry digest
 
 # image digests
 debian:trixie	sha256:f324c7ff54321e8d9c588493a20244965938ce0aa50bbd1022d38010e9ffc4b1

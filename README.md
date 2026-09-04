@@ -28,6 +28,7 @@ DDNS) are policy; the missing route is enforcement.
      Frigate · Home Assistant
      Mosquitto · Jellyfin               enp45s0  (camera island)
      Uptime Kuma · Tailscale            10.10.10.50/24 — no gateway
+     Dashboard
         |
         |  10.10.10.0/24
    [ TL-SG105MPE PoE switch ]
@@ -49,6 +50,7 @@ and pulls their RTSP streams. Nothing on the LAN reaches them directly.
 | Home Assistant | `http://192.168.0.13:8123` | host networking; **http, not https** |
 | Jellyfin | `http://192.168.0.13:8096` | |
 | Uptime Kuma | `http://192.168.0.13:3001` | no monitors configured yet |
+| Dashboard | `http://192.168.0.13:8099` | custom UI over the HA API — built from the `home-dashboard` repo |
 | Mosquitto | `192.168.0.13:1883` | anonymous, LAN only |
 | Samba | `//192.168.0.13/files` | serves `/srv/storage/files` |
 
@@ -78,6 +80,7 @@ Tiered, so the expensive tier is short and the cheap tier is long:
 
 ```
 stacks/          -> deploys to /opt/stacks on the server
+  dash/          the custom dashboard (image built from the home-dashboard repo)
   frigate/       docker-compose.yml + config/config.yml
   home/          Home Assistant + Mosquitto
   media/         Jellyfin
@@ -139,7 +142,7 @@ A single root, so the Phase 2 drive swap is a remount rather than a reconfigurat
 
 ```bash
 mkdir -p /srv/storage/{frigate,media,files,archive}
-mkdir -p /opt/stacks/{frigate,media,home,net}
+mkdir -p /opt/stacks/{frigate,media,home,net,dash}
 chown -R <user>:<user> /srv/storage /opt/stacks
 ```
 
@@ -214,6 +217,31 @@ cat host/snippets/samba-files-share.conf >> /etc/samba/smb.conf
 smbpasswd -a <user> && systemctl restart smbd
 ```
 
+### 11. Dashboard
+
+The dashboard is a separate application — see the `home-dashboard` repo. It has no registry image,
+so it is built on the host from a checkout:
+
+```bash
+sudo mkdir -p /opt/src && sudo chown <user>:<user> /opt/src
+# clone or copy the home-dashboard repo to /opt/src/home-dashboard
+cp /opt/src/home-dashboard/.env.example /opt/stacks/dash/.env
+chmod 600 /opt/stacks/dash/.env
+```
+
+The compose file already sets the service URLs, so `.env` only needs the tokens. `HA_TOKEN` comes
+from Home Assistant → your profile → Security → **Long-lived access tokens**. That token is full
+control of HA — it stays in the container and never reaches a browser.
+
+```bash
+cd /opt/stacks/dash && docker compose up -d --build
+curl -s http://127.0.0.1:8099/api/health      # expect ha.connected true
+```
+
+**The dashboard has no login of its own.** Anyone who can reach port 8099 can read every panel and
+toggle whatever its `controls` panels list. Keep it on the LAN, reach it over Tailscale, and never
+port-forward it.
+
 ---
 
 ## Secrets — not in this repo
@@ -225,6 +253,7 @@ Recreate these by hand on a fresh deploy. Nothing here is recoverable from this 
 | `.env` (this repo) | `SSH_PW`, `CAMERA_PW` — see [.env.example](.env.example) |
 | `/opt/stacks/frigate/.env` | `FRIGATE_RTSP_PASSWORD=` the camera admin password, mode 600 |
 | `/opt/stacks/home/homeassistant/.camcreds` | curl digest config for camera control, mode 600 |
+| `/opt/stacks/dash/.env` | `HA_TOKEN` (a long-lived access token) and `JELLYFIN_API_KEY`, mode 600 |
 | HA `.storage/`, `secrets.yaml` | integration configs and tokens — recreated by re-adding integrations |
 | Frigate `.jwt_secret`, `*.db` | regenerated automatically on first start |
 
