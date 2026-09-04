@@ -26,7 +26,7 @@ DDNS) are policy; the missing route is enforcement.
         |
    [ ladybird  192.168.0.13 ]           enp44s0  (LAN)
      Frigate · Home Assistant
-     Mosquitto · Jellyfin               enp45s0  (camera island)
+     Mosquitto · Jellyfin · Immich      enp45s0  (camera island)
      Uptime Kuma · Tailscale            10.10.10.50/24 — no gateway
         |
         |  10.10.10.0/24
@@ -48,6 +48,7 @@ and pulls their RTSP streams. Nothing on the LAN reaches them directly.
 | Frigate API | `http://192.168.0.13:5000` | unauthenticated — **LAN only, never port-forward** |
 | Home Assistant | `http://192.168.0.13:8123` | host networking; **http, not https** |
 | Jellyfin | `http://192.168.0.13:8096` | |
+| Immich | `http://192.168.0.13:2283` | photo library; the first account created becomes **admin** |
 | Uptime Kuma | `http://192.168.0.13:3001` | no monitors configured yet |
 | Mosquitto | `192.168.0.13:1883` | anonymous, LAN only |
 | Samba | `//192.168.0.13/files` | serves `/srv/storage/files` |
@@ -81,6 +82,7 @@ stacks/          -> deploys to /opt/stacks on the server
   frigate/       docker-compose.yml + config/config.yml
   home/          Home Assistant + Mosquitto
   media/         Jellyfin
+  immich/        Immich photo library (its own stack)
   net/           Uptime Kuma + the storage guard
 host/etc/        -> deploys to /etc on the server
 host/snippets/   fragments to append to existing system files
@@ -138,8 +140,8 @@ docker run --rm --device /dev/dri:/dev/dri debian:trixie \
 A single root, so the Phase 2 drive swap is a remount rather than a reconfiguration.
 
 ```bash
-mkdir -p /srv/storage/{frigate,media,files,archive}
-mkdir -p /opt/stacks/{frigate,media,home,net}
+mkdir -p /srv/storage/{frigate,media,photos,files,archive}
+mkdir -p /opt/stacks/{frigate,media,immich,home,net}
 chown -R <user>:<user> /srv/storage /opt/stacks
 ```
 
@@ -166,8 +168,17 @@ initial admin password needs a browser.
 cp -r stacks/* /opt/stacks/
 printf 'FRIGATE_RTSP_PASSWORD=<camera admin password>\n' > /opt/stacks/frigate/.env
 chmod 600 /opt/stacks/frigate/.env
-for d in frigate home media net; do (cd /opt/stacks/$d && docker compose up -d); done
+
+# Immich needs a generated database password before its first start
+cd /opt/stacks/immich && cp .env.example .env && chmod 600 .env
+sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=$(openssl rand -hex 24)/" .env
+
+for d in frigate home media immich net; do (cd /opt/stacks/$d && docker compose up -d); done
 ```
+
+Immich pulls roughly 4 GB of images and needs a few minutes to report healthy on its first
+start while Postgres initialises. Then open `http://<host>:2283` — **the first account created
+becomes the admin**, so create it before telling anyone else the address.
 
 Frigate prints a generated admin password on first boot — capture it from `docker logs frigate`.
 
@@ -225,6 +236,7 @@ Recreate these by hand on a fresh deploy. Nothing here is recoverable from this 
 | `.env` (this repo) | `SSH_PW`, `CAMERA_PW` — see [.env.example](.env.example) |
 | `/opt/stacks/frigate/.env` | `FRIGATE_RTSP_PASSWORD=` the camera admin password, mode 600 |
 | `/opt/stacks/home/homeassistant/.camcreds` | curl digest config for camera control, mode 600 |
+| `/opt/stacks/immich/.env` | `DB_PASSWORD=` a generated random string, mode 600 — see [.env.example](stacks/immich/.env.example) |
 | HA `.storage/`, `secrets.yaml` | integration configs and tokens — recreated by re-adding integrations |
 | Frigate `.jwt_secret`, `*.db` | regenerated automatically on first start |
 
@@ -271,6 +283,7 @@ Each of these cost real debugging time. Read before changing anything.
   `StorageMaintainer` only intervenes at under one hour of free space, which is too late to rely
   on. The storage guard alerts but deliberately never deletes. A real cap means a separate
   filesystem for `/srv/storage`, which belongs with the Phase 2 drive.
+- **Immich has no automated backup.** The library is irreplaceable in a way recordings are not, and a copy of the Postgres directory does not count — it needs a logical dump. The procedure is in [docs/operations.md](docs/operations.md#immich); it is not yet on a timer.
 - **UPS monitoring (NUT) not configured** — no UPS attached yet.
 - **LAN address is DHCP.** Set a router reservation for MAC `38:05:25:35:71:69`.
 - **Uptime Kuma has no monitors.** The storage guard supports a push URL at

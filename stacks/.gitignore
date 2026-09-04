@@ -14,3 +14,5 @@ home/mosquitto/data/
 media/config/
 media/cache/
 net/uptime-kuma/
+# Immich runtime state — postgres data and the generated .env (see immich/.env.example)
+immich/postgres/
