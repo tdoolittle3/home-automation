@@ -168,10 +168,15 @@ def main():
         if apply:
             guard = next((mon for mon in api.get_monitors() if mon["name"] == "Storage guard"), None)
             if guard and guard.get("pushToken"):
+                # The trailing "?ping=" is load-bearing. disk-guard.sh appends
+                # "&status=up&msg=..." to whatever this file holds, so without a
+                # query string already open the whole thing lands in the path and
+                # Kuma reads it as a bogus token - 404, and the guard never beats.
+                push_url = f"{url}/api/push/{guard['pushToken']}?ping="
                 print(
-                    f"\nStorage guard push URL:\n  {url}/api/push/{guard['pushToken']}\n\n"
-                    "Put it on the server, then beat it once:\n"
-                    "  printf '%s\\n' '<url above>' > /opt/stacks/net/kuma-push-url.txt\n"
+                    f"\nStorage guard push URL:\n  {push_url}\n\n"
+                    "Put it on the server, keeping the '?ping=' suffix, then beat it once:\n"
+                    f"  printf '%s\\n' '{push_url}' > /opt/stacks/net/kuma-push-url.txt\n"
                     "  chmod 600 /opt/stacks/net/kuma-push-url.txt\n"
                     "  /opt/stacks/net/disk-guard.sh"
                 )

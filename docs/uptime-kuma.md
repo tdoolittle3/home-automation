@@ -175,7 +175,18 @@ Create the **Storage guard** push monitor from the YAML, then copy the push URL
 Kuma shows on the monitor page onto the server:
 
 ```bash
-printf '%s\n' "http://192.168.0.13:3001/api/push/XXXXXXXXXX" > /opt/stacks/net/kuma-push-url.txt
+printf '%s\n' "http://192.168.0.13:3001/api/push/XXXXXXXXXX?ping=" > /opt/stacks/net/kuma-push-url.txt
+```
+
+**Keep the trailing `?ping=`.** `disk-guard.sh` appends `&status=up&msg=...` to
+whatever this file holds, so with a bare URL the parameters land in the path and
+Kuma reads the lot as a bogus push token — it answers 404 and the monitor never
+goes up. The failure is invisible from the server: the guard sends `curl ... ||
+true`, so a permanently broken watchdog looks exactly like a working one from
+that end. Confirm the beat lands rather than assuming it:
+
+```bash
+curl -s "$(head -1 /opt/stacks/net/kuma-push-url.txt)&status=up&msg=probe"   # expect {"ok":true}
 ```
 
 ```bash
