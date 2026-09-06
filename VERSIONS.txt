@@ -22,5 +22,5 @@ jellyfin/jellyfin:latest	sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a
 louislam/uptime-kuma:1	sha256:3d632903e6af34139a37f18055c4f1bfd9b7205ae1138f1e5e8940ddc1d176f9
 
 # locally built images (no registry - image id, not a pullable digest)
-# deployed 2026-09-05; rebuild with: cd /opt/stacks/dash && docker compose up -d --build
-home-dashboard:local	sha256:ee791ea7f3c9b67564319ee24deb5a30bc82aa709d41aa4324afa3c012fd17e6
+# deployed 2026-09-06 (port 80, wall-display restyle); rebuild with: cd /opt/stacks/dash && docker compose up -d --build
+home-dashboard:local	sha256:5473633d9d1904320a5df8f807305eebd47134df7730e0e2acd04f4832c389d6

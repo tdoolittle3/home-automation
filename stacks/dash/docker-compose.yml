@@ -12,7 +12,11 @@ services:
     # See the home-dashboard repo's .env.example for every variable.
     env_file: .env
     ports:
-      - "8099:8099"
+      # Published on the default http port so http://ladybird/ needs no port
+      # number. The app keeps listening on 8099 inside the container: it runs as
+      # the non-root `node` user, which cannot bind ports below 1024. Nothing
+      # else on the host listens on 80.
+      - "80:8099"
     environment:
       # Bridge networking, so the other services are addressed by LAN IP rather
       # than localhost - Home Assistant runs with host networking.

@@ -68,12 +68,12 @@ server alerts by silence.
 
 ## Dashboard
 
-The custom UI at `http://192.168.0.13:8099`. The application lives in the separate
+The custom UI at `http://ladybird/` (`http://192.168.0.13/`, port 80). The application lives in the separate
 `home-dashboard` repo; only its compose file lives here. It is a read-mostly client of Home
 Assistant's WebSocket API, so it holds no state of its own — losing it loses nothing.
 
 ```bash
-curl -s http://127.0.0.1:8099/api/health     # ha.connected, plus the last HA error if any
+curl -s http://127.0.0.1/api/health          # ha.connected, plus the last HA error if any
 docker logs --tail 50 home-dashboard
 ```
 

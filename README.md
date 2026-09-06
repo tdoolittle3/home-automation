@@ -50,7 +50,7 @@ and pulls their RTSP streams. Nothing on the LAN reaches them directly.
 | Home Assistant | `http://192.168.0.13:8123` | host networking; **http, not https** |
 | Jellyfin | `http://192.168.0.13:8096` | |
 | Uptime Kuma | `http://192.168.0.13:3001` | no monitors configured yet |
-| Dashboard | `http://192.168.0.13:8099` | custom UI over the HA API — built from the `home-dashboard` repo |
+| Dashboard | `http://ladybird/` · `http://192.168.0.13/` | port 80, so the bare hostname works; custom UI over the HA API — built from the `home-dashboard` repo |
 | Mosquitto | `192.168.0.13:1883` | anonymous, LAN only |
 | Samba | `//192.168.0.13/files` | serves `/srv/storage/files` |
 
@@ -242,10 +242,10 @@ control of HA — it stays in the container and never reaches a browser.
 
 ```bash
 cd /opt/stacks/dash && docker compose up -d --build
-curl -s http://127.0.0.1:8099/api/health      # expect ha.connected true
+curl -s http://127.0.0.1/api/health           # expect ha.connected true
 ```
 
-**The dashboard has no login of its own.** Anyone who can reach port 8099 can read every panel and
+**The dashboard has no login of its own.** Anyone who can reach port 80 can read every panel and
 toggle whatever its `controls` panels list. Keep it on the LAN, reach it over Tailscale, and never
 port-forward it.
 
