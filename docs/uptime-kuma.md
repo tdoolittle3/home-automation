@@ -24,12 +24,34 @@ same YAML and pushes it over Kuma's socket.io API. It is idempotent — monitors
 are matched by name, created when missing, updated when they have drifted — so
 it is also how you re-apply after editing the YAML.
 
+It is an API client, so it runs anywhere that can reach port 3001 — the host,
+or a workstation on the LAN. **Not inside the Kuma container**, which is a Node
+image whose contents are replaced on the next `docker compose pull`.
+
+Debian 13 marks its system Python externally-managed, so a bare `pip install`
+refuses with `externally-managed-environment`. On the host, use a venv:
+
 ```bash
-pip install uptime-kuma-api pyyaml
+sudo apt install -y python3-venv && python3 -m venv /opt/stacks/net/.venv
+```
+
+```bash
+/opt/stacks/net/.venv/bin/pip install uptime-kuma-api pyyaml
+```
+
+```bash
 export KUMA_PASSWORD='...'            # export it; arguments are visible in ps
 export NTFY_TOPIC='ladybird-xxxxx'
-python3 /opt/stacks/net/kuma-provision.py           # dry run, writes nothing
-python3 /opt/stacks/net/kuma-provision.py --apply
+```
+
+```bash
+/opt/stacks/net/.venv/bin/python /opt/stacks/net/kuma-provision.py
+```
+
+That is the dry run — it prints the plan and writes nothing. Then:
+
+```bash
+/opt/stacks/net/.venv/bin/python /opt/stacks/net/kuma-provision.py --apply
 ```
 
 The catch, and the reason the manual path is still documented: that socket.io

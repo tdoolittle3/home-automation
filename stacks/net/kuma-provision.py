@@ -10,13 +10,22 @@ does NOT touch Settings (base URL, timezone, retention) - that call replaces the
 whole settings object, and getting it wrong is a worse outage than clicking
 three fields once.
 
-Usage, from the server or any host that can reach Kuma:
+This is an API client, not a plugin - run it anywhere that can reach port 3001.
+NOT inside the Kuma container: that is a Node image, and anything installed in
+it is lost on the next `docker compose pull`.
 
-    pip install uptime-kuma-api pyyaml
+On the host, Debian 13 marks its Python externally-managed (PEP 668), so a bare
+`pip install` refuses. Use a venv:
+
+    sudo apt install -y python3-venv
+    python3 -m venv /opt/stacks/net/.venv
+    /opt/stacks/net/.venv/bin/pip install uptime-kuma-api pyyaml
+
     export KUMA_PASSWORD='...'          # never pass this as an argument - argv is world-readable in ps
     export NTFY_TOPIC='ladybird-xxxxx'  # optional; creates + attaches the ntfy notification
-    python3 kuma-provision.py           # dry run: prints the plan, changes nothing
-    python3 kuma-provision.py --apply   # actually writes
+
+    /opt/stacks/net/.venv/bin/python /opt/stacks/net/kuma-provision.py           # dry run: changes nothing
+    /opt/stacks/net/.venv/bin/python /opt/stacks/net/kuma-provision.py --apply   # actually writes
 
 Environment:
     KUMA_URL       default http://192.168.0.13:3001
