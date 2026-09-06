@@ -312,10 +312,11 @@ Each of these cost real debugging time. Read before changing anything.
   filesystem for `/srv/storage`, which belongs with the Phase 2 drive.
 - **UPS monitoring (NUT) not configured** — no UPS attached yet.
 - **LAN address is DHCP.** Set a router reservation for MAC `38:05:25:35:71:69`.
-- **Uptime Kuma is defined but not applied.** The monitor set is specified in
-  [stacks/net/kuma-monitors.yml](stacks/net/kuma-monitors.yml); creating it in the UI is a
-  one-time manual step, since Kuma 1.x keeps its config in a gitignored SQLite database. Until
-  that is done nothing is being watched. See [docs/uptime-kuma.md](docs/uptime-kuma.md).
+- **Uptime Kuma's config is not backed up.** Eleven monitors are live, applied from
+  [stacks/net/kuma-monitors.yml](stacks/net/kuma-monitors.yml) by
+  [kuma-provision.py](stacks/net/kuma-provision.py), but Kuma 1.x keeps them in a gitignored
+  SQLite database — so a wipe means re-running the script and reissuing the storage guard's push
+  token, which does not survive. See [docs/uptime-kuma.md](docs/uptime-kuma.md).
 - **DST end rule** on both cameras reads `Day=2` where Sunday would be `0`. Verify camera clocks
   in early November 2026.
 
