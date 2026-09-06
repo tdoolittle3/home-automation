@@ -244,6 +244,19 @@ port-forward it.
 
 ---
 
+### 12. Crash resilience
+
+Added after the 2026-09-06 kernel panic (see `docs/operations.md` → "After a crash").
+
+```bash
+cp host/etc/sysctl.d/99-panic-reboot.conf /etc/sysctl.d/ && sysctl --system   # reboot 10 s after a panic
+cp host/etc/default/grub.d/pcie-aspm.cfg /etc/default/grub.d/ && update-grub   # pcie_aspm=off, needs a reboot
+apt install -y rasdaemon && systemctl enable --now rasdaemon                 # decode + log machine checks
+```
+
+Also set **"Power on after AC loss"** in the BIOS (not scriptable) and add a router DHCP
+reservation for `38:05:25:35:71:69` so the box comes back at `192.168.0.13` after any outage.
+
 ## Secrets — not in this repo
 
 Recreate these by hand on a fresh deploy. Nothing here is recoverable from this repo by design.
@@ -263,6 +276,11 @@ Camera admin passwords exist only on the cameras themselves and in `.env`.
 
 ## Hard-won gotchas
 
+- **A frozen box with LEDs on is a kernel panic, not a network fault.** 2026-09-06: the camera-side
+  I226-V NIC (`igc`, enp45s0) took a transmit-queue watchdog reset, and 7 s later the kernel panicked on
+  an MCE broadcast timeout (`Not all CPUs entered broadcast exception handler`). With the stock
+  `kernel.panic=0` it hung until power-cycled. The crash record survives in EFI pstore and is copied to
+  `/var/lib/systemd/pstore/<epoch>/` at the next boot — read it before guessing.
 Each of these cost real debugging time. Read before changing anything.
 
 - **Frigate 0.17 needs an explicit global `model:` block** pointing at

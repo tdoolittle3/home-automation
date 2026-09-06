@@ -184,6 +184,33 @@ unauthenticated.
 
 ---
 
+## After a crash
+
+If the box is unreachable but powered, assume a kernel panic. Power-cycle it, then, once it is back:
+
+```bash
+journalctl --list-boots                          # the previous boot is -1
+journalctl -k -b -1 -n 100 --no-pager            # last kernel lines before the freeze
+ls /var/lib/systemd/pstore/                      # one <epoch> dir per panic, moved from EFI at boot
+sudo cat /var/lib/systemd/pstore/*/001/dmesg.txt # the panic text; parts are stored newest-first
+sudo ras-mc-ctl --errors                         # decoded machine checks (rasdaemon; lives in /usr/sbin)
+```
+
+`thomas` is in `systemd-journal` and `adm`, so `journalctl -k -b -1` needs no sudo; the pstore
+copies are root-only. Uptime Kuma's own database gives the freeze time to the second:
+
+```bash
+docker exec uptime-kuma sqlite3 /app/data/kuma.db   "select m.name, max(h.time) from heartbeat h join monitor m on m.id=h.monitor_id group by m.name"
+```
+
+Times in that DB are UTC. Frigate's nginx log (`docker logs frigate`) is in local time.
+
+Since 2026-09-06 the host reboots itself 10 s after a panic (`kernel.panic=10`) and runs with
+`pcie_aspm=off`; `rasdaemon` records any future machine check. If a panic recurs, the first question is
+whether `journalctl -k -b -1` again shows an `igc ... NETDEV WATCHDOG` on `enp45s0` just before it.
+
+---
+
 ## Backups
 
 Worth capturing periodically, none of it in git:
