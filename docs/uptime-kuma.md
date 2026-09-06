@@ -9,18 +9,37 @@ the source of truth**, this page is how to apply it.
 
 ---
 
-## Why there is no provisioning script
+## Two ways to apply it
 
 Kuma 1.x has no config-as-code path. Monitors, notifications, and settings all
 live in a SQLite database at `net/uptime-kuma/kuma.db`, which is gitignored
-because it also holds the admin password hash and the ntfy token. The socket.io
-API can be driven from a script, but it is unversioned and shifts between point
-releases — a script written today breaks on an upgrade you did not know changed
-anything, and it breaks silently, leaving you with a monitoring system you
-believe is configured.
+because it also holds the admin password hash and the ntfy token. So the YAML
+is a definition Kuma never reads, and something has to carry it across.
 
-Eleven monitors and three groups is twenty minutes of clicking, once. Change
-the YAML first, then mirror it in the UI.
+**By hand**, following step 3 below. Eleven monitors and three groups is about
+twenty minutes of clicking, once.
+
+**With [kuma-provision.py](../stacks/net/kuma-provision.py)**, which reads the
+same YAML and pushes it over Kuma's socket.io API. It is idempotent — monitors
+are matched by name, created when missing, updated when they have drifted — so
+it is also how you re-apply after editing the YAML.
+
+```bash
+pip install uptime-kuma-api pyyaml
+export KUMA_PASSWORD='...'            # export it; arguments are visible in ps
+export NTFY_TOPIC='ladybird-xxxxx'
+python3 /opt/stacks/net/kuma-provision.py           # dry run, writes nothing
+python3 /opt/stacks/net/kuma-provision.py --apply
+```
+
+The catch, and the reason the manual path is still documented: that socket.io
+API is unversioned and shifts between point releases. A script that worked at
+1.23 can break on an upgrade you did not know changed anything — and it can
+break by *quietly writing a subtly wrong monitor* rather than by failing. Run
+the dry run first, and after `--apply` open the UI and confirm every monitor is
+green before you believe any of it. The script does not touch **Settings**
+(base URL, timezone, retention) on purpose: that call replaces the whole
+settings object, which is a worse failure than clicking three fields once.
 
 ---
 
@@ -83,6 +102,10 @@ exactly like a network that never breaks.
 ---
 
 ## 3. Create the monitors
+
+Skip this section if you ran `kuma-provision.py --apply` — but still read the
+three gotchas below and confirm them in the UI, since they are exactly the
+settings a silently-wrong script write would get wrong.
 
 Work down [kuma-monitors.yml](../stacks/net/kuma-monitors.yml). Create the three
 groups first (Add New Monitor → type **Group**), then each monitor with its
