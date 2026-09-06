@@ -14,8 +14,11 @@ clicking through the web UI. Only the initial admin-password setup needs a brows
 Both use the **admin** account. The same password is `CAMERA_PW` in `.env` and
 `FRIGATE_RTSP_PASSWORD` in `/opt/stacks/frigate/.env`.
 
-Both cameras' sub-streams cap at **704×480 (D1)** — the only other options are VGA and CIF.
-Frigate's `detect` block must match this.
+Sub stream 1 (`ExtraFormat[0]`, RTSP `subtype=1`) caps at **704×480 (D1)** on both cameras — the
+only other options are VGA and CIF. The T54PRO-ZE also has a **sub stream 2** (`ExtraFormat[1]`,
+RTSP `subtype=2`) that supports 1080P and 720P; the driveway camera runs it at 1280×720 for
+Frigate detection. Check what a camera offers with `encode.cgi?action=getConfigCaps&channel=1`.
+Frigate's `detect` block must match the stream it reads.
 
 ---
 
@@ -58,22 +61,37 @@ PW='<camera admin password>'
 S() { curl -s -g --digest -u "admin:$PW" "http://$CAM/cgi-bin/configManager.cgi?action=setConfig&$1"; echo; }
 ```
 
-**Main stream** — 2688×1520 H.264 15 fps, VBR quality 5 capped at 6144 kbps, 1-second GOP:
+**Main stream** — 2688×1520 15 fps, VBR quality 5 capped at 6144 kbps, 1-second GOP. The
+driveway camera uses H.265 (about half the storage of H.264 at this quality); note that Firefox
+cannot play H.265 in the Frigate UI, while Chrome, Edge, and Safari can. Use H.264 if that matters:
 
 ```bash
-S "Encode[0].MainFormat[0].Video.Compression=H.264"
+S "Encode[0].MainFormat[0].Video.Compression=H.265"
 S "Encode[0].MainFormat[0].Video.Width=2688&Encode[0].MainFormat[0].Video.Height=1520"
 S "Encode[0].MainFormat[0].Video.FPS=15&Encode[0].MainFormat[0].Video.GOP=15"
 S "Encode[0].MainFormat[0].Video.BitRateControl=VBR&Encode[0].MainFormat[0].Video.Quality=5&Encode[0].MainFormat[0].Video.BitRate=6144"
 ```
 
-**Sub stream** — 704×480 H.264 5 fps CBR 512 kbps. This is what Frigate runs detection on:
+**Sub stream 1** — 704×480 H.264 5 fps CBR 512 kbps. The backyard camera runs detection on this:
 
 ```bash
 S "Encode[0].ExtraFormat[0].Video.Compression=H.264"
 S "Encode[0].ExtraFormat[0].Video.Width=704&Encode[0].ExtraFormat[0].Video.Height=480"
 S "Encode[0].ExtraFormat[0].Video.FPS=5&Encode[0].ExtraFormat[0].Video.GOP=5"
 S "Encode[0].ExtraFormat[0].Video.BitRateControl=CBR&Encode[0].ExtraFormat[0].Video.BitRate=512"
+```
+
+**Sub stream 2** (T54PRO-ZE only) — 1280×720 H.264 5 fps CBR 1024 kbps, disabled from the
+factory. The driveway camera runs detection on this. It starts streaming as soon as it is enabled,
+no reboot needed. Do this over the API: the web UI reported success for the same change and wrote
+nothing.
+
+```bash
+S "Encode[0].ExtraFormat[1].VideoEnable=true"
+S "Encode[0].ExtraFormat[1].Video.Compression=H.264"
+S "Encode[0].ExtraFormat[1].Video.Width=1280&Encode[0].ExtraFormat[1].Video.Height=720"
+S "Encode[0].ExtraFormat[1].Video.FPS=5&Encode[0].ExtraFormat[1].Video.GOP=5"
+S "Encode[0].ExtraFormat[1].Video.BitRateControl=CBR&Encode[0].ExtraFormat[1].Video.BitRate=1024"
 ```
 
 **Time** — the server is the only NTP source these cameras can reach. TimeZone 27 is Mountain:
@@ -144,7 +162,14 @@ key** (see the gotcha in the README):
       fps: 5
 ```
 
-RTSP paths are `subtype=1` for the sub stream and `subtype=0` for the main stream.
+RTSP paths are `subtype=0` for the main stream, `subtype=1` for sub stream 1, and `subtype=2` for
+sub stream 2.
+
+The driveway camera is wired differently: both of its streams are declared under a top-level
+`go2rtc:` block and Frigate reads them from `rtsp://127.0.0.1:8554/driveway` (main) and
+`rtsp://127.0.0.1:8554/driveway_sub` (720p) with `input_args: preset-rtsp-restream`. The camera
+then serves each stream once, and the `live: streams:` block lets the Frigate UI switch between the
+4MP main stream and the 720p sub stream instead of showing the detect stream.
 
 ---
 
