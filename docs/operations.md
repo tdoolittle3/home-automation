@@ -60,9 +60,27 @@ B=$(du -sb /srv/storage/frigate | cut -f1)
 echo "$(( (B-A)*288/1000000 )) MB/day"
 ```
 
-Optional external watchdog: create a Push monitor in Uptime Kuma and drop its URL into
-`/opt/stacks/net/kuma-push-url.txt`. The guard beats it only while healthy, so a hung or dead
-server alerts by silence.
+External watchdog: the guard beats the Uptime Kuma push monitor "Storage guard" (id 12, 900 s
+interval) only while healthy, so a hung or dead server alerts by silence. It reads the URL from
+`/opt/stacks/net/kuma-push-url.txt` and appends `&status=up&msg=...` to the first line, so the file
+must end in `?ping=`. The file is gitignored (it holds the push token); recreate it after a rebuild:
+
+```bash
+TOKEN=$(docker exec uptime-kuma sqlite3 /app/data/kuma.db   "select push_token from monitor where name='Storage guard'")
+printf 'http://127.0.0.1:3001/api/push/%s?ping=
+' "$TOKEN" > /opt/stacks/net/kuma-push-url.txt
+chmod 600 /opt/stacks/net/kuma-push-url.txt
+curl -fsS "$(head -1 /opt/stacks/net/kuma-push-url.txt)&status=up&msg=test"   # expect {"ok":true}
+```
+
+`/opt/stacks/net` is owned by the login user, so this needs no sudo. **Symptom when the file is
+missing:** the monitor shows a single manual "up" beat and then stays down, while
+`disk-guard.service` exits 0 every 10 minutes and the MQTT state is fresh — the guard is healthy, it
+just has nowhere to report. This is exactly what happened 2026-09-05 → 09-06. A second, quieter
+failure was found the same day: the script's `msg=` carried a raw space, and curl 8.x rejects the
+whole URL as malformed (exit 3) — hidden by the `|| true`. Fixed by using `+` as the separator; if
+beats ever stop while the service still exits 0, run the script with `bash -x` and copy the traced
+curl line by hand.
 
 ---
 

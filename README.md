@@ -320,8 +320,10 @@ Each of these cost real debugging time. Read before changing anything.
   filesystem for `/srv/storage`, which belongs with the Phase 2 drive.
 - **UPS monitoring (NUT) not configured** — no UPS attached yet.
 - **LAN address is DHCP.** Set a router reservation for MAC `38:05:25:35:71:69`.
-- **Uptime Kuma has no monitors.** The storage guard supports a push URL at
-  `/opt/stacks/net/kuma-push-url.txt` if you want an external watchdog.
+- **Uptime Kuma push monitor needs a file that is not in this repo.** The storage guard beats the
+  "Storage guard" push monitor only if `/opt/stacks/net/kuma-push-url.txt` exists (see
+  `docs/operations.md` → Storage). It holds the monitor's push token, so it is gitignored and must
+  be recreated on a rebuild — until then that monitor, and its "Host and network" group, show down.
 - **DST end rule** on both cameras reads `Day=2` where Sunday would be `0`. Verify camera clocks
   in early November 2026.
 

@@ -14,6 +14,7 @@ CONF=/opt/stacks/net/disk-guard.conf
 : "${MIN_FREE_GB:=40}"
 : "${FRIGATE_CAP_GB:=200}"
 : "${MEDIA_CAP_GB:=150}"
+: "${PHOTOS_CAP_GB:=100}"
 MQTT_CONTAINER=mosquitto
 STATE_TOPIC=ladybird/storage/state
 DISC_PREFIX=homeassistant
@@ -44,6 +45,7 @@ disk_pct|Disk Used|%|mdi:harddisk|
 free_gb|Disk Free|GB|mdi:database|
 frigate_gb|Frigate Recordings|GB|mdi:cctv|
 media_gb|Media Library|GB|mdi:filmstrip|
+photos_gb|Immich Library|GB|mdi:image-multiple|
 EOF
 
   # problem binary sensor
@@ -66,6 +68,7 @@ dirsize_gb() {
 }
 FRIGATE_GB=$(dirsize_gb "$STORAGE_ROOT/frigate")
 MEDIA_GB=$(dirsize_gb "$STORAGE_ROOT/media")
+PHOTOS_GB=$(dirsize_gb "$STORAGE_ROOT/photos")
 FILES_GB=$(dirsize_gb "$STORAGE_ROOT/files")
 
 # ---------- evaluate ----------
@@ -88,19 +91,24 @@ fi
 if over "$MEDIA_GB" "$MEDIA_CAP_GB"; then
   [ "$STATUS" = ok ] && STATUS=warning; add_reason "media ${MEDIA_GB}GB > ${MEDIA_CAP_GB}GB cap"
 fi
+if over "$PHOTOS_GB" "$PHOTOS_CAP_GB"; then
+  [ "$STATUS" = ok ] && STATUS=warning; add_reason "photos ${PHOTOS_GB}GB > ${PHOTOS_CAP_GB}GB cap"
+fi
 [ -z "$REASON" ] && REASON="all thresholds nominal"
 
 # ---------- publish ----------
 [ -f "$SENTINEL" ] || { publish_discovery && touch "$SENTINEL"; }
 [ "${1:-}" = "--discovery" ] && publish_discovery
 
-PAYLOAD="{\"disk_pct\":$DISK_PCT,\"free_gb\":$FREE_GB,\"frigate_gb\":$FRIGATE_GB,\"media_gb\":$MEDIA_GB,\"files_gb\":$FILES_GB,\"status\":\"$STATUS\",\"reason\":\"$REASON\"}"
+PAYLOAD="{\"disk_pct\":$DISK_PCT,\"free_gb\":$FREE_GB,\"frigate_gb\":$FRIGATE_GB,\"media_gb\":$MEDIA_GB,\"photos_gb\":$PHOTOS_GB,\"files_gb\":$FILES_GB,\"status\":\"$STATUS\",\"reason\":\"$REASON\"}"
 mqtt_pub "$STATE_TOPIC" "$PAYLOAD" retain
 
 # Uptime Kuma: only beat while healthy, so silence itself becomes the alert.
 if [ "$STATUS" = ok ] && [ -s "$KUMA_URL_FILE" ]; then
-  curl -fsS --max-time 10 "$(head -1 "$KUMA_URL_FILE")&status=up&msg=$(printf '%s' "disk ${DISK_PCT}%25 free ${FREE_GB}GB")" -o /dev/null || true
+  # msg must contain no raw spaces: curl >= 8.x rejects the whole URL as malformed
+  # (exit 3, silently swallowed by the || true) - use + as the space separator.
+  curl -fsS --max-time 10 "$(head -1 "$KUMA_URL_FILE")&status=up&msg=disk+${DISK_PCT}%25+free+${FREE_GB}GB" -o /dev/null || true
 fi
 
-echo "storage-guard: $STATUS | disk ${DISK_PCT}% | free ${FREE_GB}GB | frigate ${FRIGATE_GB}GB | media ${MEDIA_GB}GB | $REASON"
+echo "storage-guard: $STATUS | disk ${DISK_PCT}% | free ${FREE_GB}GB | frigate ${FRIGATE_GB}GB | media ${MEDIA_GB}GB | photos ${PHOTOS_GB}GB | $REASON"
 [ "$STATUS" = ok ]
