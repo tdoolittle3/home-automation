@@ -14,3 +14,4 @@ home/mosquitto/data/
 media/config/
 media/cache/
 net/uptime-kuma/
+net/kuma-push-url.txt

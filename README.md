@@ -49,7 +49,7 @@ and pulls their RTSP streams. Nothing on the LAN reaches them directly.
 | Frigate API | `http://192.168.0.13:5000` | unauthenticated — **LAN only, never port-forward** |
 | Home Assistant | `http://192.168.0.13:8123` | host networking; **http, not https** |
 | Jellyfin | `http://192.168.0.13:8096` | |
-| Uptime Kuma | `http://192.168.0.13:3001` | no monitors configured yet |
+| Uptime Kuma | `http://192.168.0.13:3001` | watchdog — see [docs/uptime-kuma.md](docs/uptime-kuma.md) |
 | Dashboard | `http://192.168.0.13:8099` | custom UI over the HA API — built from the `home-dashboard` repo |
 | Mosquitto | `192.168.0.13:1883` | anonymous, LAN only |
 | Samba | `//192.168.0.13/files` | serves `/srv/storage/files` |
@@ -84,10 +84,10 @@ stacks/          -> deploys to /opt/stacks on the server
   frigate/       docker-compose.yml + config/config.yml
   home/          Home Assistant + Mosquitto
   media/         Jellyfin
-  net/           Uptime Kuma + the storage guard
+  net/           Uptime Kuma + the storage guard (kuma-monitors.yml defines the monitor set)
 host/etc/        -> deploys to /etc on the server
 host/snippets/   fragments to append to existing system files
-docs/            camera provisioning + operations runbook
+docs/            camera provisioning, operations runbook, Uptime Kuma setup
 ```
 
 ---
@@ -242,6 +242,14 @@ curl -s http://127.0.0.1:8099/api/health      # expect ha.connected true
 toggle whatever its `controls` panels list. Keep it on the LAN, reach it over Tailscale, and never
 port-forward it.
 
+### 12. Uptime Kuma
+
+The container comes up with the `net` stack in step 7, but an unconfigured Kuma watches nothing.
+Apply [stacks/net/kuma-monitors.yml](stacks/net/kuma-monitors.yml) by hand in the UI —
+Kuma 1.x stores its configuration in a gitignored SQLite database, so there is no import to run.
+Full walkthrough in [docs/uptime-kuma.md](docs/uptime-kuma.md); the load-bearing part is the push
+monitor that the storage guard beats only while healthy, so that a dead server alerts by silence.
+
 ---
 
 ## Secrets — not in this repo
@@ -250,7 +258,9 @@ Recreate these by hand on a fresh deploy. Nothing here is recoverable from this 
 
 | File | Contents |
 |---|---|
-| `.env` (this repo) | `SSH_PW`, `CAMERA_PW` — see [.env.example](.env.example) |
+| `.env` (this repo) | `SSH_PW`, `CAMERA_PW`, `NTFY_TOPIC` — see [.env.example](.env.example) |
+| `/opt/stacks/net/kuma-push-url.txt` | the storage guard's Kuma push URL, mode 600 — regenerated per Kuma rebuild |
+| Uptime Kuma admin account | created on first visit to port 3001; store it in your password manager |
 | `/opt/stacks/frigate/.env` | `FRIGATE_RTSP_PASSWORD=` the camera admin password, mode 600 |
 | `/opt/stacks/home/homeassistant/.camcreds` | curl digest config for camera control, mode 600 |
 | `/opt/stacks/dash/.env` | `HA_TOKEN` (a long-lived access token) and `JELLYFIN_API_KEY`, mode 600 |
@@ -302,8 +312,10 @@ Each of these cost real debugging time. Read before changing anything.
   filesystem for `/srv/storage`, which belongs with the Phase 2 drive.
 - **UPS monitoring (NUT) not configured** — no UPS attached yet.
 - **LAN address is DHCP.** Set a router reservation for MAC `38:05:25:35:71:69`.
-- **Uptime Kuma has no monitors.** The storage guard supports a push URL at
-  `/opt/stacks/net/kuma-push-url.txt` if you want an external watchdog.
+- **Uptime Kuma is defined but not applied.** The monitor set is specified in
+  [stacks/net/kuma-monitors.yml](stacks/net/kuma-monitors.yml); creating it in the UI is a
+  one-time manual step, since Kuma 1.x keeps its config in a gitignored SQLite database. Until
+  that is done nothing is being watched. See [docs/uptime-kuma.md](docs/uptime-kuma.md).
 - **DST end rule** on both cameras reads `Day=2` where Sunday would be `0`. Verify camera clocks
   in early November 2026.
 
