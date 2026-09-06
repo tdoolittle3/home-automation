@@ -2,10 +2,10 @@ services:
   dash:
     container_name: home-dashboard
     # No registry image exists for this one - it is built on the host from a
-    # checkout of the separate `home-dashboard` repo at /opt/src/home-dashboard.
+    # checkout of the separate `home-dashboard` repo at ~thomas/src/home-dashboard.
     # Build and update steps are in docs/operations.md.
     build:
-      context: /opt/src/home-dashboard
+      context: /home/thomas/src/home-dashboard
     image: home-dashboard:local
     restart: unless-stopped
     # HA_TOKEN and the Jellyfin API key live here, mode 600, gitignored.

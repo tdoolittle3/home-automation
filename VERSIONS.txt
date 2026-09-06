@@ -10,7 +10,7 @@ homeassistant	ghcr.io/home-assistant/home-assistant:stable
 jellyfin	jellyfin/jellyfin:latest
 mosquitto	eclipse-mosquitto:2
 uptime-kuma	louislam/uptime-kuma:1
-home-dashboard	home-dashboard:local	# built on the host from the home-dashboard repo - no registry digest
+home-dashboard	home-dashboard:local	# built on the host from ~thomas/src/home-dashboard - no registry digest
 
 # image digests
 debian:trixie	sha256:f324c7ff54321e8d9c588493a20244965938ce0aa50bbd1022d38010e9ffc4b1
@@ -20,3 +20,7 @@ ghcr.io/home-assistant/home-assistant:stable	sha256:14931c6b13756317849f46da1d01
 hello-world:latest	sha256:5dd0d3e6e255913fc30f90b9f2b1d359cc2cbdb48090cc4b65f1676e203243cc
 jellyfin/jellyfin:latest	sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a7f6a2016ad2b35db
 louislam/uptime-kuma:1	sha256:3d632903e6af34139a37f18055c4f1bfd9b7205ae1138f1e5e8940ddc1d176f9
+
+# locally built images (no registry - image id, not a pullable digest)
+# deployed 2026-09-05; rebuild with: cd /opt/stacks/dash && docker compose up -d --build
+home-dashboard:local	sha256:ee791ea7f3c9b67564319ee24deb5a30bc82aa709d41aa4324afa3c012fd17e6

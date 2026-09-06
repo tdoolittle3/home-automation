@@ -85,10 +85,16 @@ expired. Issue a new one in HA, update `HA_TOKEN` in `/opt/stacks/dash/.env`, th
 cd /opt/stacks/dash && docker compose up -d --force-recreate
 ```
 
-**Update after changing the app:** pull the new code into `/opt/src/home-dashboard`, then rebuild.
-Compose will not rebuild on its own.
+**Update after changing the app:** copy the new source into `~/src/home-dashboard`, then rebuild.
+There is no git remote, so this is a tarball copy — and compose will not rebuild on its own.
 
 ```bash
+# from a workstation, in the home-dashboard repo
+git archive --format=tar HEAD > /tmp/hd.tar && scp /tmp/hd.tar thomas@192.168.0.13:/tmp/
+
+# on the server
+rm -rf ~/src/home-dashboard && mkdir -p ~/src/home-dashboard
+tar -xf /tmp/hd.tar -C ~/src/home-dashboard
 cd /opt/stacks/dash && docker compose up -d --build
 ```
 

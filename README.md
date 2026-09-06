@@ -219,13 +219,20 @@ smbpasswd -a <user> && systemctl restart smbd
 
 ### 11. Dashboard
 
-The dashboard is a separate application — see the `home-dashboard` repo. It has no registry image,
-so it is built on the host from a checkout:
+The dashboard is a separate application — see the `home-dashboard` repo. It has no registry image
+and no git remote, so the source is copied to the host and built there. The checkout is only a
+build input: nothing runs from it, and the host has no Node installed at all.
 
 ```bash
-sudo mkdir -p /opt/src && sudo chown <user>:<user> /opt/src
-# clone or copy the home-dashboard repo to /opt/src/home-dashboard
-cp /opt/src/home-dashboard/.env.example /opt/stacks/dash/.env
+# from a workstation with the home-dashboard repo checked out
+git archive --format=tar HEAD > /tmp/hd.tar
+scp /tmp/hd.tar <user>@192.168.0.13:/tmp/
+```
+
+```bash
+# on the server
+mkdir -p ~/src/home-dashboard && tar -xf /tmp/hd.tar -C ~/src/home-dashboard
+cp ~/src/home-dashboard/.env.example /opt/stacks/dash/.env
 chmod 600 /opt/stacks/dash/.env
 ```
 
