@@ -50,7 +50,7 @@ and pulls their RTSP streams. Nothing on the LAN reaches them directly.
 | Home Assistant | `http://192.168.0.13:8123` | host networking; **http, not https** |
 | Jellyfin | `http://192.168.0.13:8096` | |
 | Uptime Kuma | `http://192.168.0.13:3001` | no monitors configured yet |
-| Dashboard | `http://192.168.0.13:8099` | custom UI over the HA API — built from the `home-dashboard` repo |
+| Dashboard | `http://ladybird/` · `http://192.168.0.13/` | port 80, so the bare hostname works; custom UI over the HA API — built from the `home-dashboard` repo |
 | Mosquitto | `192.168.0.13:1883` | anonymous, LAN only |
 | Samba | `//192.168.0.13/files` | serves `/srv/storage/files` |
 
@@ -221,13 +221,20 @@ smbpasswd -a <user> && systemctl restart smbd
 
 ### 11. Dashboard
 
-The dashboard is a separate application — see the `home-dashboard` repo. It has no registry image,
-so it is built on the host from a checkout:
+The dashboard is a separate application — see the `home-dashboard` repo. It has no registry image
+and no git remote, so the source is copied to the host and built there. The checkout is only a
+build input: nothing runs from it, and the host has no Node installed at all.
 
 ```bash
-sudo mkdir -p /opt/src && sudo chown <user>:<user> /opt/src
-# clone or copy the home-dashboard repo to /opt/src/home-dashboard
-cp /opt/src/home-dashboard/.env.example /opt/stacks/dash/.env
+# from a workstation with the home-dashboard repo checked out
+git archive --format=tar HEAD > /tmp/hd.tar
+scp /tmp/hd.tar <user>@192.168.0.13:/tmp/
+```
+
+```bash
+# on the server
+mkdir -p ~/src/home-dashboard && tar -xf /tmp/hd.tar -C ~/src/home-dashboard
+cp ~/src/home-dashboard/.env.example /opt/stacks/dash/.env
 chmod 600 /opt/stacks/dash/.env
 ```
 
@@ -237,10 +244,10 @@ control of HA — it stays in the container and never reaches a browser.
 
 ```bash
 cd /opt/stacks/dash && docker compose up -d --build
-curl -s http://127.0.0.1:8099/api/health      # expect ha.connected true
+curl -s http://127.0.0.1/api/health           # expect ha.connected true
 ```
 
-**The dashboard has no login of its own.** Anyone who can reach port 8099 can read every panel and
+**The dashboard has no login of its own.** Anyone who can reach port 80 can read every panel and
 toggle whatever its `controls` panels list. Keep it on the LAN, reach it over Tailscale, and never
 port-forward it.
 
