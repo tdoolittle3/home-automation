@@ -1,0 +1,162 @@
+{
+  "name": "Frigate person → LLM description → HA notification",
+  "nodes": [
+    {
+      "parameters": {
+        "topics": "frigate/events",
+        "options": {
+          "jsonParseBody": true,
+          "onlyMessage": true
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Frigate MQTT events",
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [0, 0],
+      "credentials": {
+        "mqtt": {
+          "name": "Mosquitto (ladybird)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "end",
+              "operator": { "type": "string", "operation": "equals" }
+            },
+            {
+              "leftValue": "={{ $json.after.label }}",
+              "rightValue": "person",
+              "operator": { "type": "string", "operation": "equals" }
+            },
+            {
+              "leftValue": "={{ $json.after.has_snapshot }}",
+              "rightValue": "",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ]
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Person event ended?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "url": "=http://192.168.0.13:5000/api/events/{{ $json.after.id }}/snapshot.jpg",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Fetch snapshot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, -80]
+    },
+    {
+      "parameters": {
+        "jsCode": "const buffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst evt = $('Person event ended?').first().json;\nreturn [{\n  json: {\n    image_b64: buffer.toString('base64'),\n    camera: evt.after.camera,\n    event_id: evt.after.id,\n  },\n}];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Snapshot to base64",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://REPLACE-WITH-YOUR-LLM-HOST:8000/v1/chat/completions",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"REPLACE-WITH-YOUR-MODEL-NAME\",\n  \"max_tokens\": 100,\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": [\n        {\n          \"type\": \"text\",\n          \"text\": \"This is a security camera snapshot from the '{{ $json.camera }}' camera. Describe what the person is doing in one short line. No preamble.\"\n        },\n        {\n          \"type\": \"image_url\",\n          \"image_url\": { \"url\": \"data:image/jpeg;base64,{{ $json.image_b64 }}\" }\n        }\n      ]\n    }\n  ]\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Describe with local LLM",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, -80]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://192.168.0.13:8123/api/services/persistent_notification/create",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "title",
+              "value": "=Person detected — {{ $('Snapshot to base64').first().json.camera }}"
+            },
+            {
+              "name": "message",
+              "value": "={{ $json.choices[0].message.content }}"
+            },
+            {
+              "name": "notification_id",
+              "value": "=frigate-{{ $('Snapshot to base64').first().json.event_id }}"
+            }
+          ]
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "HA persistent notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, -80],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "Home Assistant token"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Frigate MQTT events": {
+      "main": [[{ "node": "Person event ended?", "type": "main", "index": 0 }]]
+    },
+    "Person event ended?": {
+      "main": [
+        [{ "node": "Fetch snapshot", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Fetch snapshot": {
+      "main": [[{ "node": "Snapshot to base64", "type": "main", "index": 0 }]]
+    },
+    "Snapshot to base64": {
+      "main": [[{ "node": "Describe with local LLM", "type": "main", "index": 0 }]]
+    },
+    "Describe with local LLM": {
+      "main": [[{ "node": "HA persistent notification", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
