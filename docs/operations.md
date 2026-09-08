@@ -39,6 +39,7 @@ surfaces in Home Assistant as:
 - `sensor.ladybird_storage_disk_free` (GB)
 - `sensor.ladybird_storage_frigate_recordings` (GB)
 - `sensor.ladybird_storage_media_library` (GB)
+- `sensor.ladybird_storage_immich_library` (GB)
 - `binary_sensor.ladybird_storage_storage_problem` — build notifications on this; the reason is
   exposed as an attribute
 
@@ -163,6 +164,79 @@ cannot ride along. See the export approach in the repo history.
 
 ---
 
+## Immich
+
+Photo library at `http://192.168.0.13:2283`. Four containers: `immich_server`,
+`immich_machine_learning`, `immich_redis`, `immich_postgres`.
+
+```bash
+cd /opt/stacks/immich && docker compose ps
+docker logs --tail 50 immich_server
+curl -s http://127.0.0.1:2283/api/server/ping     # expect {"res":"pong"}
+```
+
+### Backing it up
+
+**Copying the `postgres/` directory is not a valid backup.** Immich's database carries vector
+extension state; restore it from a logical dump, not a file copy. Dump the database *first*, then
+the library — the other order leaves database rows pointing at files that were not captured yet.
+
+```bash
+cd /opt/stacks/immich
+docker exec -t immich_postgres pg_dump --clean --if-exists --dbname=immich --username=postgres | gzip > /srv/storage/archive/immich-db.sql.gz
+```
+
+Then the originals. `/srv/storage/photos/library`, `upload`, and `profile` are the three that
+matter; `thumbs` and `encoded-video` are regenerable.
+
+```bash
+rsync -aHAX /srv/storage/photos/{library,upload,profile} /path/to/backup/
+```
+
+To restore, per Immich's documented procedure — note the `sed`, which is required, not optional:
+
+```bash
+cd /opt/stacks/immich
+docker compose down -v && docker compose pull && docker compose create
+docker start immich_postgres && sleep 10
+SEDFIX="s/SELECT pg_catalog.set_config('search_path', '', false);/SELECT pg_catalog.set_config('search_path', 'public, pg_catalog', true);/g"
+gunzip --stdout /srv/storage/archive/immich-db.sql.gz | sed "$SEDFIX" | docker exec -i immich_postgres psql --dbname=immich --username=postgres --single-transaction --set ON_ERROR_STOP=on
+docker compose up -d
+```
+
+### Upgrading
+
+`IMMICH_VERSION` is pinned to an exact release in `.env`, deliberately — Immich ships breaking
+changes between minor versions and the database image is version-matched to the server. So an
+upgrade is a two-part edit, and the database dump comes first.
+
+1. Dump the database (above).
+2. Read the release notes for every version between the current pin and the target.
+3. Diff the upstream compose against ours — the `database` and `redis` image digests move:
+   `curl -sL https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml`
+4. Bump `IMMICH_VERSION` in `.env` and the two pinned digests in `docker-compose.yml` together.
+5. `docker compose pull && docker compose up -d`, then watch `docker logs -f immich_server` for
+   the migration to complete.
+
+### Machine learning runs on CPU, on purpose
+
+`immich-machine-learning` uses the CPU build. The OpenVINO build would share the iGPU with
+Frigate's object detector, and Immich's initial import is a long saturating batch — Frigate is the
+workload that must not stall. To switch it later, once the library has finished importing:
+
+```bash
+# in docker-compose.yml, on immich-machine-learning:
+#   image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-openvino
+#   device_cgroup_rules: ['c 189:* rmw']
+#   devices: [/dev/dri:/dev/dri]
+#   volumes: [model-cache:/cache, /dev/bus/usb:/dev/bus/usb]
+```
+
+Watch `sudo intel_gpu_top` and Frigate's inference speed afterwards. If Frigate's ~10 ms
+inference degrades, revert — the photo library can wait, the cameras cannot.
+
+---
+
 ## Renaming a camera
 
 More than a config edit — four places hold the old name:
@@ -244,7 +318,9 @@ Worth capturing periodically, none of it in git:
 | Stack configs | `/opt/stacks` (already a git repo) |
 | HA configuration + state | `/opt/stacks/home/homeassistant/` including `.storage/` |
 | Frigate event database | `/opt/stacks/frigate/config/*.db` |
+| Immich database + library | see the Immich section above — **a copy of `postgres/` is not a valid backup** |
 | Camera credentials | `.env` here, `/opt/stacks/frigate/.env`, `.camcreds` |
+| Immich database password | `/opt/stacks/immich/.env` |
 
 Recordings in `/srv/storage/frigate` are intentionally *not* backed up — they age out by design.
 
