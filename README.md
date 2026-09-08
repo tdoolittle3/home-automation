@@ -60,8 +60,10 @@ port-forward Frigate.
 ### Detection
 
 Object detection runs on the Intel iGPU via OpenVINO (`ssdlite_mobilenet_v2`) at roughly 10 ms per
-inference; Frigate decodes with VAAPI. Both cameras feed a 704×480 detect stream at 5 fps and
-record a 2688×1520 main stream.
+inference; Frigate decodes with VAAPI. The driveway camera feeds a 1280×720 detect stream (its
+third stream, `subtype=2`) at 5 fps; the backyard camera feeds 704×480 at 5 fps. Both record a
+2688×1520 main stream. The driveway streams go through go2rtc so the UI live view can show the
+full 4MP main stream or the 720p sub stream.
 
 ### Retention
 
@@ -307,8 +309,12 @@ Each of these cost real debugging time. Read before changing anything.
   truncating the loop. Drop `-i` and redirect `</dev/null`.
 - **Recordings are owned by root** (the container writes as root), so removing them from the host
   needs sudo.
-- Both cameras' **sub-streams cap at 704×480 (D1)**. Frigate's `detect` block must match, or
-  detection silently runs on a mismatched frame size.
+- **Sub stream 1 (`subtype=1`) caps at 704×480 (D1) on both cameras**, but the T54PRO-ZE's
+  sub stream 2 (`subtype=2`) goes to 720p/1080p. Frigate's `detect` block must match whichever
+  stream it reads, or detection silently runs on a mismatched frame size.
+- **The camera web UI can report "saved" without writing anything.** Enabling sub stream 2 from
+  the UI returned success and changed nothing; the API call worked first time. Always read the
+  config back over the API after a UI change.
 
 ---
 
