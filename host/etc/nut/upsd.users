@@ -1,0 +1,7 @@
+# The account upsmon uses to watch the UPS. The password is machine-local and
+# never committed: the install step generates one and seds it into this file
+# and upsmon.conf together (see docs/operations.md -> UPS and power).
+# upsd only listens on loopback, so the blast radius of this secret is the box.
+[monmaster]
+    password = __NUT_MON_PASSWORD__
+    upsmon master

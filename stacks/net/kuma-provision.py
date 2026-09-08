@@ -164,21 +164,25 @@ def main():
             else:
                 print(f"monitor       {name}: would create ({m['type']})")
 
-        # ---- the push URL the storage guard needs --------------------------
+        # ---- the push URLs the guards need ----------------------------------
         if apply:
-            guard = next((mon for mon in api.get_monitors() if mon["name"] == "Storage guard"), None)
-            if guard and guard.get("pushToken"):
-                # The trailing "?ping=" is load-bearing. disk-guard.sh appends
-                # "&status=up&msg=..." to whatever this file holds, so without a
+            monitors_now = api.get_monitors()
+            for m in spec["monitors"]:
+                if m["type"] != "push" or "push_url_file" not in m:
+                    continue
+                mon = next((x for x in monitors_now if x["name"] == m["name"]), None)
+                if not (mon and mon.get("pushToken")):
+                    continue
+                # The trailing "?ping=" is load-bearing. The guards append
+                # "&status=up&msg=..." to whatever the file holds, so without a
                 # query string already open the whole thing lands in the path and
                 # Kuma reads it as a bogus token - 404, and the guard never beats.
-                push_url = f"{url}/api/push/{guard['pushToken']}?ping="
+                push_url = f"{url}/api/push/{mon['pushToken']}?ping="
                 print(
-                    f"\nStorage guard push URL:\n  {push_url}\n\n"
-                    "Put it on the server, keeping the '?ping=' suffix, then beat it once:\n"
-                    f"  printf '%s\\n' '{push_url}' > /opt/stacks/net/kuma-push-url.txt\n"
-                    "  chmod 600 /opt/stacks/net/kuma-push-url.txt\n"
-                    "  /opt/stacks/net/disk-guard.sh"
+                    f"\n{m['name']} push URL:\n  {push_url}\n\n"
+                    "Put it on the server, keeping the '?ping=' suffix:\n"
+                    f"  printf '%s\\n' '{push_url}' > {m['push_url_file']}\n"
+                    f"  chmod 600 {m['push_url_file']}"
                 )
     finally:
         api.disconnect()

@@ -75,7 +75,7 @@ monitors:
   - name: Dashboard
     group: Core services
     type: json-query
-    url: http://192.168.0.13:8099/api/health
+    url: http://192.168.0.13/api/health   # port 80 - the container maps 80->8099
     json_path: $.ha.connected
     expected_value: "true"
     interval: 120
@@ -125,9 +125,22 @@ monitors:
     type: push
     heartbeat_interval: 900        # guard beats every 10 min; 15 min of silence is down
     retries: 0
-    # The push URL Kuma generates goes in /opt/stacks/net/kuma-push-url.txt.
+    push_url_file: /opt/stacks/net/kuma-push-url.txt
     # disk-guard.sh beats this ONLY while healthy, so a warning, a critical, a
     # hung timer, and a dead server all surface the same way: silence.
+
+  - name: UPS power
+    group: Host and network
+    type: push
+    heartbeat_interval: 300        # guard beats every minute; five silent minutes is down
+    retries: 0
+    push_url_file: /opt/stacks/net/kuma-push-url-ups.txt
+    # The inverse semantics of Storage guard: ups-guard.sh pushes status=down
+    # ACTIVELY when power is lost, the battery is low or failed, or the UPS is
+    # unreachable over USB - the box survives an outage on battery, so it can
+    # say so itself and the alert is immediate. Silence stays as the fallback
+    # for a hung timer or crashed NUT. Requires NUT on the host: see
+    # docs/operations.md -> UPS and power.
 
   - name: Router
     group: Host and network

@@ -85,6 +85,89 @@ curl line by hand.
 
 ---
 
+## UPS and power
+
+The rack UPS (CyberPower PR1500LCDRT2U) is cabled to the host over USB. NUT's `usbhid-ups`
+driver reads it, `upsmon` shuts the host down cleanly when the battery runs out, and
+`ups-guard.timer` runs [ups-guard.sh](../stacks/net/ups-guard.sh) every minute to publish to MQTT
+and report to the Uptime Kuma **UPS power** push monitor.
+
+Home Assistant entities (MQTT discovery, device "Ladybird UPS"):
+
+- `sensor.ladybird_ups_battery_charge` (%)
+- `sensor.ladybird_ups_battery_runtime` (min)
+- `sensor.ladybird_ups_ups_load` (%)
+- `sensor.ladybird_ups_input_voltage` (V)
+- `binary_sensor.ladybird_ups_power_problem` — the reason is exposed as an attribute
+
+Thresholds live in `/opt/stacks/net/ups-guard.conf` and are re-read every run — **edits need no
+restart**.
+
+Alerting is split by severity, and the split is the design: **critical** (on battery, low battery,
+failed battery, unreachable UPS) pushes the Kuma monitor down with `status=down`, which is an
+immediate ntfy alert — the box survives an outage on battery, so unlike the storage guard it can
+report its own emergency. **Warning** (overload, bypass, a battery that will not recover charge or
+predicts under 10 minutes of runtime) keeps Kuma up but turns on the HA problem sensor, so a dying
+battery is visible without paging. Silence remains the fallback either way: five minutes without a
+beat and the monitor goes down, catching a hung timer or a crashed NUT.
+
+### First-time install (needs sudo)
+
+```bash
+apt install -y nut
+cp host/etc/nut/{nut.conf,ups.conf,upsd.conf,upsd.users,upsmon.conf} /etc/nut/
+NUTPASS=$(head -c 16 /dev/urandom | base64 | tr -dc 'a-z0-9')
+sed -i "s/__NUT_MON_PASSWORD__/$NUTPASS/" /etc/nut/upsd.users /etc/nut/upsmon.conf
+chown root:nut /etc/nut/*.conf /etc/nut/upsd.users && chmod 640 /etc/nut/*.conf /etc/nut/upsd.users
+systemctl restart nut-server nut-monitor
+upsc cyberpower                               # full variable dump; ups.status should be OL
+```
+
+The NUT password is machine-local and generated at install: `upsd` listens on loopback only, so
+nothing else ever needs it — it is not in `.env` and not worth managing.
+
+Then the guard:
+
+```bash
+cp host/etc/systemd/system/ups-guard.* /etc/systemd/system/
+systemctl daemon-reload && systemctl enable --now ups-guard.timer
+/opt/stacks/net/ups-guard.sh --discovery      # publishes MQTT discovery so HA creates the sensors
+```
+
+And wire Kuma: create the **UPS power** push monitor (kuma-provision.py or the UI) and put its
+push URL — trailing `?ping=` included — into `/opt/stacks/net/kuma-push-url-ups.txt`, mode 600.
+Same recovery path as the storage guard if Kuma is ever rebuilt:
+
+```bash
+TOKEN=$(docker exec uptime-kuma sqlite3 /app/data/kuma.db   "select push_token from monitor where name='UPS power'")
+printf 'http://127.0.0.1:3001/api/push/%s?ping=
+' "$TOKEN" > /opt/stacks/net/kuma-push-url-ups.txt
+chmod 600 /opt/stacks/net/kuma-push-url-ups.txt
+/opt/stacks/net/ups-guard.sh                  # one-line summary; the monitor flips Up in seconds
+```
+
+**The UPS power monitor is red.** Three distinct causes, told apart from the host:
+
+```bash
+/opt/stacks/net/ups-guard.sh && systemctl status ups-guard.timer
+```
+
+The guard's own summary line says which: `on battery` is a real outage in progress, `UPS
+unreachable` means NUT or the USB cable (check `lsusb` for `0764:0601` and
+`systemctl status nut-server`), and a clean `ok` with the monitor still red is a stale push URL —
+same failure mode as the storage guard above.
+
+**Delivery caveat during a real outage:** the alert path is server → LAN → internet → ntfy.sh →
+phone. It survives a power cut only as far as the network gear is also on the UPS. If the modem,
+router, and switch are not on protected outlets, Kuma still records the event but the push arrives
+when power (and the uplink) return.
+
+`upsmon` is configured separately from all alerting: at low battery it runs `shutdown -h now`, so
+an exhausted battery produces a clean halt instead of the mid-write power cut this box has already
+eaten once. With BIOS "Power on after AC loss" set, the box comes back by itself.
+
+---
+
 ## Uptime Kuma
 
 The watchdog at `http://192.168.0.13:3001`. Monitors are defined in

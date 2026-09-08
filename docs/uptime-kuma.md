@@ -16,7 +16,7 @@ live in a SQLite database at `net/uptime-kuma/kuma.db`, which is gitignored
 because it also holds the admin password hash and the ntfy token. So the YAML
 is a definition Kuma never reads, and something has to carry it across.
 
-**By hand**, following step 3 below. Eleven monitors and three groups is about
+**By hand**, following step 3 below. Twelve monitors and three groups is about
 twenty minutes of clicking, once.
 
 **With [kuma-provision.py](../stacks/net/kuma-provision.py)**, which reads the
@@ -219,7 +219,40 @@ sudo systemctl start disk-guard.timer
 
 ---
 
-## 5. Optional additions
+## 5. Wire the UPS guard's push monitor
+
+Same mechanics as the storage guard — create the **UPS power** push monitor from
+the YAML, put the push URL (trailing `?ping=` included) where the guard reads it:
+
+```bash
+printf '%s\n' "http://192.168.0.13:3001/api/push/XXXXXXXXXX?ping=" > /opt/stacks/net/kuma-push-url-ups.txt
+chmod 600 /opt/stacks/net/kuma-push-url-ups.txt && /opt/stacks/net/ups-guard.sh
+```
+
+— but the alert logic is deliberately the inverse. The storage guard goes silent
+when unhealthy because the failures it watches for can kill the reporter. A
+power failure is the one failure this box *survives*, on battery — so
+`ups-guard.sh` beats every minute and pushes `status=down` itself the moment the
+UPS reports on-battery, low-battery, failed-battery, or stops answering over
+USB. The alert is immediate rather than a heartbeat-window late. Silence still
+counts as down after five minutes, which covers a hung timer or a dead NUT.
+
+It needs NUT running on the host first — install steps are in
+[operations.md](operations.md#ups-and-power).
+
+Verify both directions once, now:
+
+```bash
+/opt/stacks/net/ups-guard.sh        # monitor flips Up, msg shows charge/runtime
+sudo systemctl stop nut-server      # guard now reports "UPS unreachable"
+/opt/stacks/net/ups-guard.sh        # pushes status=down - expect the ntfy alert
+sudo systemctl start nut-server
+/opt/stacks/net/ups-guard.sh        # back to Up, and a recovery notification
+```
+
+---
+
+## 6. Optional additions
 
 **A status page.** Kuma can publish a read-only page listing every monitor. It is
 genuinely useful on a phone, but it is unauthenticated by default and lists your
