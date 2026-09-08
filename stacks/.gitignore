@@ -16,3 +16,5 @@ media/cache/
 net/uptime-kuma/
 # Immich runtime state — postgres data and the generated .env (see immich/.env.example)
 immich/postgres/
+net/kuma-push-url.txt
+net/.venv/

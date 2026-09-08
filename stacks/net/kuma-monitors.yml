@@ -1,0 +1,150 @@
+# Uptime Kuma monitor set for ladybird — the source of truth.
+#
+# Kuma 1.x keeps everything in SQLite at net/uptime-kuma/kuma.db, which is
+# gitignored (it holds the password hash and the notification token). So this
+# file is the tracked definition and the UI is the copy: change it here first,
+# then apply. Rebuild instructions are in docs/uptime-kuma.md.
+#
+# Addresses are the host LAN IP, not localhost — Kuma runs in a bridge
+# container, and Home Assistant runs with host networking.
+
+settings:
+  primary_base_url: http://192.168.0.13:3001   # makes notification links clickable
+  timezone: America/Denver
+  history_retention_days: 90
+  check_update: false                          # the :1 tag pins the major anyway
+
+notifications:
+  - name: ntfy
+    type: ntfy
+    server: https://ntfy.sh
+    topic: SEE-.env-ON-THE-SERVER              # high-entropy, never committed
+    priority: 4                                # 4 = high; arrives with sound
+    default_enabled: true                      # applied to every monitor below
+
+groups:
+  - name: Core services
+  - name: Cameras
+  - name: Host and network
+
+monitors:
+
+  # ---- Core services -------------------------------------------------------
+
+  - name: Home Assistant
+    group: Core services
+    type: http
+    url: http://192.168.0.13:8123/
+    interval: 60
+    retries: 2
+    retry_interval: 60
+    accepted_status: [200]
+    # HA is http-only by design (host networking, no TLS) — see README.
+
+  - name: Frigate API
+    group: Core services
+    type: http
+    url: http://192.168.0.13:5000/api/version
+    interval: 60
+    retries: 2
+    retry_interval: 60
+    accepted_status: [200]
+    # Deliberately NOT a keyword monitor on the version string — that would go
+    # red on every Frigate upgrade rather than on an actual outage.
+
+  - name: Frigate UI
+    group: Core services
+    type: http
+    url: https://192.168.0.13:8971/
+    interval: 60
+    retries: 2
+    retry_interval: 60
+    accepted_status: [200]
+    ignore_tls: true               # Frigate self-signs; without this it is always down
+    expiry_notification: false     # and the self-signed cert would nag forever
+
+  - name: Jellyfin
+    group: Core services
+    type: keyword
+    url: http://192.168.0.13:8096/health
+    keyword: Healthy
+    interval: 120
+    retries: 2
+    retry_interval: 60
+
+  - name: Dashboard
+    group: Core services
+    type: json-query
+    url: http://192.168.0.13:8099/api/health
+    json_path: $.ha.connected
+    expected_value: "true"
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    # A plain 200 check would pass while the panels sat empty: the dashboard
+    # answers fine with a revoked HA_TOKEN. This goes red instead — the fix is
+    # the force-recreate in docs/operations.md.
+
+  - name: Mosquitto
+    group: Core services
+    type: port
+    hostname: 192.168.0.13
+    port: 1883
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    # TCP-open only. For a check that also proves the storage guard is
+    # publishing, see "Deeper MQTT check" in docs/uptime-kuma.md.
+
+  # ---- Cameras -------------------------------------------------------------
+  # Ping only. Never point an HTTP monitor with credentials at a camera — the
+  # whole design is that nothing authenticates to them except the server.
+  # Frigate already reports stream health; these catch a dead PoE port or a
+  # rebooted camera within minutes.
+
+  - name: Camera driveway
+    group: Cameras
+    type: ping
+    hostname: 10.10.10.201
+    interval: 120
+    retries: 3
+    retry_interval: 60
+
+  - name: Camera backyard
+    group: Cameras
+    type: ping
+    hostname: 10.10.10.202
+    interval: 120
+    retries: 3
+    retry_interval: 60
+
+  # ---- Host and network ----------------------------------------------------
+
+  - name: Storage guard
+    group: Host and network
+    type: push
+    heartbeat_interval: 900        # guard beats every 10 min; 15 min of silence is down
+    retries: 0
+    # The push URL Kuma generates goes in /opt/stacks/net/kuma-push-url.txt.
+    # disk-guard.sh beats this ONLY while healthy, so a warning, a critical, a
+    # hung timer, and a dead server all surface the same way: silence.
+
+  - name: Router
+    group: Host and network
+    type: ping
+    hostname: 192.168.0.1
+    interval: 300
+    retries: 2
+    retry_interval: 60
+
+  - name: Internet
+    group: Host and network
+    type: http
+    url: https://one.one.one.one
+    interval: 300
+    retries: 2
+    retry_interval: 60
+    accepted_status: [200]
+    # Context, not an alert you can act on — if this is down, ntfy cannot
+    # deliver either. Its value is the history: it tells you whether last
+    # night's red wall was the server or the ISP.

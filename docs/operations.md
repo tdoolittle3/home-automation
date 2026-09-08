@@ -85,6 +85,41 @@ curl line by hand.
 
 ---
 
+## Uptime Kuma
+
+The watchdog at `http://192.168.0.13:3001`. Monitors are defined in
+[../stacks/net/kuma-monitors.yml](../stacks/net/kuma-monitors.yml) and applied by hand;
+setup and rebuild are in [uptime-kuma.md](uptime-kuma.md).
+
+```bash
+docker logs --tail 50 uptime-kuma
+cat /opt/stacks/net/kuma-push-url.txt         # empty or stale = the watchdog is off
+```
+
+Day-to-day, two failure modes are worth knowing:
+
+**A monitor is red but the service works.** Check the address it is probing. Kuma runs in a bridge
+container, so `localhost` means Kuma itself — every monitor must target `192.168.0.13`. The Frigate
+UI monitor additionally needs *Ignore TLS/SSL error*, since Frigate self-signs.
+
+**The storage guard monitor is red.** That is the inverted one: the guard beats it **only while
+status is ok**, so red means either a real storage problem or that the guard stopped running. Tell
+them apart from the host:
+
+```bash
+/opt/stacks/net/disk-guard.sh && systemctl status disk-guard.timer
+```
+
+A clean exit here with the monitor still red means the push URL is stale — most likely Kuma's
+database was recreated, which issues a new token. Copy the current URL off the monitor's page into
+`/opt/stacks/net/kuma-push-url.txt`. Nothing logs this failure; the guard POSTs into the void.
+
+**Pausing alerts for planned work.** Pause the affected monitors in the UI before a reboot or a
+stack rebuild, rather than muting the ntfy topic on the phone — a muted topic stays muted through
+the next real outage.
+
+---
+
 ## Dashboard
 
 The custom UI at `http://ladybird/` (`http://192.168.0.13/`, port 80). The application lives in the separate
@@ -321,6 +356,7 @@ Worth capturing periodically, none of it in git:
 | Immich database + library | see the Immich section above — **a copy of `postgres/` is not a valid backup** |
 | Camera credentials | `.env` here, `/opt/stacks/frigate/.env`, `.camcreds` |
 | Immich database password | `/opt/stacks/immich/.env` |
+| Uptime Kuma | *not* backed up — `net/uptime-kuma/` is recreated from [uptime-kuma.md](uptime-kuma.md) |
 
 Recordings in `/srv/storage/frigate` are intentionally *not* backed up — they age out by design.
 

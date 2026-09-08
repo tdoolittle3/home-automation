@@ -20,3 +20,7 @@
 *.tar.gz
 *.bak
 *.bak.*
+
+# Python scratch
+__pycache__/
+*.pyc
