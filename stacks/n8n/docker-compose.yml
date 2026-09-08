@@ -1,0 +1,35 @@
+services:
+  n8n:
+    container_name: n8n
+    image: docker.n8n.io/n8nio/n8n:latest
+    restart: unless-stopped
+    ports:
+      # LAN-only. To lock it down to the host (access via Tailscale or an SSH
+      # tunnel instead), change to "127.0.0.1:5678:5678".
+      - "5678:5678"
+    volumes:
+      # SQLite DB, encryption key, and workflows. The container runs as the
+      # non-root `node` user (UID 1000), so before first start:
+      #   mkdir -p n8n-data && chown -R 1000:1000 n8n-data
+      - ./n8n-data:/home/node/.n8n
+    environment:
+      TZ: America/Denver
+      # Schedule/Cron nodes read this one, not TZ.
+      GENERIC_TIMEZONE: America/Denver
+      # n8n is served over plain HTTP on the LAN. Without this the session
+      # cookie is marked Secure and the browser drops it on
+      # http://192.168.0.13:5678, making login impossible.
+      N8N_SECURE_COOKIE: "false"
+      # What webhook nodes display as their public URL.
+      WEBHOOK_URL: http://192.168.0.13:5678/
+      N8N_DIAGNOSTICS_ENABLED: "false"
+      # Bridge networking, same as the dash stack: sibling services are
+      # addressed by LAN IP, not container name — Home Assistant is
+      # host-networked and Frigate/Mosquitto are separate compose projects.
+      #   MQTT:    192.168.0.13:1883   Frigate API: 192.168.0.13:5000
+      #   HA API:  192.168.0.13:8123
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 1G
