@@ -1,0 +1,8 @@
+[Unit]
+Description=Frigate liveness guard (streams, detection, recording freshness)
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/stacks/net/frigate-guard.sh

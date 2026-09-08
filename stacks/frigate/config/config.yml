@@ -15,6 +15,14 @@ detectors:
     device: GPU
 ffmpeg:
   hwaccel_args: preset-vaapi
+# ---- Object detection ----
+# Frigate 0.17 defaults detect.enabled to FALSE. Without this block the cameras
+# stream and record fine but the detector never runs: no events, no alerts, and
+# the alerts/detections tiers below retain nothing.
+# Set globally, not per-camera, so cameras added later inherit it rather than
+# silently defaulting back off.
+detect:
+  enabled: true
 # ---- go2rtc restreams ----
 # Frigate pulls each camera stream once through go2rtc; the UI live view and the
 # detect/record roles all read from these. driveway_sub is the camera's third
