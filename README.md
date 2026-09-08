@@ -88,7 +88,7 @@ stacks/          -> deploys to /opt/stacks on the server
   home/          Home Assistant + Mosquitto
   media/         Jellyfin
   immich/        Immich photo library (its own stack)
-  net/           Uptime Kuma + the storage guard (kuma-monitors.yml defines the monitor set)
+  net/           Uptime Kuma + the storage and UPS guards (kuma-monitors.yml defines the monitor set)
 host/etc/        -> deploys to /etc on the server
 host/snippets/   fragments to append to existing system files
 docs/            camera provisioning, operations runbook, Uptime Kuma setup
@@ -228,6 +228,17 @@ tailscale up --advertise-routes=192.168.0.0/24 --accept-routes
 apt install -y samba
 cat host/snippets/samba-files-share.conf >> /etc/samba/smb.conf
 smbpasswd -a <user> && systemctl restart smbd
+
+# NUT + UPS guard (full walkthrough: docs/operations.md -> UPS and power)
+apt install -y nut
+cp host/etc/nut/{nut.conf,ups.conf,upsd.conf,upsd.users,upsmon.conf} /etc/nut/
+NUTPASS=$(head -c 16 /dev/urandom | base64 | tr -dc 'a-z0-9')
+sed -i "s/__NUT_MON_PASSWORD__/$NUTPASS/" /etc/nut/upsd.users /etc/nut/upsmon.conf
+chown root:nut /etc/nut/*.conf /etc/nut/upsd.users && chmod 640 /etc/nut/*.conf /etc/nut/upsd.users
+systemctl restart nut-server nut-monitor && upsc cyberpower | grep ups.status   # expect OL
+cp host/etc/systemd/system/ups-guard.* /etc/systemd/system/
+systemctl daemon-reload && systemctl enable --now ups-guard.timer
+/opt/stacks/net/ups-guard.sh --discovery
 ```
 
 ### 11. Dashboard
@@ -293,6 +304,8 @@ Recreate these by hand on a fresh deploy. Nothing here is recoverable from this 
 |---|---|
 | `.env` (this repo) | `SSH_PW`, `CAMERA_PW`, `NTFY_TOPIC` — see [.env.example](.env.example) |
 | `/opt/stacks/net/kuma-push-url.txt` | the storage guard's Kuma push URL, mode 600 — regenerated per Kuma rebuild |
+| `/opt/stacks/net/kuma-push-url-ups.txt` | the UPS guard's Kuma push URL, mode 600 — regenerated per Kuma rebuild |
+| `/etc/nut/upsd.users`, `/etc/nut/upsmon.conf` | the NUT monitor password — machine-local, generated at install, never stored elsewhere |
 | Uptime Kuma admin account | created on first visit to port 3001; store it in your password manager |
 | `/opt/stacks/frigate/.env` | `FRIGATE_RTSP_PASSWORD=` the camera admin password, mode 600 |
 | `/opt/stacks/home/homeassistant/.camcreds` | curl digest config for camera control, mode 600 |
@@ -354,7 +367,9 @@ Each of these cost real debugging time. Read before changing anything.
   on. The storage guard alerts but deliberately never deletes. A real cap means a separate
   filesystem for `/srv/storage`, which belongs with the Phase 2 drive.
 - **Immich has no automated backup.** The library is irreplaceable in a way recordings are not, and a copy of the Postgres directory does not count — it needs a logical dump. The procedure is in [docs/operations.md](docs/operations.md#immich); it is not yet on a timer.
-- **UPS monitoring (NUT) not configured** — no UPS attached yet.
+- ~~UPS monitoring (NUT) not configured~~ Done 2026-09-08: the rack's CyberPower PR1500LCDRT2U is
+  on USB, NUT + `ups-guard.timer` report to the "UPS power" Kuma monitor, and `upsmon` halts the
+  box cleanly at low battery. See `docs/operations.md` → UPS and power.
 - **LAN address is DHCP.** Set a router reservation for MAC `38:05:25:35:71:69`.
 - **Uptime Kuma push monitor needs a file that is not in this repo.** The storage guard beats the
   "Storage guard" push monitor only if `/opt/stacks/net/kuma-push-url.txt` exists (see

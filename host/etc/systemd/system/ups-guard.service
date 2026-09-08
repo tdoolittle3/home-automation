@@ -1,0 +1,9 @@
+[Unit]
+Description=UPS guard (NUT to MQTT for Home Assistant, push to Uptime Kuma)
+After=nut-server.service docker.service
+Wants=nut-server.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/stacks/net/ups-guard.sh
+StateDirectory=ups-guard
