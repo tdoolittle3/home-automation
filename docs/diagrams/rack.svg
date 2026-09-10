@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1150" viewBox="0 0 1200 1150" role="img" aria-labelledby="title desc">
+  <title id="title">Ladybird rack elevation and confirmed USB connection</title>
+  <desc id="desc">Owner-confirmed eight-unit rack elevation. N600 modem router stands vertically on top. U8 Tecmojo shelf holds the TL-SG105MPE and a Raspberry Pi 2, a planned watchdog not yet configured. U7 contains a half-unit patch panel and half-unit gap. U6 through U4 are free. U3 GeeekPi passthrough shelf holds the Minisforum M1 Plus. U2 is an ElecVoztile PDU. U1 is the included shelf holding flat power bricks. CyberPower CP1000AVRLCDa sits on the floor and connects to the mini PC by USB. The UPS powers the PDU and directly powers the N600. All other powered rack equipment, including the Pi, plugs into the PDU. Equipment drawings, left-to-right placement and cable routes are schematic, not dimensionally accurate.</desc>
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101e34"/><stop offset="1" stop-color="#080f1d"/></linearGradient>
+    <pattern id="vent" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M2 0v6" stroke="#415069" stroke-width="2"/></pattern>
+    <style>text{font-family:Inter,"Segoe UI",Arial,sans-serif;fill:#edf3fc}.eyebrow{font-size:13px;font-weight:700;letter-spacing:2px;fill:#66dfcf}.title{font-size:38px;font-weight:700}.sub{font-size:16px;fill:#afbed3}.label{font-size:20px;font-weight:650}.body{font-size:16px;fill:#bfccdf}.small{font-size:13px;fill:#afbed3}.unit{font:700 16px Consolas,monospace;fill:#8bbcff}.shelf{fill:#34435a;stroke:#64758d}.guide{stroke:#354963;stroke-dasharray:4 5}.leader{stroke:#607590;fill:none}.usb{stroke:#c4abff;stroke-width:3;fill:none}</style>
+  </defs>
+  <rect width="1200" height="1150" rx="24" fill="url(#bg)"/>
+  <text x="48" y="47" class="eyebrow">LADYBIRD / SYSTEM ATLAS / 03</text><text x="48" y="100" class="title">A place for every piece.</text>
+  <text x="48" y="132" class="sub">Front elevation · owner-confirmed placement · schematic equipment silhouettes</text>
+
+  <path d="M146 193h17v669h-17M493 193h17v669h-17" fill="#34435a" stroke="#64758d"/>
+  <rect x="163" y="285" width="330" height="576" fill="#0c1524" stroke="#64758d"/>
+  <path d="M163 357h330M163 429h330M163 501h330M163 573h330M163 645h330M163 717h330M163 789h330" class="guide"/>
+  <path d="M163 285h330" stroke="#64758d" stroke-width="4"/>
+  <rect x="285" y="178" width="65" height="99" rx="8" fill="#24364f" stroke="#8bbcff"/>
+  <rect x="296" y="192" width="35" height="62" fill="url(#vent)"/>
+  <circle cx="340" cy="263" r="3" fill="#66dfcf"/><rect x="273" y="277" width="91" height="8" rx="3" class="shelf"/>
+  <text x="54" y="236" class="unit">TOP</text>
+  <path d="M353 230h270" class="leader"/><text x="644" y="225" class="label">N600 modem / router</text><text x="644" y="251" class="body">Vertical · power directly from UPS</text>
+
+  <text x="64" y="328" class="unit">U8</text>
+  <rect x="183" y="341" width="290" height="11" class="shelf"/>
+  <rect x="194" y="304" width="180" height="36" rx="4" fill="#24364f" stroke="#66dfcf"/>
+  <text x="205" y="319" class="small" style="font-size:10px">TL-SG105MPE</text>
+  <path d="M253 322h17v10h-17zM276 322h17v10h-17zM299 322h17v10h-17zM322 322h17v10h-17zM345 322h17v10h-17z" fill="#0a1321" stroke="#66dfcf"/>
+  <rect x="388" y="311" width="72" height="29" rx="4" fill="#173439" stroke="#f7c66d"/><text x="424" y="331" text-anchor="middle" class="small">Pi 2</text>
+  <path d="M510 323h113" class="leader"/><text x="644" y="310" class="label">Tecmojo shelf / switch + Pi 2</text><text x="644" y="335" class="body">TL-SG105MPE + Raspberry Pi 2 · PDU-powered</text><text x="644" y="357" class="small">Pi: planned off-host watchdog, not yet configured</text>
+
+  <text x="64" y="400" class="unit">U7</text>
+  <rect x="177" y="363" width="302" height="27" rx="3" fill="#24364f" stroke="#64758d"/>
+  <text x="328" y="382" text-anchor="middle" class="small">PATCH PANEL · 0.5U</text>
+  <text x="328" y="415" text-anchor="middle" class="small">0.5U gap</text>
+  <path d="M510 389h113" class="leader"/><text x="644" y="390" class="label">Patch panel + half-U gap</text><text x="644" y="416" class="small">Exact within-U arrangement / port count unconfirmed</text>
+
+  <text x="64" y="472" class="unit">U6</text><text x="64" y="544" class="unit">U5</text><text x="64" y="616" class="unit">U4</text>
+  <rect x="183" y="447" width="290" height="181" rx="10" fill="#111e30" stroke="#354963" stroke-dasharray="6 6"/>
+  <text x="328" y="531" text-anchor="middle" class="label" style="fill:#71859f">3U FREE</text><text x="328" y="560" text-anchor="middle" class="small">U6 · U5 · U4</text>
+  <path d="M510 540h113" class="leader"/><text x="644" y="533" class="label">Room to grow</text><text x="644" y="560" class="body">Three unoccupied rack units</text>
+
+  <text x="64" y="688" class="unit">U3</text>
+  <rect x="183" y="701" width="290" height="11" class="shelf"/>
+  <rect x="244" y="655" width="168" height="45" rx="7" fill="#33475e" stroke="#8bbcff"/>
+  <text x="263" y="674" class="small">MINISFORUM</text><path d="M259 684h96" stroke="#101e34" stroke-width="4"/><circle cx="397" cy="686" r="4" fill="#66dfcf"/>
+  <path d="M510 677h113" class="leader"/><text x="644" y="673" class="label">GeeekPi passthrough shelf</text><text x="644" y="700" class="body">Minisforum M1 Plus / ladybird</text>
+
+  <text x="64" y="760" class="unit">U2</text>
+  <rect x="177" y="732" width="302" height="42" rx="4" fill="#282c35" stroke="#f7c66d"/>
+  <text x="328" y="758" text-anchor="middle" class="small" style="fill:#f7c66d">ELECVOZTILE PDU</text>
+  <path d="M510 753h113" class="leader"/><text x="644" y="749" class="label">ElecVoztile PDU</text><text x="644" y="776" class="body">UPS-fed · powers rack equipment except N600</text>
+
+  <text x="64" y="832" class="unit">U1</text>
+  <rect x="183" y="845" width="290" height="11" class="shelf"/>
+  <rect x="220" y="818" width="216" height="26" rx="5" fill="#292b33" stroke="#64758d"/><text x="328" y="836" text-anchor="middle" class="small">POWER BRICKS / FLAT</text>
+  <path d="M510 829h113" class="leader"/><text x="644" y="822" class="label">Included shelf</text><text x="644" y="849" class="body">Power bricks laid flat · quantity unspecified</text>
+
+  <path d="M138 880h378" stroke="#64758d" stroke-width="3"/>
+  <text x="48" y="946" class="unit">FLOOR</text>
+  <rect x="264" y="902" width="128" height="133" rx="10" fill="#202d41" stroke="#c4abff"/>
+  <rect x="291" y="919" width="74" height="36" rx="4" fill="#173439" stroke="#66dfcf"/><text x="328" y="943" text-anchor="middle" class="small" style="fill:#66dfcf">UPS</text>
+  <rect x="282" y="972" width="92" height="45" fill="url(#vent)"/>
+  <path d="M392 973h231" class="leader"/><text x="644" y="969" class="label">CyberPower CP1000AVRLCDa</text><text x="644" y="996" class="body">Floor placement · model reported by NUT over USB</text>
+  <path d="M412 687h135v243H392" class="usb"/><circle cx="412" cy="687" r="4" fill="#c4abff"/><circle cx="392" cy="930" r="4" fill="#c4abff"/>
+  <rect x="561" y="895" width="206" height="35" rx="8" fill="#2b2440"/><text x="575" y="918" class="small" style="fill:#dfd0ff">USB / UPS → mini PC</text>
+  <path d="M264 982H120V246h165M120 750h57" stroke="#f7c66d" stroke-width="3" fill="none"/>
+  <circle cx="120" cy="750" r="4" fill="#f7c66d"/>
+
+  <path d="M48 1068h32" stroke="#f7c66d" stroke-width="3"/><text x="92" y="1073" class="small">AC power / UPS → PDU + N600</text>
+  <text x="460" y="1073" class="small">Full Ethernet + power map: wiring.svg / atlas 05</text>
+  <text x="48" y="1103" class="small">Cable routes, left/right placement and equipment silhouettes are illustrative, not to scale.</text>
+  <text x="48" y="1128" class="small">Placement + power confirmed by owner; USB verified on host · 2026-09-09</text><text x="1152" y="1128" text-anchor="end" class="eyebrow">L / 03</text>
+</svg>

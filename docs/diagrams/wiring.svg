@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1100" viewBox="0 0 1200 1100" role="img" aria-labelledby="title desc">
+  <title id="title">Ladybird physical connections — Ethernet ports and power distribution</title>
+  <desc id="desc">The N600 connects directly to the mini PC LAN port. Mini PC camera NIC enp45s0 connects through patch 5 to TL-SG105MPE port 5. Port and patch 1 serve the driveway IPC-T54PRO-ZE, port and patch 2 the backyard IPC-T24IR-AS, and port and patch 3 a Raspberry Pi 2 on U8. The Pi is PDU-powered and is a planned watchdog, not yet configured. Port 4 usage is unspecified. The floor-standing CyberPower CP1000AVRLCDa powers the U2 ElecVoztile PDU and directly powers the N600. Other powered rack equipment is fed by the PDU. Power arrows show supply direction; Ethernet lines represent connectivity, not cable routing.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101e34"/><stop offset="1" stop-color="#080f1d"/></linearGradient>
+    <marker id="power-arrow" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto"><path d="M0 0l7 3.5L0 7z" fill="#f7c66d"/></marker>
+    <style>text{font-family:Inter,"Segoe UI",Arial,sans-serif;fill:#edf3fc}.eyebrow{font-size:13px;font-weight:700;letter-spacing:2px;fill:#66dfcf}.title{font-size:38px;font-weight:700}.sub{font-size:16px;fill:#afbed3}.label{font-size:21px;font-weight:650}.body{font-size:16px;fill:#bfccdf}.small{font-size:13px;fill:#afbed3}.mono{font:15px Consolas,monospace;fill:#bfccdf}.card{fill:#17273e;stroke:#405673}.ethernet{fill:none;stroke:#8bbcff;stroke-width:3}.poe{fill:none;stroke:#66dfcf;stroke-width:3}.power{fill:none;stroke:#f7c66d;stroke-width:3;marker-end:url(#power-arrow)}</style>
+  </defs>
+  <rect width="1200" height="1100" rx="24" fill="url(#bg)"/>
+  <text x="48" y="47" class="eyebrow">LADYBIRD / SYSTEM ATLAS / 05</text><text x="48" y="100" class="title">Follow the cable. Follow the power.</text>
+  <text x="48" y="132" class="sub">Owner-confirmed connections · shelf locations reference the rack elevation / atlas 03</text>
+
+  <rect x="32" y="164" width="1136" height="452" rx="18" fill="#112339" stroke="#405b86"/>
+  <text x="52" y="196" class="eyebrow" style="fill:#8bbcff">ETHERNET / PHYSICAL ENDPOINTS</text>
+  <rect x="52" y="221" width="251" height="90" rx="12" class="card"/><text x="72" y="252" class="label">N600 / rack top</text><text x="72" y="280" class="small">LAN jack number not supplied</text>
+  <path d="M303 266h84" class="ethernet"/><text x="317" y="251" class="small">Direct</text>
+  <rect x="387" y="221" width="372" height="90" rx="12" class="card"/><text x="407" y="252" class="label">Minisforum M1 Plus / U3</text><text x="407" y="280" class="mono">enp44s0 / LAN · enp45s0 / cameras</text>
+  <path d="M759 266h79" class="ethernet"/><text x="775" y="251" class="small">Data</text>
+  <rect x="838" y="221" width="310" height="90" rx="12" fill="#173439" stroke="#66dfcf"/><text x="858" y="252" class="label">TL-SG105MPE / U8</text><text x="858" y="280" class="mono">Port 5 ← patch 5 ← enp45s0</text>
+
+  <path d="M993 311v32H174v43M462 343v43" class="poe"/>
+  <path d="M993 343H750v43" class="ethernet"/>
+  <circle cx="993" cy="343" r="4" fill="#8bbcff"/>
+  <rect x="52" y="386" width="244" height="132" rx="12" class="card"/><text x="72" y="416" class="eyebrow">PORT 1 → PATCH 1</text><text x="72" y="451" class="label">Driveway camera</text><text x="72" y="480" class="small">IPC-T54PRO-ZE · 10.10.10.201</text><text x="72" y="504" class="small">Ethernet + PoE</text>
+  <rect x="340" y="386" width="244" height="132" rx="12" class="card"/><text x="360" y="416" class="eyebrow">PORT 2 → PATCH 2</text><text x="360" y="451" class="label">Backyard camera</text><text x="360" y="480" class="small">IPC-T24IR-AS · 10.10.10.202</text><text x="360" y="504" class="small">Ethernet + PoE</text>
+  <rect x="628" y="386" width="244" height="132" rx="12" class="card"/><text x="648" y="416" class="eyebrow" style="fill:#8bbcff">PORT 3 → PATCH 3</text><text x="648" y="451" class="label">Raspberry Pi 2 / U8</text><text x="648" y="480" class="small">Ethernet data · PDU-powered</text><text x="648" y="504" class="small">Planned watchdog / not set up</text>
+  <rect x="916" y="386" width="232" height="132" rx="12" fill="#111e30" stroke="#607590" stroke-dasharray="6 6"/><text x="936" y="416" class="eyebrow" style="fill:#afbed3">PORT 4</text><text x="936" y="451" class="label">Not specified</text><text x="936" y="480" class="small">Usage not yet supplied</text>
+  <text x="52" y="555" class="body">U7 patch panel: ports 1, 2, 3 and 5 connect through the correspondingly numbered patch jacks.</text>
+  <text x="52" y="585" class="small">The branching lines group switch endpoints; each endpoint has its own Ethernet connection to the labeled switch port.</text>
+
+  <rect x="32" y="644" width="1136" height="311" rx="18" fill="#302a22" stroke="#77603c"/>
+  <text x="52" y="677" class="eyebrow" style="fill:#f7c66d">POWER / SUPPLY DIRECTION</text>
+  <rect x="52" y="724" width="308" height="153" rx="12" class="card"/><text x="72" y="755" class="label">CyberPower UPS</text><text x="72" y="785" class="mono">CP1000AVRLCDa</text><text x="72" y="817" class="body">Floor placement</text><text x="72" y="852" class="small">Also USB-connected to mini PC</text>
+  <path d="M360 773h49v-29h69M409 773v99h69" class="power"/>
+  <circle cx="409" cy="773" r="4" fill="#f7c66d"/>
+  <rect x="478" y="708" width="286" height="85" rx="12" class="card"/><text x="498" y="741" class="label">ElecVoztile PDU / U2</text><text x="498" y="770" class="small">PDU input plugs into the UPS</text>
+  <rect x="478" y="836" width="286" height="85" rx="12" class="card"/><text x="498" y="869" class="label">N600 / rack top</text><text x="498" y="898" class="small">Plugs directly into the UPS</text>
+  <path d="M764 749h80" class="power"/>
+  <rect x="844" y="708" width="304" height="213" rx="12" class="card"/><text x="864" y="741" class="label">Other rack equipment</text><text x="864" y="774" class="body">Switch · mini PC · Raspberry Pi 2</text><text x="864" y="807" class="small">All powered rack loads except N600</text><text x="864" y="834" class="small">are supplied through the PDU.</text><text x="864" y="865" class="small">Power bricks rest on U1.</text><text x="864" y="895" class="small">AC/DC adapters are summarized.</text>
+  <path d="M48 990h32" class="ethernet"/><text x="92" y="995" class="small">Ethernet data</text><path d="M267 990h32" class="poe"/><text x="311" y="995" class="small">Ethernet + camera PoE</text><path d="M550 990h32" class="power"/><text x="594" y="995" class="small">Power supply</text>
+  <text x="48" y="1035" class="small">UPS outlet numbers / battery-backed versus surge-only outlet selection have not been supplied.</text>
+  <text x="48" y="1073" class="small">Sources: owner wiring description + repository NIC configuration · 2026-09-09</text><text x="1152" y="1073" text-anchor="end" class="eyebrow">L / 05</text>
+</svg>

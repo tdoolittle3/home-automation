@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Camera to dashboard — video, events and host telemetry</title>
+  <desc id="desc">Camera video flows to Frigate. Main streams are recorded, lower-resolution streams are decoded using VAAPI and detected using OpenVINO on the GPU. Frigate publishes MQTT events to Mosquitto, consumed by Home Assistant. Home Assistant's API supplies the dashboard. The dashboard also accesses Frigate, Jellyfin and Kuma APIs. Disk and UPS guards publish MQTT telemetry and send HTTP push heartbeats to Uptime Kuma on the same server. A physically installed Raspberry Pi 2 is planned as an off-host watchdog, but is not configured and has no verified independent notification route.</desc>
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101e34"/><stop offset="1" stop-color="#080f1d"/></linearGradient>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto-start-reverse"><path d="M0 0l8 4-8 4z" fill="#66dfcf"/></marker>
+    <style>text{font-family:Inter,"Segoe UI",Arial,sans-serif;fill:#edf3fc}.eyebrow{font-size:13px;font-weight:700;letter-spacing:2px;fill:#66dfcf}.title{font-size:38px;font-weight:700}.sub{font-size:16px;fill:#afbed3}.label{font-size:21px;font-weight:650}.body{font-size:16px;fill:#bfccdf}.small{font-size:13px;fill:#afbed3}.card{fill:#17273e;stroke:#405673}.flow{fill:none;stroke:#66dfcf;stroke-width:2.5;marker-end:url(#arrow)}</style>
+  </defs>
+  <rect width="1200" height="900" rx="24" fill="url(#bg)"/>
+  <text x="48" y="47" class="eyebrow">LADYBIRD / SYSTEM ATLAS / 04</text><text x="48" y="100" class="title">From pixels to a useful home interface.</text>
+  <text x="48" y="132" class="sub">Arrows show video, event, or telemetry delivery—not which side opens the connection.</text>
+  <rect x="32" y="173" width="285" height="261" rx="16" class="card"/>
+  <text x="52" y="207" class="eyebrow">01 / CAPTURE</text><text x="52" y="246" class="label">Two IP cameras</text>
+  <text x="52" y="280" class="body">Main / 2688 × 1520</text><text x="52" y="311" class="body">Detect / 5 fps each</text><text x="52" y="347" class="small">Driveway: 1280 × 720</text><text x="52" y="372" class="small">Backyard: 704 × 480</text><text x="52" y="410" class="small">RTSP over the camera segment</text>
+  <path d="M317 285h69" class="flow"/><text x="331" y="272" class="small">Video</text>
+  <rect x="386" y="173" width="395" height="261" rx="16" fill="#173439" stroke="#66dfcf"/>
+  <text x="407" y="207" class="eyebrow">02 / PROCESS</text><text x="407" y="246" class="label">Frigate</text>
+  <text x="407" y="280" class="body">Main streams → recordings</text><text x="407" y="311" class="body">Detect streams → VAAPI → OpenVINO</text><text x="407" y="347" class="small">Intel GPU / decode + object detection</text><text x="407" y="372" class="small">go2rtc restreams the driveway feeds</text><text x="407" y="410" class="small">Tracks: person · car · dog · cat</text>
+  <path d="M781 285h69" class="flow"/><text x="788" y="272" class="small">Events</text>
+  <rect x="850" y="173" width="318" height="132" rx="16" class="card"/><text x="871" y="207" class="eyebrow">03 / DISTRIBUTE</text><text x="871" y="246" class="label">Mosquitto / MQTT</text><text x="871" y="280" class="body">Events + discovered sensors</text>
+  <path d="M1009 305v42" class="flow"/>
+  <rect x="850" y="347" width="318" height="103" rx="14" class="card"/><text x="871" y="384" class="label">Home Assistant</text><text x="871" y="414" class="body">Integrations + automation</text>
+  <path d="M1009 450v52" class="flow"/><text x="1025" y="481" class="small">HA API / WebSocket</text>
+  <rect x="850" y="502" width="318" height="126" rx="14" class="card"/><text x="871" y="536" class="eyebrow">04 / PRESENT</text><text x="871" y="572" class="label">Home dashboard</text><text x="871" y="602" class="body">Panels + allowed controls</text>
+  <rect x="32" y="481" width="354" height="147" rx="14" class="card"/><text x="52" y="515" class="label">Storage + UPS guards</text><text x="52" y="546" class="body">systemd / host telemetry</text><text x="52" y="574" class="small">MQTT → Mosquitto → Home Assistant</text><text x="52" y="604" class="small">HTTP push → Uptime Kuma</text>
+  <path d="M386 550h58" class="flow"/>
+  <rect x="444" y="481" width="337" height="147" rx="14" class="card"/><text x="465" y="515" class="label">Uptime Kuma</text><text x="465" y="546" class="body">Service checks + heartbeats</text><text x="465" y="574" class="small">Runs on Ladybird itself.</text><text x="465" y="604" class="small">Not an off-host outage watchdog.</text>
+  <rect x="32" y="658" width="1136" height="76" rx="14" fill="#15243e" stroke="#405b86"/>
+  <text x="52" y="690" class="body">Dashboard also uses Frigate, Jellyfin and Kuma APIs; Home Assistant also integrates with Frigate directly.</text>
+  <text x="52" y="717" class="small">Supporting API paths are summarized here to keep the main event flow readable. n8n workflow activation has not been verified.</text>
+  <rect x="32" y="754" width="1136" height="85" rx="14" fill="#302a22" stroke="#f7c66d" stroke-dasharray="6 6"/>
+  <text x="52" y="786" class="label" style="fill:#f7c66d">Planned / Raspberry Pi 2 watchdog</text>
+  <text x="52" y="815" class="body">Hardware installed on U8; not configured. Independent alert delivery while Ladybird is off is still to design.</text>
+  <text x="48" y="872" class="small">Sources: repository service configuration + owner-confirmed watchdog plan · 2026-09-09</text><text x="1152" y="872" text-anchor="end" class="eyebrow">L / 04</text>
+</svg>
