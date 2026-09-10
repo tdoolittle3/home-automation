@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
+  <title id="title">Ladybird network topology — LAN and dedicated camera segment</title>
+  <desc id="desc">The N600 connects directly to Ladybird's LAN NIC, enp44s0 at 192.168.0.13. Remote clients use Tailscale. The other NIC, enp45s0 at 10.10.10.50, connects through patch 5 to TL-SG105MPE port 5. Port and patch 1 serve the driveway camera; port and patch 2 serve the backyard camera. A Raspberry Pi 2 on U8 connects through patch 3 to port 3 and is powered by the PDU. The Pi is not yet set up; its planned role is an off-host watchdog. No Pi IP address or working alert route is established. Camera time comes from chrony on Ladybird.</desc>
+  <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101e34"/><stop offset="1" stop-color="#080f1d"/></linearGradient>
+    <style>text{font-family:Inter,"Segoe UI",Arial,sans-serif;fill:#edf3fc}.eyebrow{font-size:13px;font-weight:700;letter-spacing:2px;fill:#66dfcf}.title{font-size:38px;font-weight:700}.sub{font-size:16px;fill:#afbed3}.label{font-size:21px;font-weight:650}.body{font-size:16px;fill:#bfccdf}.mono{font:15px Consolas,monospace;fill:#bfccdf}.small{font-size:13px;fill:#afbed3}.card{fill:#17273e;stroke:#405673}.lan{fill:none;stroke:#8bbcff;stroke-width:3}.poe{fill:none;stroke:#66dfcf;stroke-width:3}.overlay{fill:none;stroke:#c4abff;stroke-width:3;stroke-dasharray:8 6}</style>
+  </defs>
+  <rect width="1200" height="900" rx="24" fill="url(#bg)"/>
+  <text x="48" y="47" class="eyebrow">LADYBIRD / SYSTEM ATLAS / 02</text><text x="48" y="100" class="title">Two interfaces. Two network segments.</text>
+  <text x="48" y="132" class="sub">Logical topology · cable routes and patch-panel assignments are documented separately</text>
+  <rect x="32" y="167" width="350" height="527" rx="18" fill="#15243e" stroke="#405b86"/>
+  <text x="52" y="200" class="eyebrow" style="fill:#8bbcff">HOME / 192.168.0.0/24</text>
+  <rect x="57" y="228" width="300" height="77" rx="12" class="card"/><text x="77" y="259" class="label">Internet</text><text x="77" y="285" class="body">ISP uplink</text>
+  <path d="M207 305v42" class="lan"/>
+  <rect x="57" y="347" width="300" height="102" rx="12" class="card"/><text x="77" y="379" class="label">N600 modem / router</text><text x="77" y="406" class="mono">Gateway 192.168.0.1</text><text x="77" y="430" class="small">Exact make / model to confirm</text>
+  <path d="M207 449v65" class="lan"/><text x="224" y="485" class="small">Home LAN</text>
+  <rect x="57" y="514" width="300" height="92" rx="12" class="card"/><text x="77" y="547" class="label">Home clients</text><text x="77" y="575" class="body">Browser · apps · media players</text>
+  <text x="57" y="650" class="small">N600 → mini PC: direct Ethernet cable</text>
+
+  <path d="M357 398h81" class="lan"/>
+  <rect x="438" y="280" width="324" height="311" rx="18" fill="#173439" stroke="#66dfcf" stroke-width="2"/>
+  <text x="461" y="316" class="eyebrow">DUAL-HOMED HOST</text><text x="461" y="354" class="label">ladybird</text>
+  <text x="461" y="394" class="mono">enp44s0 · 192.168.0.13</text>
+  <path d="M461 418h278" stroke="#326269"/>
+  <text x="461" y="452" class="mono">enp45s0 · 10.10.10.50</text>
+  <text x="461" y="491" class="body">Frigate pulls RTSP video</text><text x="461" y="521" class="body">chrony serves camera NTP</text><text x="461" y="561" class="small">Services run on this host.</text>
+
+  <rect x="818" y="167" width="350" height="527" rx="18" fill="#112c34" stroke="#326269"/>
+  <text x="838" y="200" class="eyebrow">CAMERA SWITCH + RASPBERRY PI</text>
+  <path d="M762 451h57v-169h25" class="poe"/>
+  <rect x="844" y="231" width="298" height="102" rx="12" class="card"/><text x="864" y="267" class="label">TL-SG105MPE</text><text x="864" y="297" class="body">Camera subnet: 10.10.10.0/24</text><text x="864" y="319" class="small">Port 5 / host uplink: Ethernet data</text>
+  <path d="M993 333v17h-154v253h18M839 389h18M839 497h18" class="poe"/>
+  <rect x="857" y="359" width="285" height="87" rx="12" class="card"/><text x="877" y="388" class="label">Driveway / port 1</text><text x="877" y="413" class="mono">10.10.10.201</text><text x="877" y="436" class="body">IPC-T54PRO-ZE</text>
+  <rect x="857" y="467" width="285" height="87" rx="12" class="card"/><text x="877" y="496" class="label">Backyard / port 2</text><text x="877" y="521" class="mono">10.10.10.202</text><text x="877" y="544" class="body">IPC-T24IR-AS</text>
+  <rect x="857" y="575" width="285" height="87" rx="12" class="card"/><text x="877" y="604" class="label">Raspberry Pi 2 / port 3</text><text x="877" y="630" class="small">Planned watchdog / not yet configured</text><text x="877" y="651" class="small">U8 · PDU-powered · IP not assigned here</text>
+  <text x="844" y="683" class="small">Patch numbers match switch ports: 1, 2, 3, 5</text>
+
+  <rect x="438" y="177" width="324" height="67" rx="12" class="card"/><text x="461" y="204" class="label">Remote clients</text><text x="461" y="228" class="small">Tailscale / encrypted overlay</text>
+  <path d="M600 244v36" class="overlay"/>
+  <text x="439" y="626" class="small">Advertised Tailscale subnet:</text><text x="439" y="651" class="mono">192.168.0.0/24</text>
+
+  <rect x="32" y="720" width="1136" height="91" rx="14" fill="#302a22" stroke="#77603c"/>
+  <text x="52" y="752" class="label" style="fill:#f7c66d">Camera isolation design</text>
+  <text x="52" y="779" class="body">No gateway on the host camera NIC; cameras use a nonexistent gateway (10.10.10.1).</text>
+  <text x="52" y="800" class="small">No router on the camera segment. This diagram describes the configured design, not a firewall audit.</text>
+  <path d="M48 845h35" class="lan"/><text x="94" y="850" class="small">Home network</text><path d="M265 845h35" class="poe"/><text x="311" y="850" class="small">Camera network</text><path d="M490 845h35" class="overlay"/><text x="536" y="850" class="small">Tailscale overlay</text>
+  <text x="48" y="878" class="small">Sources: repository network + camera configuration; SSH; owner rack inventory · 2026-09-09</text><text x="1152" y="878" text-anchor="end" class="eyebrow">L / 02</text>
+</svg>

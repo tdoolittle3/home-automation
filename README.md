@@ -13,33 +13,34 @@ See [VERSIONS.txt](VERSIONS.txt) for exact image digests at time of capture.
 
 ## Architecture
 
+![Ladybird's hardware, Debian host services, and container workloads in three layers.](docs/diagrams/architecture.svg)
+
+### Visual guide
+
+The [system atlas](docs/diagrams/README.md) includes full-size, editable SVGs, source notes,
+the hardware inventory, and details still awaiting confirmation.
+
+| View | What it explains |
+|---|---|
+| [Inside Ladybird](docs/diagrams/architecture.svg) | Machine → Debian → container services, GPU access and storage |
+| [Network topology](docs/diagrams/network.svg) | Home LAN, Tailscale and the dedicated camera segment |
+| [Rack elevation](docs/diagrams/rack.svg) | U1–U8 placement, top/floor equipment and confirmed UPS USB connection |
+| [Camera to dashboard](docs/diagrams/camera-flow.svg) | Video processing, MQTT events, Home Assistant and monitoring |
+| [Physical wiring + power](docs/diagrams/wiring.svg) | Switch/patch ports, Raspberry Pi 2, UPS-fed PDU and direct N600 power |
+
+### Networks
+
 Two physical networks. The cameras sit on their own segment with **no gateway**, so they cannot
 reach the internet regardless of what their firmware wants to do. Firmware toggles (P2P, UPnP,
 DDNS) are policy; the missing route is enforcement.
 
-```
-    Internet
-        |
-   [ Router ]  192.168.0.1
-        |
-        |  LAN 192.168.0.0/24
-        |
-   [ ladybird  192.168.0.13 ]           enp44s0  (LAN)
-     Frigate · Home Assistant
-     Mosquitto · Jellyfin · Immich      enp45s0  (camera island)
-     Uptime Kuma · Tailscale            10.10.10.50/24 — no gateway
-     Dashboard
-        |
-        |  10.10.10.0/24
-   [ TL-SG105MPE PoE switch ]
-        |               |
-    driveway         backyard
-   10.10.10.201     10.10.10.202
-   IPC-T54PRO-ZE    IPC-T24IR-AS
-```
+![Home LAN and Tailscale access alongside the dedicated PoE camera network.](docs/diagrams/network.svg)
 
-The server straddles both networks. It is the cameras' only peer — it serves them NTP via chrony
-and pulls their RTSP streams. Nothing on the LAN reaches them directly.
+The server straddles both networks: it serves the cameras NTP via chrony and pulls their RTSP
+streams. The N600 connects directly to the LAN NIC; the camera NIC connects through patch 5 to
+switch port 5. A **Raspberry Pi 2** also connects to this switch on port/patch 3, beside it on U8.
+The Pi is PDU-powered and intended to monitor Ladybird independently, but **is not yet configured**.
+Its future alert route must work while Ladybird is down; see the [planned watchdog notes](docs/diagrams/README.md#planned-pi-watchdog).
 
 ### Services
 
@@ -53,6 +54,7 @@ and pulls their RTSP streams. Nothing on the LAN reaches them directly.
 | Uptime Kuma | `http://192.168.0.13:3001` | watchdog — see [docs/uptime-kuma.md](docs/uptime-kuma.md) |
 | Dashboard | `http://ladybird/` · `http://192.168.0.13/` | port 80, so the bare hostname works; custom UI over the HA API — built from the `home-dashboard` repo |
 | Mosquitto | `192.168.0.13:1883` | anonymous, LAN only |
+| n8n | `http://192.168.0.13:5678` | workflow automation; `stacks/n8n` |
 | Samba | `//192.168.0.13/files` | serves `/srv/storage/files` |
 
 Remote access is via **Tailscale** (subnet router advertising `192.168.0.0/24`). Do not
@@ -89,9 +91,11 @@ stacks/          -> deploys to /opt/stacks on the server
   media/         Jellyfin
   immich/        Immich photo library (its own stack)
   net/           Uptime Kuma + the storage and UPS guards (kuma-monitors.yml defines the monitor set)
+  n8n/           workflow automation + workflow definition
 host/etc/        -> deploys to /etc on the server
 host/snippets/   fragments to append to existing system files
 docs/            camera provisioning, operations runbook, Uptime Kuma setup
+  diagrams/      system atlas: editable SVG diagrams, rack inventory and evidence notes
 ```
 
 ---
@@ -367,7 +371,7 @@ Each of these cost real debugging time. Read before changing anything.
   on. The storage guard alerts but deliberately never deletes. A real cap means a separate
   filesystem for `/srv/storage`, which belongs with the Phase 2 drive.
 - **Immich has no automated backup.** The library is irreplaceable in a way recordings are not, and a copy of the Postgres directory does not count — it needs a logical dump. The procedure is in [docs/operations.md](docs/operations.md#immich); it is not yet on a timer.
-- ~~UPS monitoring (NUT) not configured~~ Done 2026-09-08: the rack's CyberPower PR1500LCDRT2U is
+- ~~UPS monitoring (NUT) not configured~~ Done 2026-09-08: the rack's CyberPower CP1000AVRLCDa is
   on USB, NUT + `ups-guard.timer` report to the "UPS power" Kuma monitor, and `upsmon` halts the
   box cleanly at low battery. See `docs/operations.md` → UPS and power.
 - **LAN address is DHCP.** Set a router reservation for MAC `38:05:25:35:71:69`.

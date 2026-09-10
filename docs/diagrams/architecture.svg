@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1060" viewBox="0 0 1200 1060" role="img" aria-labelledby="title desc">
+  <title id="title">Inside Ladybird — hardware, operating system, and services</title>
+  <desc id="desc">A layered view of the Minisforum M1 Plus. Docker runs seven repository stacks on Debian 13.6. Host services include chrony, Tailscale, Samba, NUT and systemd guards. The Intel GPU is exposed to Frigate, Jellyfin and Immich; Immich machine learning uses the CPU. Storage currently shares the root NVMe filesystem. EPG is running but its Compose definition is absent from this checkout.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101e34"/><stop offset="1" stop-color="#080f1d"/></linearGradient>
+    <style>
+      text{font-family:Inter,"Segoe UI",Arial,sans-serif;fill:#edf3fc} .eyebrow{font-size:13px;font-weight:700;letter-spacing:2px;fill:#66dfcf} .title{font-size:38px;font-weight:700} .sub{font-size:16px;fill:#afbed3} .label{font-size:19px;font-weight:650} .body{font-size:15px;fill:#bfccdf} .mono{font-family:Consolas,monospace;font-size:14px;fill:#bfccdf} .small{font-size:13px;fill:#afbed3} .card{fill:#17273e;stroke:#354963} .rule{stroke:#354963} .teal{fill:#66dfcf} .blue{fill:#8bbcff} .amber{fill:#f7c66d}
+    </style>
+  </defs>
+  <rect width="1200" height="1060" rx="24" fill="url(#bg)"/>
+  <text x="48" y="47" class="eyebrow">LADYBIRD / SYSTEM ATLAS / 01</text>
+  <text x="48" y="100" class="title">One small machine. A whole home stack.</text>
+  <text x="48" y="132" class="sub">Minisforum M1 Plus · bare-metal Debian · 192.168.0.13</text>
+
+  <rect x="32" y="163" width="1136" height="356" rx="18" fill="#112c34" stroke="#326269"/>
+  <text x="52" y="195" class="eyebrow">03 / CONTAINER SERVICES</text>
+  <text x="1144" y="195" text-anchor="end" class="small">Docker 29.7.2 · Compose v5.5.0</text>
+  <rect x="52" y="215" width="260" height="117" rx="12" class="card"/>
+  <text x="70" y="244" class="label">Frigate</text><text x="70" y="270" class="body">NVR · go2rtc · OpenVINO</text>
+  <text x="70" y="297" class="mono">UI :8971 / API :5000</text><text x="70" y="319" class="small teal">GPU decode + detection</text>
+  <rect x="329" y="215" width="260" height="117" rx="12" class="card"/>
+  <text x="347" y="244" class="label">Home Assistant</text><text x="347" y="270" class="body">Automation + integrations</text>
+  <text x="347" y="297" class="mono">:8123 / host networking</text><text x="347" y="319" class="small">home stack</text>
+  <rect x="606" y="215" width="260" height="117" rx="12" class="card"/>
+  <text x="624" y="244" class="label">Mosquitto</text><text x="624" y="270" class="body">MQTT events + telemetry</text>
+  <text x="624" y="297" class="mono">:1883</text><text x="624" y="319" class="small">home stack</text>
+  <rect x="883" y="215" width="261" height="117" rx="12" class="card"/>
+  <text x="901" y="244" class="label">Home dashboard</text><text x="901" y="270" class="body">Custom UI · locally built</text>
+  <text x="901" y="297" class="mono">:80 → container :8099</text><text x="901" y="319" class="small">dash stack</text>
+  <rect x="52" y="348" width="260" height="117" rx="12" class="card"/>
+  <text x="70" y="377" class="label">Jellyfin</text><text x="70" y="403" class="body">Media library · :8096</text><text x="70" y="430" class="small teal">GPU device exposed</text><text x="70" y="452" class="small">media stack</text>
+  <rect x="329" y="348" width="260" height="117" rx="12" class="card"/>
+  <text x="347" y="377" class="label">Immich · :2283</text><text x="347" y="403" class="body">Server + CPU machine learning</text><text x="347" y="430" class="body">Postgres + Valkey</text><text x="347" y="452" class="small teal">GPU exposed to server only</text>
+  <rect x="606" y="348" width="260" height="117" rx="12" class="card"/>
+  <text x="624" y="377" class="label">Uptime Kuma</text><text x="624" y="403" class="body">Service + guard monitoring</text><text x="624" y="430" class="mono">:3001</text><text x="624" y="452" class="small">net stack</text>
+  <rect x="883" y="348" width="261" height="117" rx="12" class="card"/>
+  <text x="901" y="377" class="label">n8n</text><text x="901" y="403" class="body">Workflow automation</text><text x="901" y="430" class="mono">:5678</text><text x="901" y="452" class="small">n8n stack</text>
+  <text x="52" y="496" class="small">Live-only addition: EPG container observed over SSH; its deployment definition is missing from this checkout.</text>
+
+  <path d="M600 520v24" stroke="#66dfcf" stroke-width="3"/>
+  <rect x="32" y="544" width="1136" height="177" rx="18" fill="#15243e" stroke="#405b86"/>
+  <text x="52" y="576" class="eyebrow blue">02 / OPERATING SYSTEM + HOST SERVICES</text>
+  <text x="52" y="612" class="label">Debian GNU/Linux 13.6 (Trixie)</text>
+  <text x="52" y="640" class="mono">Linux 6.12.107+deb13-amd64</text>
+  <text x="52" y="688" class="body">Intel media driver · /dev/dri · Docker Engine</text>
+  <path d="M530 594v104" class="rule"/>
+  <text x="554" y="612" class="body">chrony / camera time</text><text x="850" y="612" class="body">Samba / file sharing</text>
+  <text x="554" y="644" class="body">Tailscale / remote access</text><text x="850" y="644" class="body">NUT / UPS + shutdown</text>
+  <text x="554" y="688" class="body">systemd / disk-guard + ups-guard timers</text>
+
+  <path d="M600 722v24" stroke="#8bbcff" stroke-width="3"/>
+  <rect x="32" y="746" width="1136" height="215" rx="18" fill="#302a22" stroke="#77603c"/>
+  <text x="52" y="778" class="eyebrow amber">01 / MACHINE + PERSISTENT STORAGE</text>
+  <text x="52" y="818" class="label">Intel Core i5-12600H</text><text x="52" y="846" class="body">12 cores / 16 threads · 16 GB RAM</text><text x="52" y="881" class="body">Intel integrated graphics</text><text x="52" y="909" class="body">Dual I226-V / 2.5GbE interfaces</text>
+  <path d="M438 798v138" stroke="#77603c"/>
+  <text x="463" y="818" class="label">512 GB Kingston NVMe</text><text x="463" y="846" class="mono">OM8TAP4512K1-A00</text><text x="463" y="881" class="body">/opt/stacks / config + app state</text><text x="463" y="909" class="body">/srv/storage / recordings + libraries</text>
+  <rect x="869" y="800" width="274" height="135" rx="12" fill="#211f20" stroke="#77603c"/>
+  <text x="887" y="829" class="label amber">One disk today</text><text x="887" y="857" class="body">Storage shares root ext4.</text><text x="887" y="883" class="body">A separate data drive is</text><text x="887" y="909" class="body">a future migration.</text>
+  <text x="48" y="1000" class="small">Layer connections indicate hosting, not network traffic. Ports are host ports.</text>
+  <text x="48" y="1027" class="small">Sources: repository Compose + host configuration; read-only SSH observation · 2026-09-09</text>
+  <text x="1152" y="1027" text-anchor="end" class="eyebrow">L / 01</text>
+</svg>

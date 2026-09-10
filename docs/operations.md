@@ -87,7 +87,7 @@ curl line by hand.
 
 ## UPS and power
 
-The rack UPS (CyberPower PR1500LCDRT2U) is cabled to the host over USB. NUT's `usbhid-ups`
+The rack UPS (CyberPower CP1000AVRLCDa, as reported by NUT) is cabled to the host over USB. NUT's `usbhid-ups`
 driver reads it, `upsmon` shuts the host down cleanly when the battery runs out, and
 `ups-guard.timer` runs [ups-guard.sh](../stacks/net/ups-guard.sh) every minute to publish to MQTT
 and report to the Uptime Kuma **UPS power** push monitor.
