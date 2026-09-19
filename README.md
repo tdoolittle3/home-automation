@@ -55,6 +55,7 @@ Its future alert route must work while Ladybird is down; see the [planned watchd
 | Dashboard | `http://ladybird/` · `http://192.168.0.13/` | port 80, so the bare hostname works; custom UI over the HA API — built from the `home-dashboard` repo |
 | Mosquitto | `192.168.0.13:1883` | anonymous, LAN only |
 | n8n | `http://192.168.0.13:5678` | workflow automation; `stacks/n8n` |
+| tar1090 (ADS-B) | `http://192.168.0.13:8080` | live aircraft map from the RTL-SDR; see [docs/sdr.md](docs/sdr.md) |
 | Samba | `//192.168.0.13/files` | serves `/srv/storage/files` |
 
 Remote access is via **Tailscale** (subnet router advertising `192.168.0.0/24`). Do not
@@ -92,9 +93,11 @@ stacks/          -> deploys to /opt/stacks on the server
   immich/        Immich photo library (its own stack)
   net/           Uptime Kuma + the storage and UPS guards (kuma-monitors.yml defines the monitor set)
   n8n/           workflow automation + workflow definition
+  sdr/           RTL-SDR: ADS-B decoding, tar1090 map, adsb.fi/adsb.lol feeding
 host/etc/        -> deploys to /etc on the server
 host/snippets/   fragments to append to existing system files
-docs/            camera provisioning, operations runbook, Uptime Kuma setup
+host/scripts/    one-shot host setup scripts (run with sudo on the server)
+docs/            camera provisioning, operations runbook, Uptime Kuma setup, SDR/ADS-B
   diagrams/      system atlas: editable SVG diagrams, rack inventory and evidence notes
 ```
 
@@ -190,6 +193,11 @@ start while Postgres initialises. Then open `http://<host>:2283` — **the first
 becomes the admin**, so create it before telling anyone else the address.
 
 Frigate prints a generated admin password on first boot — capture it from `docker logs frigate`.
+
+The `sdr` stack is **not** in that loop — it needs host preparation (DVB-T driver
+blacklist + udev rule, via `sudo bash host/scripts/sdr-host-prep.sh`) and a real
+antenna latitude/longitude/altitude in `/opt/stacks/sdr/.env` before it can start.
+Full walkthrough: [docs/sdr.md](docs/sdr.md).
 
 ### 8. Home Assistant
 

@@ -11,6 +11,9 @@ jellyfin	jellyfin/jellyfin:latest
 mosquitto	eclipse-mosquitto:2
 uptime-kuma	louislam/uptime-kuma:1
 home-dashboard	home-dashboard:local	# built on the host from ~thomas/src/home-dashboard - no registry digest
+# sdr stack - not yet deployed (dongle not plugged in as of 2026-09-19)
+# ultrafeeder	ghcr.io/sdr-enthusiasts/docker-adsb-ultrafeeder:latest
+# rtl_tcp	ghcr.io/sdr-enthusiasts/docker-rtl-tcp:latest	# profile 'rtltcp', manual start only
 
 # image digests
 debian:trixie	sha256:f324c7ff54321e8d9c588493a20244965938ce0aa50bbd1022d38010e9ffc4b1

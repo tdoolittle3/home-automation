@@ -1,0 +1,202 @@
+services:
+  # ADS-B decoding (1090 MHz) + tar1090 map UI + feeding to adsb.fi / adsb.lol.
+  # This service OWNS the RTL-SDR dongle whenever it is running. Only one
+  # process can claim the device at a time — see the rtl_tcp service below.
+  ultrafeeder:
+    container_name: ultrafeeder
+    image: ghcr.io/sdr-enthusiasts/docker-adsb-ultrafeeder:latest
+    restart: unless-stopped
+    hostname: ladybird
+    ports:
+      # tar1090 map UI. Container renders it on :80; 8080 is the first free
+      # host port (80/3000/3001/5000/5678/8096/8123/8554/8555/8971 are taken).
+      # LAN-only. To reach it over Tailscale only, change to "127.0.0.1:8080:80".
+      - "8080:80"
+      # Beast output — lets SDR++/Virtual Radar/other tools pull decoded data
+      # over the network without touching the dongle. Loopback-only by design.
+      - "127.0.0.1:30005:30005"
+    # USB passthrough. The sdr-enthusiasts images recommend the cgroup-rule +
+    # bind-mount form over a `devices:` entry: a plain device mapping pins one
+    # /dev/bus/usb/BBB/DDD path, and that path CHANGES every time the dongle is
+    # replugged or the host reboots, which silently breaks the container.
+    device_cgroup_rules:
+      - "c 189:* rwm"
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb:rw
+      - ./globe_history:/var/globe_history
+      - ./graphs1090:/var/lib/collectd
+      - /proc/diskstats:/proc/diskstats:ro
+      - /etc/localtime:/etc/localtime:ro
+    tmpfs:
+      # readsb writes aircraft.json here several times a second. On tmpfs so it
+      # never touches the SSD — this is the single biggest write-amplifier in
+      # the stack if left on disk.
+      - /run:exec,size=256M
+      - /tmp:size=128M
+      - /var/log:size=32M
+    environment:
+      TZ: America/Denver
+
+      # ---- Antenna position -------------------------------------------------
+      # MANDATORY and must be the REAL antenna location. MLAT multilateration
+      # solves aircraft positions by comparing signal arrival times across
+      # receivers; a position that is off by even a few hundred metres poisons
+      # those solutions for everyone, and aggregators will flag or drop the
+      # feed. Set these in .env — see .env.example.
+      READSB_LAT: "${ADSB_LAT}"
+      READSB_LON: "${ADSB_LON}"
+      READSB_ALT: "${ADSB_ALT}"
+
+      # ---- SDR --------------------------------------------------------------
+      READSB_DEVICE_TYPE: rtlsdr
+      # RTL-SDR Blog V3 dongles ship with serial 00000001. Confirm with
+      # `rtl_test -t` and override in .env if yours differs. Setting this
+      # explicitly matters the moment a second dongle is added.
+      READSB_RTLSDR_DEVICE: "${ADSB_SERIAL:-00000001}"
+      # readsb's built-in auto-gain. NOTE: "auto" and "autogain" are two
+      # different things here — "autogain" selects the slow legacy script,
+      # "auto" is the quick-adjusting built-in and is the recommended one.
+      # Once the install has been stable for a week, check the gain graph in
+      # graphs1090 and consider pinning a fixed dB value instead.
+      READSB_GAIN: auto
+
+      # ---- Decoder tuning ---------------------------------------------------
+      READSB_RX_LOCATION_ACCURACY: "2"
+      READSB_STATS_RANGE: "true"
+      READSB_MODEAC: "true"
+      READSB_STATS_EVERY: "3600"
+
+      # ---- Aggregator feeding ----------------------------------------------
+      # adsb.fi and adsb.lol both accept anonymous feeds — no account, no key.
+      # NOTE: adsb.lol ingests on in.adsb.lol, NOT feed.adsb.lol.
+      # MLAT_USER is the station name shown on aggregator maps.
+      # Kept on ONE line deliberately. Both the folded form (">-") and a
+      # double-quoted scalar with escaped newlines leave the continuation
+      # lines' indentation in the value, yielding entries like
+      # " mlat,feed.adsb.fi,31090" — the leading space breaks the parser.
+      # Verified with `docker compose config` that this renders clean.
+      ULTRAFEEDER_CONFIG: "adsb,feed.adsb.fi,30004,beast_reduce_plus_out;mlat,feed.adsb.fi,31090;adsb,in.adsb.lol,30004,beast_reduce_plus_out;mlat,in.adsb.lol,31090"
+      MLAT_USER: "${ADSB_STATION_NAME:-ladybird}"
+      UUID: "${ADSB_UUID:-}"
+
+      # ---- Optional: account-based feeders ---------------------------------
+      # These two DO need keys, unlike adsb.fi/adsb.lol above.
+      #
+      # FlightAware (PiAware). Claim a key at:
+      #   https://flightaware.com/adsb/piaware/claim
+      # Feeding earns a free FlightAware Enterprise account.
+      # FEEDER_PIAWARE_KEY: "replace-me"
+      #
+      # FlightRadar24. Request a sharing key at:
+      #   https://www.flightradar24.com/share-your-data
+      # FR24 issues the key by email after a short signup form.
+      # FEEDER_FR24_SHARING_KEY: "replace-me"
+      #
+      # Both also need their feeder container added — see the ultrafeeder
+      # README section "Optional containers" before uncommenting.
+
+      # ---- UI ---------------------------------------------------------------
+      TAR1090_DEFAULTCENTERLAT: "${ADSB_LAT}"
+      TAR1090_DEFAULTCENTERLON: "${ADSB_LON}"
+      TAR1090_SITESHOW: "true"
+      TAR1090_RANGE_OUTLINE_COLOR: "#ff0000"
+      TAR1090_ENABLE_AC_DB: "true"
+    healthcheck:
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+
+  # ---------------------------------------------------------------------------
+  # rtl_tcp — stream raw IQ to SDR++/SDRangel/GQRX on a laptop.
+  #
+  # THIS CANNOT RUN AT THE SAME TIME AS ULTRAFEEDER. There is one dongle and
+  # librtlsdr takes an exclusive USB claim on it; whichever process grabs it
+  # first wins and the second dies with "usb_claim_interface error -6".
+  #
+  # So this service sits behind a compose profile and never starts with
+  # `docker compose up -d`. Ultrafeeder is the default owner of the dongle.
+  #
+  # To hand the dongle over to rtl_tcp:
+  #   cd /opt/stacks/sdr
+  #   docker compose stop ultrafeeder
+  #   docker compose --profile rtltcp up -d rtl_tcp
+  #
+  # Then in SDR++ on your laptop: Source = "RTL-TCP",
+  # host 192.168.0.13, port 1234.
+  #
+  # To give it back (ADS-B feeding resumes, aggregators forgive the gap):
+  #   docker compose --profile rtltcp down rtl_tcp
+  #   docker compose up -d ultrafeeder
+  rtl_tcp:
+    container_name: rtl_tcp
+    image: ghcr.io/sdr-enthusiasts/docker-rtl-tcp:latest
+    profiles: ["rtltcp"]
+    # Deliberately NOT unless-stopped: this is a hands-on, temporary service.
+    # `unless-stopped` would have it fight ultrafeeder for the dongle after
+    # every reboot, and the loser crash-loops.
+    restart: "no"
+    ports:
+      # LAN-exposed so SDR++ on a laptop can reach it. rtl_tcp has no auth
+      # whatsoever — anyone on the LAN can retune your radio. Keep it off
+      # any port-forward.
+      - "1234:1234"
+    device_cgroup_rules:
+      - "c 189:* rwm"
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb:rw
+    environment:
+      TZ: America/Denver
+      RTLTCP_DEVICE_SERIAL: "${ADSB_SERIAL:-00000001}"
+      # Start frequency/sample rate. SDR++ retunes on connect, so these are
+      # only the values before the client takes over.
+      RTLTCP_FREQUENCY: "1090000000"
+      RTLTCP_SAMPLE_RATE: "2400000"
+
+  # ---------------------------------------------------------------------------
+  # rtl_433 — 433 MHz ISM decoding (weather stations, tyre sensors, door
+  # sensors, etc) published to Mosquitto for Home Assistant discovery.
+  #
+  # COMMENTED OUT: no 433 MHz antenna yet. The 1090 MHz ADS-B antenna is
+  # resonant at the wrong frequency and will hear almost nothing at 433.
+  #
+  # ALSO NOTE: this has the same exclusive-dongle problem as rtl_tcp above.
+  # Running rtl_433 alongside ultrafeeder needs a SECOND dongle — at which
+  # point set RTL433_DEVICE_SERIAL to that dongle's serial and give each
+  # dongle a distinct serial with `rtl_eeprom -s`.
+  #
+  # MQTT target is pre-filled and verified against the running broker:
+  # Mosquitto is on the `home` stack, listener 1883, allow_anonymous true,
+  # so no username/password is needed. Bridge networking means we address it
+  # by LAN IP, not container name — it is a separate compose project.
+  #
+  # rtl_433:
+  #   container_name: rtl_433
+  #   image: ghcr.io/hertzg/rtl_433_docker:master
+  #   restart: unless-stopped
+  #   device_cgroup_rules:
+  #     - "c 189:* rwm"
+  #   volumes:
+  #     - /dev/bus/usb:/dev/bus/usb:rw
+  #     - /etc/localtime:/etc/localtime:ro
+  #   environment:
+  #     TZ: America/Denver
+  #   command: >-
+  #     -d :SECOND_DONGLE_SERIAL
+  #     -f 433920000
+  #     -M time:iso:usec
+  #     -M protocol
+  #     -M level
+  #     -F json
+  #     -F mqtt://192.168.0.13:1883,retain=0,devices=rtl_433[/model][/id]
+  #   deploy:
+  #     resources:
+  #       limits:
+  #         cpus: "1.0"
+  #         memory: 256M
