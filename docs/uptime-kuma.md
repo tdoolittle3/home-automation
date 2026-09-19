@@ -16,7 +16,7 @@ live in a SQLite database at `net/uptime-kuma/kuma.db`, which is gitignored
 because it also holds the admin password hash and the ntfy token. So the YAML
 is a definition Kuma never reads, and something has to carry it across.
 
-**By hand**, following step 3 below. Twelve monitors and three groups is about
+**By hand**, following step 3 below. Thirteen monitors and three groups is about
 twenty minutes of clicking, once.
 
 **With [kuma-provision.py](../stacks/net/kuma-provision.py)**, which reads the

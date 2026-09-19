@@ -96,6 +96,22 @@ monitors:
     # TCP-open only. For a check that also proves the storage guard is
     # publishing, see "Deeper MQTT check" in docs/uptime-kuma.md.
 
+  - name: tar1090 (ADS-B)
+    group: Core services
+    type: http
+    url: http://192.168.0.13:8080/
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    accepted_status: [200]
+    # Liveness only — this proves the container serves the map, NOT that the
+    # dongle is still decoding. tar1090 happily returns 200 with a dead SDR.
+    # A decode check is deliberately not used here: the obvious one, a
+    # json-query for a non-empty $.aircraft on /data/aircraft.json, goes red
+    # whenever the sky is genuinely empty, which at this site happens
+    # overnight. That is a 3am false alarm, not an outage. If you want decode
+    # coverage, watch the message rate in graphs1090 instead.
+
   # ---- Cameras -------------------------------------------------------------
   # Ping only. Never point an HTTP monitor with credentials at a camera — the
   # whole design is that nothing authenticates to them except the server.
