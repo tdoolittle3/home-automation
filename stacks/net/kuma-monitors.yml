@@ -85,6 +85,32 @@ monitors:
     # answers fine with a revoked HA_TOKEN. This goes red instead — the fix is
     # the force-recreate in docs/operations.md.
 
+  - name: Immich
+    group: Core services
+    type: keyword
+    url: http://192.168.0.13:2283/api/server/ping
+    keyword: pong
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    # Checks the API, not the web root. `/` and even `/server-info/ping` return
+    # 200 with the SPA shell while the backend is down, so a plain HTTP monitor
+    # would stay green through a dead Postgres. Same reasoning as Dashboard.
+
+  - name: n8n
+    group: Core services
+    type: json-query
+    url: http://192.168.0.13:5678/healthz/readiness
+    json_path: $.status
+    expected_value: "ok"
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    # /healthz/readiness, not /healthz: the readiness probe also proves the
+    # SQLite DB is connected and migrated, which is what actually breaks after
+    # a bad upgrade or a chown slip on n8n-data. Plain /healthz answers ok with
+    # an unusable database.
+
   - name: Mosquitto
     group: Core services
     type: port
