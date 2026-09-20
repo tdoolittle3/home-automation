@@ -1,0 +1,318 @@
+# AdGuard Home — the SEED config for ladybird. Source of truth lives here.
+#
+# Generated from a real v0.107.79 first-run config (schema_version 34), then
+# edited. Every deviation from AdGuard's defaults is commented below; if a line
+# has no comment, it is the stock default and is present only so the whole
+# config is visible in one place.
+#
+# HOW THIS FILE IS USED
+#   This is NOT the file the container reads. AdGuard rewrites its config on
+#   every UI change, so the live copy sits in the gitignored conf/ directory:
+#       cp AdGuardHome.yaml conf/AdGuardHome.yaml     # seed, first deploy only
+#   After changing anything in the UI, copy it back and commit, or the next
+#   rebuild silently reverts you. Full procedure: docs/dns.md -> Config drift.
+#
+#   AdGuard strips every comment in this file when it rewrites. That is
+#   expected — the commented copy is the one in git.
+#
+# THE ADMIN PASSWORD IS NOT IN THIS FILE and must not be committed. The hash is
+# filled in on the server at deploy time — see docs/dns.md -> First deploy.
+
+http:
+  pprof:
+    port: 6060
+    enabled: false
+  doh:
+    routes:
+      - GET /dns-query
+      - POST /dns-query
+      - GET /dns-query/{ClientID}
+      - POST /dns-query/{ClientID}
+    insecure_enabled: false
+  # 8053, not AdGuard's default 3000: the `epg` container already holds 3000 on
+  # this host. Taken as of 2026-09-20: 22, 80, 139, 445, 1883, 2283, 3000, 3001,
+  # 5000, 5678, 8080, 8096, 8123, 8554, 8555, 8971.
+  address: 0.0.0.0:8053
+  session_ttl: 30d
+
+# Replaced on the server at deploy time. A bcrypt hash, not a password — but
+# still never commit the real one. Generate it with the one-liner in docs/dns.md.
+users:
+  - name: admin
+    password: REPLACE_ME_BCRYPT_HASH
+auth_attempts: 5
+block_auth_min: 15
+http_proxy: ""
+language: ""
+theme: auto
+
+dns:
+  bind_hosts:
+    - 0.0.0.0
+  port: 53
+  anonymize_client_ip: false
+  # 0, not the default 20 queries/sec per client. This is a trusted LAN, and 20
+  # is low enough that one browser opening a page of many third-party domains
+  # trips it. The symptom is the worst kind: a few images or scripts silently
+  # fail to load on a busy page, intermittently, with nothing in the log that
+  # looks like an error. Rate limiting is a defence for a PUBLIC resolver.
+  ratelimit: 0
+  ratelimit_subnet_len_ipv4: 24
+  ratelimit_subnet_len_ipv6: 56
+  ratelimit_whitelist: []
+  refuse_any: true
+
+  # Encrypted upstreams (DNS-over-HTTPS), so the ISP sees only that you talked
+  # to Cloudflare/Quad9 and not which sites you visited. Two providers, because
+  # a single upstream outage is an internet outage for the whole house.
+  # Quad9 also blocks known-malicious domains upstream, which is a free bonus
+  # layer under AdGuard's own filtering.
+  upstream_dns:
+    - https://dns.cloudflare.com/dns-query
+    - https://dns.quad9.net/dns-query
+  upstream_dns_file: ""
+
+  # MUST be plain IP addresses, never hostnames. These are what AdGuard uses to
+  # resolve the DoH hostnames above before it has a working resolver. Point
+  # this at anything that needs DNS to work — including this server itself —
+  # and AdGuard deadlocks at startup: no DNS on the LAN at all, and the cause
+  # is not obvious from the log.
+  bootstrap_dns:
+    - 1.1.1.1
+    - 9.9.9.9
+    - 2606:4700:4700::1111
+    - 2620:fe::fe
+  fallback_dns: []
+  upstream_mode: load_balance
+  fastest_timeout: 1s
+  allowed_clients: []
+  disallowed_clients: []
+  blocked_hosts:
+    - version.bind
+    - id.server
+    - hostname.bind
+  trusted_proxies:
+    - 127.0.0.0/8
+    - ::1/128
+
+  cache_enabled: true
+  cache_size: 4194304
+  # 60s floor, up from 0. Plenty of ad and tracker domains publish 30-second
+  # TTLs; honouring them literally means re-resolving the same handful of names
+  # all day. The floor is the single biggest perceived-speed win here.
+  cache_ttl_min: 60
+  cache_ttl_max: 0
+  # Answer from stale cache immediately, then refresh in the background. Removes
+  # the upstream round-trip from the critical path of a page load.
+  cache_optimistic: true
+  cache_optimistic_answer_ttl: 30s
+  cache_optimistic_max_age: 12h
+
+  bogus_nxdomain: []
+  aaaa_disabled: false
+  enable_dnssec: true
+  edns_client_subnet:
+    custom_ip: ""
+    enabled: false
+    use_custom: false
+  max_goroutines: 300
+  handle_ddr: true
+  ipset: []
+  ipset_file: ""
+  bootstrap_prefer_ipv6: false
+  upstream_timeout: 10s
+  private_networks: []
+  # false, not the default true. With it on, AdGuard forwards reverse lookups
+  # for 192.168.x.x to the host's system resolver — which on this box is
+  # Tailscale's 100.100.100.100 (/etc/resolv.conf is Tailscale-managed). That
+  # leaks internal addresses off-box to answer a question Tailscale cannot
+  # answer anyway. Off, AdGuard answers private PTR itself from ARP and rDNS.
+  use_private_ptr_resolvers: false
+  local_ptr_upstreams: []
+  use_dns64: false
+  dns64_prefixes: []
+  serve_http3: false
+  use_http3_upstreams: false
+  serve_plain_dns: true
+  hostsfile_enabled: true
+  pending_requests:
+    enabled: true
+
+tls:
+  enabled: false
+  server_name: ""
+  force_https: false
+  port_https: 443
+  port_dns_over_tls: 853
+  port_dns_over_quic: 853
+  port_dnscrypt: 0
+  dnscrypt_config_file: ""
+  certificate_chain: ""
+  private_key: ""
+  certificate_path: ""
+  private_key_path: ""
+  strict_sni_check: false
+
+querylog:
+  dir_path: ""
+  ignored: []
+  # 30d, down from the 90d default. The query log is a continuous write to the
+  # SSD, and 90 days of every DNS question every device asks is a lot of both
+  # disk and privacy for a home. 30 days still covers "what broke last month".
+  interval: 30d
+  size_memory: 1000
+  enabled: true
+  file_enabled: true
+  ignored_enabled: false
+
+statistics:
+  dir_path: ""
+  ignored: []
+  interval: 1d
+  enabled: true
+  ignored_enabled: false
+
+# Blocklists. All four URLs verified serving 2026-09-20.
+#
+# Start here and resist adding more. Overlapping lists do NOT block more, they
+# just make every false positive harder to trace — and the failure mode of an
+# over-blocked domain is an app that mysteriously half-works, reported to you
+# days later by someone who has no idea DNS changed.
+filters:
+  # AdGuard's own curated list. Conservative, well maintained, few false
+  # positives. This is the one to keep if you ever cut back to a single list.
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
+    name: AdGuard DNS filter
+    id: 1
+  # Mobile-advert focused; small, and complements the above rather than
+  # duplicating it. Off by default in a stock install, on here.
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt
+    name: AdAway Default Blocklist
+    id: 2
+  # The broad one (~5.7 MB). This is what actually catches the long tail of
+  # trackers. It is also the list most likely to be responsible if something
+  # breaks — disable this one FIRST when diagnosing an over-block.
+  - enabled: true
+    url: https://big.oisd.nl
+    name: OISD Big
+    id: 3
+  # Listed but OFF: heavy overlap with the three above, so enabling it buys
+  # little and muddies which list blocked what. Here so you do not go hunting
+  # for the URL later.
+  - enabled: false
+    url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+    name: StevenBlack unified hosts
+    id: 4
+
+whitelist_filters: []
+
+# Per-domain exceptions, highest priority, applied before any list above.
+# Syntax is AdGuard rule syntax: @@||example.com^ unblocks a domain and its
+# subdomains. Pi-hole allowlist entries port over as one @@||domain^ line each —
+# see docs/dns.md -> Migrating from Pi-hole.
+user_rules: []
+
+# DHCP stays OFF. The router keeps handing out leases; AdGuard only answers
+# DNS. Turning this on means two DHCP servers racing on one LAN unless the
+# router's is disabled first, and the failure mode is devices intermittently
+# getting no address at all. Not worth it for the small gain of per-device
+# hostnames in the log.
+dhcp:
+  enabled: false
+  interface_name: ""
+  local_domain_name: lan
+  dhcpv4:
+    gateway_ip: ""
+    subnet_mask: ""
+    range_start: ""
+    range_end: ""
+    lease_duration: 86400
+    icmp_timeout_msec: 1000
+    options: []
+  dhcpv6:
+    range_start: ""
+    lease_duration: 86400
+    ra_slaac_only: false
+    ra_allow_slaac: false
+
+filtering:
+  blocking_ipv4: ""
+  blocking_ipv6: ""
+  blocked_services:
+    schedule:
+      time_zone: UTC
+    ids: []
+  protection_disabled_until: null
+  safe_search:
+    enabled: false
+    bing: true
+    duckduckgo: true
+    ecosia: true
+    google: true
+    pixabay: true
+    yandex: true
+    youtube: true
+  blocking_mode: default
+  parental_block_host: family-block.dns.adguard.com
+  safebrowsing_block_host: standard-block.dns.adguard.com
+
+  # Local DNS records. The Pi-hole held none of these — http://ladybird/ has
+  # been working over NetBIOS/mDNS, which is why it resolves from Windows but
+  # not reliably from a phone or a Linux box. These make the name work properly
+  # everywhere on the LAN.
+  #
+  # The compose healthcheck resolves `ladybird` against 127.0.0.1, so removing
+  # that first rewrite will mark the container unhealthy.
+  rewrites:
+    - domain: ladybird
+      answer: 192.168.0.13
+    - domain: ladybird.lan
+      answer: 192.168.0.13
+
+  safe_fs_patterns:
+    - /opt/adguardhome/work/userfilters/*
+  max_http_size: 256MB
+  safebrowsing_cache_size: 1048576
+  safesearch_cache_size: 1048576
+  parental_cache_size: 1048576
+  cache_time: 30
+  filters_update_interval: 24
+  blocked_response_ttl: 10
+  filtering_enabled: true
+  rewrites_enabled: true
+  parental_enabled: false
+  safebrowsing_enabled: false
+  protection_enabled: true
+
+clients:
+  runtime_sources:
+    whois: true
+    arp: true
+    rdns: true
+    dhcp: true
+    hosts: true
+  # Naming devices here makes the query log readable ("Living room TV" instead
+  # of 192.168.0.37) and lets you give one device its own rules. Populate it
+  # from the top-clients list after a week of real traffic, not by guessing now.
+  persistent: []
+
+log:
+  enabled: true
+  file: ""
+  max_backups: 0
+  max_size: 100
+  max_age: 3
+  compress: false
+  local_time: false
+  verbose: false
+
+os:
+  group: ""
+  user: ""
+  rlimit_nofile: 0
+
+# Set by AdGuard, not by hand. If you hand-edit this downward it will run its
+# migrations again over an already-migrated file.
+schema_version: 34

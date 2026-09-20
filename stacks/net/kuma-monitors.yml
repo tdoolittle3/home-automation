@@ -138,6 +138,41 @@ monitors:
     # overnight. That is a 3am false alarm, not an outage. If you want decode
     # coverage, watch the message rate in graphs1090 instead.
 
+  - name: DNS resolver
+    group: Core services
+    type: dns
+    hostname: example.com          # the name looked up, not the server
+    resolver_server: 192.168.0.13  # AdGuard Home — stacks/dns
+    port: 53
+    resolve_type: A
+    interval: 60
+    retries: 2
+    retry_interval: 60
+    # The highest-consequence monitor here. After the router cutover every
+    # device on the LAN resolves through this, so when it goes red nobody in
+    # the house has working internet — see docs/dns.md.
+    #
+    # This alert can still reach you when it fires: Kuma resolves ntfy.sh
+    # through Docker's DNS list in host/etc/docker/daemon.json, which keeps
+    # 1.1.1.1 and 8.8.8.8 behind 192.168.0.13 precisely so the alarm is not
+    # wired through the thing it is watching.
+
+  - name: AdGuard UI
+    group: Core services
+    type: port
+    hostname: 192.168.0.13
+    port: 8053
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    # TCP-open only. An HTTP monitor would need the admin session, and the
+    # DNS resolver check above already proves the part that matters.
+    #
+    # Deliberately NOT a monitor that asserts an ad domain is still blocked:
+    # Kuma 1.x's DNS monitor treats any answer as up, and a blocked domain
+    # answers 0.0.0.0 — it cannot tell filtering-on from filtering-off. That
+    # check belongs in the AdGuard UI, not here.
+
   # ---- Cameras -------------------------------------------------------------
   # Ping only. Never point an HTTP monitor with credentials at a camera — the
   # whole design is that nothing authenticates to them except the server.

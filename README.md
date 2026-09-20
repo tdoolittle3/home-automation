@@ -56,10 +56,17 @@ Its future alert route must work while Ladybird is down; see the [planned watchd
 | Mosquitto | `192.168.0.13:1883` | anonymous, LAN only |
 | n8n | `http://192.168.0.13:5678` | workflow automation; `stacks/n8n` |
 | tar1090 (ADS-B) | `http://192.168.0.13:8080` | live aircraft map from the RTL-SDR; see [docs/sdr.md](docs/sdr.md) |
+| AdGuard Home | `http://192.168.0.13:8053` | LAN DNS + ad filtering; **load-bearing** — see [docs/dns.md](docs/dns.md) |
 | Samba | `//192.168.0.13/files` | serves `/srv/storage/files` |
 
 Remote access is via **Tailscale** (subnet router advertising `192.168.0.0/24`). Do not
 port-forward Frigate.
+
+**DNS for the whole LAN is served by this box** — AdGuard Home in the `dns` stack, handed out
+by the router over DHCP. That makes ladybird load-bearing for every device in the house, not
+just for the services listed above: when it is down, nothing resolves. It replaced a Pi-hole on
+the Raspberry Pi at `192.168.0.14`. Read [docs/dns.md](docs/dns.md) before restarting anything
+in that stack.
 
 ### Detection
 
@@ -94,10 +101,11 @@ stacks/          -> deploys to /opt/stacks on the server
   net/           Uptime Kuma + the storage and UPS guards (kuma-monitors.yml defines the monitor set)
   n8n/           workflow automation + workflow definition
   sdr/           RTL-SDR: ADS-B decoding, tar1090 map, adsb.fi/adsb.lol feeding
+  dns/           AdGuard Home: LAN DNS + ad filtering (AdGuardHome.yaml is the seed config)
 host/etc/        -> deploys to /etc on the server
 host/snippets/   fragments to append to existing system files
 host/scripts/    one-shot host setup scripts (run with sudo on the server)
-docs/            camera provisioning, operations runbook, Uptime Kuma setup, SDR/ADS-B
+docs/            camera provisioning, operations runbook, Uptime Kuma setup, SDR/ADS-B, DNS
   diagrams/      system atlas: editable SVG diagrams, rack inventory and evidence notes
 ```
 
@@ -295,7 +303,7 @@ monitor that the storage guard beats only while healthy, so that a dead server a
 
 ---
 
-### 12. Crash resilience
+### 13. Crash resilience
 
 Added after the 2026-09-06 kernel panic (see `docs/operations.md` → "After a crash").
 
@@ -307,6 +315,28 @@ apt install -y rasdaemon && systemctl enable --now rasdaemon                 # d
 
 Also set **"Power on after AC loss"** in the BIOS (not scriptable) and add a router DHCP
 reservation for `38:05:25:35:71:69` so the box comes back at `192.168.0.13` after any outage.
+Once the DNS stack below is cut over, that reservation is no longer optional — a changed address
+takes the whole LAN's DNS with it.
+
+---
+
+### 14. DNS — AdGuard Home
+
+Last, because the cutover is the one step that can take the whole house offline rather than one
+service. Full runbook, migration and rollback: **[docs/dns.md](docs/dns.md)** — read it first.
+
+```bash
+systemctl is-active systemd-resolved   # must be inactive, or nothing can bind port 53
+cd /opt/stacks/dns
+mkdir -p conf work && cp AdGuardHome.yaml conf/AdGuardHome.yaml
+# insert the admin password hash - docs/dns.md -> First deploy
+docker compose up -d
+docker exec adguardhome nslookup doubleclick.net 127.0.0.1   # expect 0.0.0.0
+```
+
+Only then point the router's DHCP DNS at `192.168.0.13`, update
+[host/etc/docker/daemon.json](host/etc/docker/daemon.json) and restart Docker. Leave the Pi-hole
+at `192.168.0.14` running for two weeks — it is the rollback.
 
 ## Secrets — not in this repo
 
@@ -366,6 +396,15 @@ Each of these cost real debugging time. Read before changing anything.
 - **Sub stream 1 (`subtype=1`) caps at 704×480 (D1) on both cameras**, but the T54PRO-ZE's
   sub stream 2 (`subtype=2`) goes to 720p/1080p. Frigate's `detect` block must match whichever
   stream it reads, or detection silently runs on a mismatched frame size.
+- **AdGuard's `bootstrap_dns` must be plain IPs, never hostnames.** They resolve the DoH upstreams
+  before a resolver exists; a hostname there (or this server's own address) deadlocks AdGuard at
+  startup and takes DNS down for the whole LAN, without saying so plainly in the log.
+- **A containerised DNS server needs host networking, not a `ports:` mapping.** Docker's userland
+  proxy rewrites the source address of inbound UDP, so every query looks like it came from the
+  bridge gateway and per-client logs, rules and stats all collapse into one useless row.
+- **AdGuard rewrites its own config and strips every comment**, exactly like Frigate's `config.yml`.
+  The tracked `stacks/dns/AdGuardHome.yaml` is the seed; the live file under `conf/` is gitignored.
+  Pull UI changes back by hand — never paste the live file in, it carries the password hash.
 - **The camera web UI can report "saved" without writing anything.** Enabling sub stream 2 from
   the UI returned success and changed nothing; the API call worked first time. Always read the
   config back over the API after a UI change.
@@ -382,7 +421,15 @@ Each of these cost real debugging time. Read before changing anything.
 - ~~UPS monitoring (NUT) not configured~~ Done 2026-09-08: the rack's CyberPower CP1000AVRLCDa is
   on USB, NUT + `ups-guard.timer` report to the "UPS power" Kuma monitor, and `upsmon` halts the
   box cleanly at low battery. See `docs/operations.md` → UPS and power.
-- **LAN address is DHCP.** Set a router reservation for MAC `38:05:25:35:71:69`.
+- **LAN address is DHCP.** Set a router reservation for MAC `38:05:25:35:71:69`. This is now
+  urgent rather than tidy-up: the LAN's DNS answers on this address.
+- **The Pi-hole at `192.168.0.14` is not retired yet.** It stays powered as the DNS rollback for
+  two weeks after cutover (see [docs/dns.md](docs/dns.md)). Its allowlist must be exported with
+  Teleporter and ported into AdGuard's custom rules before it goes — that list is years of
+  accumulated "this broke, so I unblocked it" and exists nowhere else.
+- **Nothing watches ladybird from outside ladybird.** Uncomfortable before; worse now that DNS
+  lives here too. The Raspberry Pi is earmarked for this and still unconfigured — see
+  [planned Pi watchdog](docs/diagrams/README.md#planned-pi-watchdog).
 - **Uptime Kuma push monitor needs a file that is not in this repo.** The storage guard beats the
   "Storage guard" push monitor only if `/opt/stacks/net/kuma-push-url.txt` exists (see
   `docs/operations.md` → Storage). It holds the monitor's push token, so it is gitignored and must

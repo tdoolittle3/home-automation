@@ -11,6 +11,8 @@ jellyfin	jellyfin/jellyfin:latest
 mosquitto	eclipse-mosquitto:2
 uptime-kuma	louislam/uptime-kuma:1
 home-dashboard	home-dashboard:local	# built on the host from ~thomas/src/home-dashboard - no registry digest
+# dns stack - image pulled and config verified 2026-09-20, not yet deployed
+# adguardhome	adguard/adguardhome:latest	# v0.107.79; LAN DNS + ad filtering, replaces the Pi-hole on 192.168.0.14
 # sdr stack - not yet deployed (dongle not plugged in as of 2026-09-19)
 # ultrafeeder	ghcr.io/sdr-enthusiasts/docker-adsb-ultrafeeder:latest
 # rtl_tcp	ghcr.io/sdr-enthusiasts/docker-rtl-tcp:latest	# profile 'rtltcp', manual start only
@@ -23,6 +25,7 @@ ghcr.io/home-assistant/home-assistant:stable	sha256:14931c6b13756317849f46da1d01
 hello-world:latest	sha256:5dd0d3e6e255913fc30f90b9f2b1d359cc2cbdb48090cc4b65f1676e203243cc
 jellyfin/jellyfin:latest	sha256:aefb67e6a7ff1debdd154a78a7bbb780fd0c873d8639210a7f6a2016ad2b35db
 louislam/uptime-kuma:1	sha256:3d632903e6af34139a37f18055c4f1bfd9b7205ae1138f1e5e8940ddc1d176f9
+adguard/adguardhome:latest	sha256:aba9e3bf0613be3ba3755e1fc311b126e2c24bec25e18b6483894a88283074f0
 
 # locally built images (no registry - image id, not a pullable digest)
 # deployed 2026-09-06 (port 80, wall-display restyle); rebuild with: cd /opt/stacks/dash && docker compose up -d --build
