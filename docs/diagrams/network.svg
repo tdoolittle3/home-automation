@@ -31,7 +31,7 @@
   <path d="M993 333v17h-154v253h18M839 389h18M839 497h18" class="poe"/>
   <rect x="857" y="359" width="285" height="87" rx="12" class="card"/><text x="877" y="388" class="label">Driveway / port 1</text><text x="877" y="413" class="mono">10.10.10.201</text><text x="877" y="436" class="body">IPC-T54PRO-ZE</text>
   <rect x="857" y="467" width="285" height="87" rx="12" class="card"/><text x="877" y="496" class="label">Backyard / port 2</text><text x="877" y="521" class="mono">10.10.10.202</text><text x="877" y="544" class="body">IPC-T24IR-AS</text>
-  <rect x="857" y="575" width="285" height="87" rx="12" class="card"/><text x="877" y="604" class="label">Raspberry Pi 2 / port 3</text><text x="877" y="630" class="small">Planned watchdog / not yet configured</text><text x="877" y="651" class="small">U8 · PDU-powered · IP not assigned here</text>
+  <rect x="857" y="575" width="285" height="87" rx="12" class="card"/><text x="877" y="604" class="label">Raspberry Pi 2 / port 3</text><text x="877" y="630" class="small">Pi-hole LAN DNS · 192.168.0.14</text><text x="877" y="651" class="small">U8 · PDU-powered · watchdog role not configured</text>
   <text x="844" y="683" class="small">Patch numbers match switch ports: 1, 2, 3, 5</text>
 
   <rect x="438" y="177" width="324" height="67" rx="12" class="card"/><text x="461" y="204" class="label">Remote clients</text><text x="461" y="228" class="small">Tailscale / encrypted overlay</text>

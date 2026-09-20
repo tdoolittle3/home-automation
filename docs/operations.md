@@ -40,8 +40,13 @@ surfaces in Home Assistant as:
 - `sensor.ladybird_storage_frigate_recordings` (GB)
 - `sensor.ladybird_storage_media_library` (GB)
 - `sensor.ladybird_storage_immich_library` (GB)
+- `sensor.ladybird_storage_nvme_temperature` — read from the kernel's hwmon node, no packages
+  needed. Published in °C; HA displays °F because its unit system is US customary.
 - `binary_sensor.ladybird_storage_storage_problem` — build notifications on this; the reason is
   exposed as an attribute
+
+Discovery payloads carry `object_id`, so a rebuild reproduces exactly these entity IDs — the
+dashboard's `config/dashboard.json` references them by name.
 
 Thresholds live in `/opt/stacks/net/disk-guard.conf` and are re-read every run, so **edits need no
 restart**. It **alerts only and never deletes.**
@@ -205,9 +210,10 @@ the next real outage.
 
 ## Dashboard
 
-The custom UI at `http://ladybird/` (`http://192.168.0.13/`, port 80). The application lives in the separate
-`home-dashboard` repo; only its compose file lives here. It is a read-mostly client of Home
-Assistant's WebSocket API, so it holds no state of its own — losing it loses nothing.
+The custom UI at `http://ladybird/` (`http://192.168.0.13/`, port 80). The application lives at
+[github.com/tdoolittle3/home-dashboard](https://github.com/tdoolittle3/home-dashboard); only its
+compose file lives here. It is a read-mostly client of Home Assistant's WebSocket API, so it holds
+no state of its own — losing it loses nothing.
 
 ```bash
 curl -s http://127.0.0.1/api/health          # ha.connected, plus the last HA error if any
@@ -222,18 +228,17 @@ expired. Issue a new one in HA, update `HA_TOKEN` in `/opt/stacks/dash/.env`, th
 cd /opt/stacks/dash && docker compose up -d --force-recreate
 ```
 
-**Update after changing the app:** copy the new source into `~/src/home-dashboard`, then rebuild.
-There is no git remote, so this is a tarball copy — and compose will not rebuild on its own.
+**Update after changing the app:** push to the `home-dashboard` repo, pull on the server, rebuild —
+compose will not rebuild on its own.
 
 ```bash
-# from a workstation, in the home-dashboard repo
-git archive --format=tar HEAD > /tmp/hd.tar && scp /tmp/hd.tar thomas@192.168.0.13:/tmp/
-
 # on the server
-rm -rf ~/src/home-dashboard && mkdir -p ~/src/home-dashboard
-tar -xf /tmp/hd.tar -C ~/src/home-dashboard
+git -C ~/src/home-dashboard pull
 cd /opt/stacks/dash && docker compose up -d --build
 ```
+
+If `~/src/home-dashboard` predates the GitHub remote (it began life as a tarball copy), replace it
+with a clone once: `rm -rf ~/src/home-dashboard && git clone https://github.com/tdoolittle3/home-dashboard ~/src/home-dashboard`.
 
 **Change which panels appear:** edit `config/dashboard.json` in the `home-dashboard` checkout and
 rebuild. The file is validated at startup, so a typo fails loudly in the logs rather than rendering
@@ -439,6 +444,7 @@ Worth capturing periodically, none of it in git:
 | Immich database + library | see the Immich section above — **a copy of `postgres/` is not a valid backup** |
 | Camera credentials | `.env` here, `/opt/stacks/frigate/.env`, `.camcreds` |
 | Immich database password | `/opt/stacks/immich/.env` |
+| n8n database + encryption key | `/opt/stacks/n8n/n8n-data/` — SQLite holds every credential; the workflow JSON alone does not restore them |
 | Uptime Kuma | *not* backed up — `net/uptime-kuma/` is recreated from [uptime-kuma.md](uptime-kuma.md) |
 
 Recordings in `/srv/storage/frigate` are intentionally *not* backed up — they age out by design.
