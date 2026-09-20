@@ -18,9 +18,13 @@ filesystem; a dedicated data drive is a future migration, not installed hardware
 
 This is a **logical network view**; the detailed patching schedule is in view 05. The N600 connects
 directly to the host LAN NIC. The other host NIC connects to port/patch 5 of the camera switch,
-which also connects the two cameras and Raspberry Pi 2. The Pi is not yet configured: its IP
-address, OS and notification route are not established. The Tailscale line represents an overlay,
-not another physical cable. Link colors identify networks, not negotiated speeds or Pi PoE power.
+which also connects the two cameras and Raspberry Pi 2. The Pi is live on the **LAN** as
+`192.168.0.14`, running **Pi-hole** as the LAN's DNS resolver (verified 2026-09-20) — which sits
+oddly with this diagram's camera-switch placement, since the camera segment is 10.10.10.0/24 with
+no route out. Either the Pi has moved, or the switch carries both networks; verify the patching
+before trusting this view. The Pi's *watchdog* role is still not configured. The Tailscale line
+represents an overlay, not another physical cable. Link colors identify networks, not negotiated
+speeds or Pi PoE power.
 
 ## 03 · Rack elevation
 
@@ -54,7 +58,7 @@ specifications are optional inventory details still to collect.
 | Mini PC camera uplink | Switch port 5 → patch 5 → `enp45s0`, `10.10.10.50/24` | Cable details |
 | Driveway camera | Switch port 1 → patch 1 → IPC-T54PRO-ZE, `10.10.10.201`; Ethernet + PoE | Cable details |
 | Backyard camera | Switch port 2 → patch 2 → IPC-T24IR-AS, `10.10.10.202`; Ethernet + PoE | Cable details |
-| Raspberry Pi 2 | Switch port 3 → patch 3 → Pi on U8; PDU-powered; not yet set up | IP, OS, monitoring software and independent notification route |
+| Raspberry Pi 2 | Switch port 3 → patch 3 → Pi on U8; PDU-powered; serves LAN DNS as Pi-hole at `192.168.0.14` | How a LAN IP reaches the camera-side switch (see view 02 note); monitoring software and independent notification route |
 | Switch port 4 | Usage not supplied | Whether occupied or spare |
 | UPS → mini PC | USB telemetry, verified through NUT | Physical USB port / cable route if desired |
 | UPS / PDU / power bricks | UPS → PDU → all other powered rack equipment; N600 directly into UPS | Outlet numbers and battery-backed/surge-only outlet selection |
@@ -93,8 +97,10 @@ under the powered equipment rather than depicting an unverified adapter-to-outle
 ### Planned Pi watchdog
 
 The **Raspberry Pi 2 is physically installed, cabled and PDU-powered**, alongside the switch on
-the Tecmojo shelf. Its intended job is to notify the owner when Ladybird crashes or powers off
-unexpectedly. **No monitoring service is configured yet**, and no alert-delivery path is drawn as live.
+the Tecmojo shelf — and it is not idle: it runs **Pi-hole at `192.168.0.14`**, serving DNS for the
+whole LAN (verified 2026-09-20; nothing on it is managed by any repo). Its intended *second* job
+is to notify the owner when Ladybird crashes or powers off unexpectedly. **No monitoring service
+is configured yet**, and no alert-delivery path is drawn as live.
 
 Before implementing that role, establish an alert route that does not depend on Ladybird forwarding
 traffic: the Pi currently connects to the camera-side switch, while the N600 is on Ladybird's other
@@ -111,7 +117,7 @@ owner-supplied physical details when updating these diagrams.
 |---|---|
 | PC model and rack positions | Owner's corrected rack inventory; PC model also in root README |
 | Switch ports, patch jacks and power tree | Owner confirmed corresponding port/patch numbers 1, 2, 3, 5; UPS-fed PDU; N600 directly on UPS |
-| Raspberry Pi | Owner confirmed Pi 2 on U8, PDU-powered, not yet configured; planned off-host watchdog |
+| Raspberry Pi | Owner confirmed Pi 2 on U8, PDU-powered; verified 2026-09-20 serving LAN DNS (Pi-hole at 192.168.0.14); watchdog role not configured |
 | OS, kernel, CPU, memory, NVMe, NICs | Read-only SSH: `/etc/os-release`, `uname`, `lscpu`, `free`, `lsblk`, `lspci`, `ip` |
 | Current storage mount | SSH: `findmnt -T /srv/storage` → root ext4 on `/dev/nvme0n1p2` |
 | Docker and Compose versions | SSH: `docker --version`, `docker compose version` |
@@ -128,9 +134,9 @@ owner-supplied physical details when updating these diagrams.
 - **UPS:** older documentation called the unit PR1500LCDRT2U. NUT reports CP1000AVRLCDa;
   the owner's instruction is to use the NUT-reported model. Documentation and the descriptive NUT
   label now follow that identity. USB vendor/product matching is unchanged.
-- **EPG:** `epg` is running from `ghcr.io/iptv-org/epg:master`. Its Compose label points to
-  `/opt/stacks/media/docker-compose.yml`, but this checkout's media Compose defines only Jellyfin.
-  The architecture diagram marks EPG as live-only rather than implying it can be rebuilt from this checkout.
+- **EPG:** `epg` is running from `ghcr.io/iptv-org/epg:master`. ~~This checkout's media Compose
+  defines only Jellyfin.~~ Resolved 2026-09-20: the `epg` service and its `epg/channels.xml` are
+  now tracked in [`stacks/media/`](../../stacks/media/docker-compose.yml).
 - **n8n:** defined in the repository and observed running, though absent from the older README service list.
 - **Versions:** `VERSIONS.txt` is an older capture. These diagrams use the September 9 observation;
   they do not replace the image-digest inventory.
@@ -158,7 +164,7 @@ price, or affiliate link has been inferred.
 | Mini PC | Minisforum M1 Plus | Awaiting owner link |
 | Camera switch | TP-Link TL-SG105MPE | Awaiting owner link |
 | UPS | CyberPower CP1000AVRLCDa (reported model) | Awaiting owner link |
-| Watchdog hardware | Raspberry Pi 2; not yet configured | Awaiting owner link |
+| Watchdog hardware | Raspberry Pi 2; runs Pi-hole (LAN DNS); watchdog role not yet configured | Awaiting owner link |
 | Driveway camera | IPC-T54PRO-ZE | Awaiting owner link |
 | Backyard camera | IPC-T24IR-AS | Awaiting owner link |
 | Upper shelf | Tecmojo; exact model unknown | Awaiting owner link |

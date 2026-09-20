@@ -29,6 +29,6 @@
   <text x="52" y="717" class="small">Supporting API paths are summarized here to keep the main event flow readable. n8n workflow activation has not been verified.</text>
   <rect x="32" y="754" width="1136" height="85" rx="14" fill="#302a22" stroke="#f7c66d" stroke-dasharray="6 6"/>
   <text x="52" y="786" class="label" style="fill:#f7c66d">Planned / Raspberry Pi 2 watchdog</text>
-  <text x="52" y="815" class="body">Hardware installed on U8; not configured. Independent alert delivery while Ladybird is off is still to design.</text>
+  <text x="52" y="815" class="body">Runs Pi-hole (LAN DNS); watchdog role not configured. Independent alert delivery while Ladybird is off is still to design.</text>
   <text x="48" y="872" class="small">Sources: repository service configuration + owner-confirmed watchdog plan · 2026-09-09</text><text x="1152" y="872" text-anchor="end" class="eyebrow">L / 04</text>
 </svg>

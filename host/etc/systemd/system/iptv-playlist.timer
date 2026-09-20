@@ -1,0 +1,11 @@
+[Unit]
+Description=Refresh the FAST IPTV playlist daily
+
+[Timer]
+OnCalendar=daily
+RandomizedDelaySec=1h
+Persistent=true
+AccuracySec=5min
+
+[Install]
+WantedBy=timers.target

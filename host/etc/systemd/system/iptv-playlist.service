@@ -1,0 +1,12 @@
+[Unit]
+Description=Rebuild the Jellyfin FAST IPTV playlist (probes each stream for real content)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=thomas
+Group=thomas
+ExecStart=/opt/stacks/net/iptv-playlist.py
+# Probing ~200 streams takes ~1 min; well past the 90s default.
+TimeoutStartSec=1800

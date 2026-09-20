@@ -39,8 +39,13 @@ DDNS) are policy; the missing route is enforcement.
 The server straddles both networks: it serves the cameras NTP via chrony and pulls their RTSP
 streams. The N600 connects directly to the LAN NIC; the camera NIC connects through patch 5 to
 switch port 5. A **Raspberry Pi 2** also connects to this switch on port/patch 3, beside it on U8.
-The Pi is PDU-powered and intended to monitor Ladybird independently, but **is not yet configured**.
-Its future alert route must work while Ladybird is down; see the [planned watchdog notes](docs/diagrams/README.md#planned-pi-watchdog).
+The Pi is PDU-powered and already load-bearing: it runs **Pi-hole** at `192.168.0.14` (admin UI
+`http://192.168.0.14/admin/`), which the router hands out over DHCP as the LAN's DNS resolver —
+[host/etc/docker/daemon.json](host/etc/docker/daemon.json) points containers at it. Neither
+Pi-hole nor the Pi itself is managed by this repo; a rebuild of Ladybird does not touch it, but a
+dead Pi takes LAN DNS with it. The Pi's intended *second* job — monitoring Ladybird independently —
+is **not yet configured**. That alert route must work while Ladybird is down; see the
+[planned watchdog notes](docs/diagrams/README.md#planned-pi-watchdog).
 
 ### Services
 
@@ -55,6 +60,7 @@ Its future alert route must work while Ladybird is down; see the [planned watchd
 | Dashboard | `http://ladybird/` · `http://192.168.0.13/` | port 80, so the bare hostname works; custom UI over the HA API — built from the `home-dashboard` repo |
 | Mosquitto | `192.168.0.13:1883` | anonymous, LAN only |
 | n8n | `http://192.168.0.13:5678` | workflow automation; `stacks/n8n` |
+| EPG grabber | `http://192.168.0.13:3000/guide.xml` | XMLTV guide for Jellyfin's IPTV tuner; `stacks/media` |
 | tar1090 (ADS-B) | `http://192.168.0.13:8080` | live aircraft map from the RTL-SDR; see [docs/sdr.md](docs/sdr.md) |
 | Samba | `//192.168.0.13/files` | serves `/srv/storage/files` |
 
@@ -89,9 +95,10 @@ stacks/          -> deploys to /opt/stacks on the server
   dash/          the custom dashboard (image built from the home-dashboard repo)
   frigate/       docker-compose.yml + config/config.yml
   home/          Home Assistant + Mosquitto
-  media/         Jellyfin
+  media/         Jellyfin + the iptv-org EPG grabber (epg/channels.xml is its channel list)
   immich/        Immich photo library (its own stack)
-  net/           Uptime Kuma + the storage and UPS guards (kuma-monitors.yml defines the monitor set)
+  net/           Uptime Kuma, the storage and UPS guards, and the IPTV playlist builder
+                 (kuma-monitors.yml defines the monitor set)
   n8n/           workflow automation + workflow definition
   sdr/           RTL-SDR: ADS-B decoding, tar1090 map, adsb.fi/adsb.lol feeding
 host/etc/        -> deploys to /etc on the server
@@ -153,7 +160,7 @@ A single root, so the Phase 2 drive swap is a remount rather than a reconfigurat
 
 ```bash
 mkdir -p /srv/storage/{frigate,media,photos,files,archive}
-mkdir -p /opt/stacks/{frigate,media,immich,home,net,dash}
+mkdir -p /opt/stacks/{frigate,media,immich,home,net,n8n,sdr,dash}
 chown -R <user>:<user> /srv/storage /opt/stacks
 ```
 
@@ -185,7 +192,10 @@ chmod 600 /opt/stacks/frigate/.env
 cd /opt/stacks/immich && cp .env.example .env && chmod 600 .env
 sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=$(openssl rand -hex 24)/" .env
 
-for d in frigate home media immich net; do (cd /opt/stacks/$d && docker compose up -d); done
+# n8n runs as UID 1000 inside the container and needs its data dir owned by it
+mkdir -p /opt/stacks/n8n/n8n-data && chown 1000:1000 /opt/stacks/n8n/n8n-data
+
+for d in frigate home media immich net n8n; do (cd /opt/stacks/$d && docker compose up -d); done
 ```
 
 Immich pulls roughly 4 GB of images and needs a few minutes to report healthy on its first
@@ -193,6 +203,12 @@ start while Postgres initialises. Then open `http://<host>:2283` — **the first
 becomes the admin**, so create it before telling anyone else the address.
 
 Frigate prints a generated admin password on first boot — capture it from `docker logs frigate`.
+
+The first visit to n8n at `http://<host>:5678` creates the owner account. Import
+[stacks/n8n/workflows/frigate-person-llm-notify.json](stacks/n8n/workflows/frigate-person-llm-notify.json)
+through the UI and recreate its MQTT and HA-token credentials by hand — credentials and the
+encryption key live in n8n's SQLite database under `n8n-data/`, which is gitignored (see the
+backups table in [docs/operations.md](docs/operations.md#backups)).
 
 The `sdr` stack is **not** in that loop — it needs host preparation (DVB-T driver
 blacklist + udev rule, via `sudo bash host/scripts/sdr-host-prep.sh`) and a real
@@ -211,6 +227,12 @@ docker restart homeassistant
 Add integrations in this order: **MQTT** (`192.168.0.13`, port 1883, no credentials) →
 **HACS** (needs a GitHub device-code authorization) → install *Frigate* and *Dahua* from HACS →
 **Frigate** (`http://192.168.0.13:5000`) → **Dahua** (one per camera).
+
+Then add **System Monitor** — the dashboard's System panel reads its sensors. Nearly all of its
+entities are disabled by default; on the System Monitor device page enable *Processor use*,
+*Memory usage*, *Swap usage*, *Processor temperature*, *Load (1 min)*, and *Network throughput
+in/out enp44s0*, then rename `sensor.system_monitor_uptime` to `sensor.system_monitor_last_boot`
+(the entity ID the dashboard's config expects; there is no `last_boot` sensor in current HA).
 
 Then recreate the credential file for white-light control:
 
@@ -241,6 +263,12 @@ apt install -y samba
 cat host/snippets/samba-files-share.conf >> /etc/samba/smb.conf
 smbpasswd -a <user> && systemctl restart smbd
 
+# IPTV playlist for Jellyfin Live TV — daily rebuild of /srv/storage/media/iptv/fast.m3u8
+# (the .service runs as user thomas; edit it if the username differs)
+cp host/etc/systemd/system/iptv-playlist.* /etc/systemd/system/
+systemctl daemon-reload && systemctl enable --now iptv-playlist.timer
+sudo -u <user> /opt/stacks/net/iptv-playlist.py      # first build now, not tomorrow
+
 # NUT + UPS guard (full walkthrough: docs/operations.md -> UPS and power)
 apt install -y nut
 cp host/etc/nut/{nut.conf,ups.conf,upsd.conf,upsd.users,upsmon.conf} /etc/nut/
@@ -253,21 +281,22 @@ systemctl daemon-reload && systemctl enable --now ups-guard.timer
 /opt/stacks/net/ups-guard.sh --discovery
 ```
 
+Jellyfin's Live TV tuner and its XMLTV listing (`http://192.168.0.13:3000/guide.xml`, served by the
+`epg` container) are configured in `config/livetv.xml`, which is runtime state and not in this repo
+— recreate the M3U tuner pointing at `/media/iptv/fast.m3u8` (the container path), then trigger
+**Dashboard → Scheduled Tasks → Refresh Guide** by hand. Channels never appear on their own: the
+refresh does not run on a timer here, and zero programmes is not evidence the config is wrong.
+
 ### 11. Dashboard
 
-The dashboard is a separate application — see the `home-dashboard` repo. It has no registry image
-and no git remote, so the source is copied to the host and built there. The checkout is only a
-build input: nothing runs from it, and the host has no Node installed at all.
-
-```bash
-# from a workstation with the home-dashboard repo checked out
-git archive --format=tar HEAD > /tmp/hd.tar
-scp /tmp/hd.tar <user>@192.168.0.13:/tmp/
-```
+The dashboard is a separate application at
+[github.com/tdoolittle3/home-dashboard](https://github.com/tdoolittle3/home-dashboard). It has no
+registry image, so the source is cloned to the host and built there. The checkout is only a build
+input: nothing runs from it, and the host has no Node installed at all.
 
 ```bash
 # on the server
-mkdir -p ~/src/home-dashboard && tar -xf /tmp/hd.tar -C ~/src/home-dashboard
+git clone https://github.com/tdoolittle3/home-dashboard ~/src/home-dashboard
 cp ~/src/home-dashboard/.env.example /opt/stacks/dash/.env
 chmod 600 /opt/stacks/dash/.env
 ```
@@ -295,7 +324,7 @@ monitor that the storage guard beats only while healthy, so that a dead server a
 
 ---
 
-### 12. Crash resilience
+### 13. Crash resilience
 
 Added after the 2026-09-06 kernel panic (see `docs/operations.md` → "After a crash").
 
@@ -378,7 +407,17 @@ Each of these cost real debugging time. Read before changing anything.
   `StorageMaintainer` only intervenes at under one hour of free space, which is too late to rely
   on. The storage guard alerts but deliberately never deletes. A real cap means a separate
   filesystem for `/srv/storage`, which belongs with the Phase 2 drive.
-- **Immich has no automated backup.** The library is irreplaceable in a way recordings are not, and a copy of the Postgres directory does not count — it needs a logical dump. The procedure is in [docs/operations.md](docs/operations.md#immich); it is not yet on a timer.
+- **Immich has no automated backup, and no off-box destination exists yet.** The library is
+  irreplaceable in a way recordings are not, and a copy of the Postgres directory does not count —
+  it needs a logical dump. The procedure is in [docs/operations.md](docs/operations.md#immich); it
+  is not on a timer, and until an off-box location exists even a scheduled dump dies with the disk.
+- **n8n's database is not backed up.** Workflows can be re-imported from
+  [stacks/n8n/workflows/](stacks/n8n/workflows/), but credentials and the encryption key exist only
+  in `/opt/stacks/n8n/n8n-data/` — losing it means recreating every credential by hand.
+- **LAN DNS lives on the Pi, outside this repo.** The Pi-hole at `192.168.0.14` is undocumented
+  and unbacked-up (its allow/block lists exist nowhere else — export them with Teleporter before
+  ever retiring it). An AdGuard Home replacement stack on Ladybird was staged in PR #5 but is not
+  deployed or cut over.
 - ~~UPS monitoring (NUT) not configured~~ Done 2026-09-08: the rack's CyberPower CP1000AVRLCDa is
   on USB, NUT + `ups-guard.timer` report to the "UPS power" Kuma monitor, and `upsmon` halts the
   box cleanly at low battery. See `docs/operations.md` → UPS and power.

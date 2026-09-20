@@ -25,7 +25,7 @@
   <text x="205" y="319" class="small" style="font-size:10px">TL-SG105MPE</text>
   <path d="M253 322h17v10h-17zM276 322h17v10h-17zM299 322h17v10h-17zM322 322h17v10h-17zM345 322h17v10h-17z" fill="#0a1321" stroke="#66dfcf"/>
   <rect x="388" y="311" width="72" height="29" rx="4" fill="#173439" stroke="#f7c66d"/><text x="424" y="331" text-anchor="middle" class="small">Pi 2</text>
-  <path d="M510 323h113" class="leader"/><text x="644" y="310" class="label">Tecmojo shelf / switch + Pi 2</text><text x="644" y="335" class="body">TL-SG105MPE + Raspberry Pi 2 · PDU-powered</text><text x="644" y="357" class="small">Pi: planned off-host watchdog, not yet configured</text>
+  <path d="M510 323h113" class="leader"/><text x="644" y="310" class="label">Tecmojo shelf / switch + Pi 2</text><text x="644" y="335" class="body">TL-SG105MPE + Raspberry Pi 2 · PDU-powered</text><text x="644" y="357" class="small">Pi: Pi-hole LAN DNS (192.168.0.14); watchdog role not configured</text>
 
   <text x="64" y="400" class="unit">U7</text>
   <rect x="177" y="363" width="302" height="27" rx="3" fill="#24364f" stroke="#64758d"/>
