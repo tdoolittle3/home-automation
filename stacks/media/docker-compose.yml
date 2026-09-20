@@ -14,3 +14,14 @@ services:
       - /srv/storage/media:/media:ro
     ports:
       - "8096:8096"
+
+  # XMLTV guide data for the IPTV tuner. iptv-org publishes no ready-made EPG
+  # files - this is their grabber, scraping only the channels in epg/channels.xml.
+  epg:
+    container_name: epg
+    image: ghcr.io/iptv-org/epg:master
+    restart: unless-stopped
+    volumes:
+      - ./epg/channels.xml:/epg/public/channels.xml:ro
+    ports:
+      - "3000:3000"

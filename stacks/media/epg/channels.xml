@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<channels>
+  <channel site="pluto.tv" site_id="615c1e5ce3039400070a0547" lang="de" xmltv_id="Moviedome.us@Germany">MOVIEDOME</channel>
+  <channel site="pluto.tv" site_id="65004605110545000842035d" lang="de" xmltv_id="PlutoTVAction.de@DACH">Pluto TV Action</channel>
+  <channel site="pluto.tv" site_id="62f4f4b88157cf00075c22db" lang="de" xmltv_id="PlutoTVHorror.de@DACH">Pluto TV Horror</channel>
+  <channel site="pluto.tv" site_id="66337de656fc840008ff7a65" lang="de" xmltv_id="PlutoTVKultComedies.de@DACH">Pluto TV Kult Comedies</channel>
+  <channel site="pluto.tv" site_id="5dde47b63585b500099f74ec" lang="de" xmltv_id="PlutoTVKultfilme.de@DACH">Pluto TV Kultfilme</channel>
+  <channel site="pluto.tv" site_id="5c5c3b948002db3c3e0b262e" lang="de" xmltv_id="PlutoTVMovies.de@DACH">Pluto TV Movies</channel>
+  <channel site="pluto.tv" site_id="5f98487036af340008da1e37" lang="de" xmltv_id="PlutoTVParanormal.de@DACH">Pluto TV Paranormal</channel>
+  <channel site="pluto.tv" site_id="60ed498c4248a400077c0b9d" lang="de" xmltv_id="PlutoTVSciFi.de@DACH">Pluto TV Sci-Fi</channel>
+  <channel site="pluto.tv" site_id="6152ee71bf99590007893a11" lang="de" xmltv_id="PlutoTVStarTrek.de@DACH">Pluto TV Star Trek</channel>
+  <channel site="pluto.tv" site_id="630dd3b2605f140007e002f5" lang="de" xmltv_id="PlutoTVWestern.de@DACH">Pluto TV Western</channel>
+  <channel site="pluto.tv" site_id="561d7d484dc7c8770484914a" lang="en" xmltv_id="PlutoTVAction.us@US">Pluto TV Action</channel>
+  <channel site="pluto.tv" site_id="5f31fd1b4c510e00071c3103" lang="en" xmltv_id="PlutoTVCrimeDrama.us@SD">Pluto TV Crime Drama</channel>
+  <channel site="pluto.tv" site_id="5f4d8594eb979c0007706de7" lang="en" xmltv_id="PlutoTVCrimeMovies.us@SD">Pluto TV Crime Movies</channel>
+  <channel site="pluto.tv" site_id="5c665db3e6c01b72c4977bc2" lang="en" xmltv_id="PlutoTVCultFilms.us@US">Pluto TV Cult Films</channel>
+  <channel site="pluto.tv" site_id="5b4e92e4694c027be6ecece1" lang="en" xmltv_id="PlutoTVDrama.us@US">Pluto TV Drama</channel>
+  <channel site="pluto.tv" site_id="569546031a619b8f07ce6e25" lang="en" xmltv_id="PlutoTVHorror.us@US">Pluto TV Horror</channel>
+  <channel site="pluto.tv" site_id="64b585f84ea480000838e446" lang="en" xmltv_id="PlutoTVIcons.us@SD">Pluto TV Icons</channel>
+  <channel site="pluto.tv" site_id="617b37b361e0fd0008cfd8c5" lang="en" xmltv_id="PlutoTVReaction.us@SD">Pluto TV Reaction</channel>
+  <channel site="pluto.tv" site_id="5a66795ef91fef2c7031c599" lang="en" xmltv_id="PlutoTVRomance.us@US">Pluto TV Romance</channel>
+  <channel site="pluto.tv" site_id="5b4fc274694c027be6ed3eea" lang="en" xmltv_id="PlutoTVSciFi.us@US">Pluto TV Sci-Fi</channel>
+  <channel site="pluto.tv" site_id="5ba3fb9c4b078e0f37ad34e8" lang="en" xmltv_id="PlutoTVSpotlight.us@SD">Pluto TV Spotlight</channel>
+  <channel site="pluto.tv" site_id="5f4d863b98b41000076cd061" lang="en" xmltv_id="PlutoTVStaffPicks.us@SD">Pluto TV Staff Picks</channel>
+  <channel site="pluto.tv" site_id="5c6dc88fcd232425a6e0f06e" lang="en" xmltv_id="PlutoTVTerror.us@SD">Pluto TV Terror</channel>
+  <channel site="pluto.tv" site_id="5b4e69e08291147bd04a9fd7" lang="en" xmltv_id="PlutoTVThrillers.us@US">Pluto TV Thrillers</channel>
+  <channel site="pluto.tv" site_id="673247127d5da5000817b4d6" lang="en" xmltv_id="PlutoTVTrendingNow.us@SD">Pluto TV Trending Now</channel>
+  <channel site="pluto.tv" site_id="5b4e94282d4ec87bdcbb87cd" lang="en" xmltv_id="PlutoTVWesterns.us@US">Pluto TV Westerns</channel>
+  <channel site="pluto.tv" site_id="61c0b0688a80a4000703fbcb" lang="sv" xmltv_id="PlutoTVAction.se@SE">Pluto TV Action</channel>
+  <channel site="pluto.tv" site_id="65b917720d9ab4000833f323" lang="sv" xmltv_id="PlutoTVBudTerence.se@SE">Pluto TV Bud &amp; Terence</channel>
+  <channel site="pluto.tv" site_id="61c0afa0a09bbe00078f8378" lang="sv" xmltv_id="PlutoTVFilm.se@SE">Pluto TV Film</channel>
+  <channel site="pluto.tv" site_id="68c01bed508ba507f0d0dd60" lang="sv" xmltv_id="PlutoTVHarlequin.se@SE">Pluto TV Harlequin</channel>
+  <channel site="pluto.tv" site_id="63a19e1b9ab2df0007bef7a7" lang="sv" xmltv_id="PlutoTVHorror.se@SE">Pluto TV Horror</channel>
+  <channel site="pluto.tv" site_id="655caaaac0fc8800086f5d99" lang="sv" xmltv_id="PlutoTVJohnWayne.se@SE">Pluto TV John Wayne</channel>
+  <channel site="pluto.tv" site_id="61c0b36d18447e000717d686" lang="sv" xmltv_id="PlutoTVKomedi.se@SE">Pluto TV Komedi</channel>
+  <channel site="pluto.tv" site_id="63dbe8c8a9957100087798a3" lang="sv" xmltv_id="PlutoTVKultfilmer.se@SE">Pluto TV Kultfilmer</channel>
+  <channel site="pluto.tv" site_id="62b1e4189f5db20007ff03be" lang="sv" xmltv_id="PlutoTVParanormal.se@SE">Pluto TV Paranormal</channel>
+  <channel site="pluto.tv" site_id="63a19da6847a090007f230da" lang="sv" xmltv_id="PlutoTVRomantik.se@SE">Pluto TV Romantik</channel>
+  <channel site="pluto.tv" site_id="61f9597e78607000074f6c2a" lang="sv" xmltv_id="PlutoTVSciFi.se@SE">Pluto TV Sci-Fi</channel>
+  <channel site="pluto.tv" site_id="68c017bf337652ee75db201f" lang="sv" xmltv_id="PlutoTVWildWest.se@SE">Pluto TV Wild West</channel>
+  <channel site="pluto.tv" site_id="68d566603d3a9580eb461251" lang="es" xmltv_id="ParamountNetworkdePlutoTV.de@ES">Paramount Network de Pluto TV</channel>
+  <channel site="pluto.tv" site_id="645a309c5a0cd5000873f609" lang="es" xmltv_id="PlutoTVCatastrofes.de@ES">Pluto TV Catástrofes</channel>
+  <channel site="pluto.tv" site_id="5f1ac2591dd8880007bb7d6d" lang="es" xmltv_id="PlutoTVCineAccion.de@ES">Pluto TV Cine Acción</channel>
+  <channel site="pluto.tv" site_id="61373bb45168fe000773eecd" lang="es" xmltv_id="PlutoTVCineClasico.de@ES">Pluto TV Cine Clásico</channel>
+  <channel site="pluto.tv" site_id="5f1ac8099c49f600076579b2" lang="es" xmltv_id="PlutoTVCineComedia.de@ES">Pluto TV Cine Comedia</channel>
+  <channel site="pluto.tv" site_id="60cc807324d60a0007708dc8" lang="es" xmltv_id="PlutoTVCinedeautor.de@ES">Pluto TV Cine de autor</channel>
+  <channel site="pluto.tv" site_id="5f1ac947dcd00d0007937c08" lang="es" xmltv_id="PlutoTVCineDrama.de@ES">Pluto TV Cine Drama</channel>
+  <channel site="pluto.tv" site_id="5f1ac1f1b66c76000790ef27" lang="es" xmltv_id="PlutoTVCineEstelar.de@ES">Pluto TV Cine Estelar</channel>
+  <channel site="pluto.tv" site_id="5f1ac9a2d3611d0007a844bb" lang="es" xmltv_id="PlutoTVCineRomantico.de@ES">Pluto TV Cine Romántico</channel>
+  <channel site="pluto.tv" site_id="655b5d865812e80008843bd1" lang="es" xmltv_id="PlutoTVComediasRomanticas.de@ES">Pluto TV Comedias Románticas</channel>
+  <channel site="pluto.tv" site_id="6267d4d1fb694f0007a6af0e" lang="es" xmltv_id="PlutoTVHorror.de@ES">Pluto TV Horror</channel>
+  <channel site="pluto.tv" site_id="654a35ce346f420008d5c36e" lang="es" xmltv_id="PlutoTVInvasionAlien.de@ES">Pluto TV Invasión Alien</channel>
+  <channel site="pluto.tv" site_id="612ce5214bb5790007ad3016" lang="es" xmltv_id="PlutoTVParanormal.de@ES">Pluto TV Paranormal</channel>
+  <channel site="pluto.tv" site_id="65ce480a78df2200131c597b" lang="es" xmltv_id="PlutoTVPsycho.de@ES">Pluto TV Psycho</channel>
+  <channel site="pluto.tv" site_id="5f6a38eaa5b68b0007a00e7a" lang="es" xmltv_id="PlutoTVSciFi.de@ES">Pluto TV Sci-Fi</channel>
+  <channel site="pluto.tv" site_id="5f1ac8a87cd38d000745d7cf" lang="es" xmltv_id="PlutoTVThrillers.de@ES">Pluto TV Thrillers</channel>
+  <channel site="pluto.tv" site_id="6385e82900ab2e000768a058" lang="es" xmltv_id="PlutoTVWestern.de@ES">Pluto TV Western</channel>
+  <channel site="pluto.tv" site_id="65786888b228b7000843ad9a" lang="es" xmltv_id="PlutoTVZombies.de@ES">Pluto TV Zombies</channel>
+  <channel site="pluto.tv" site_id="661f8f01801af800083d9d81" lang="it" xmltv_id="PlutoTVAlbertoSordi.de@IT">Pluto TV Alberto Sordi</channel>
+  <channel site="pluto.tv" site_id="612e05b885183d0007958101" lang="it" xmltv_id="PlutoTVChristmastuttolanno.de@IT">Pluto TV Christmas tutto l&apos;anno</channel>
+  <channel site="pluto.tv" site_id="608aa7d8359b270007861489" lang="it" xmltv_id="PlutoTVCinemaItaliano.de@IT">Pluto TV Cinema Italiano</channel>
+  <channel site="pluto.tv" site_id="6786235bd648bf0008c2780a" lang="it" xmltv_id="PlutoTVCinemaOrientale.de@IT">Pluto TV Cinema Orientale</channel>
+  <channel site="pluto.tv" site_id="608aa17fb9f4490007e6419a" lang="it" xmltv_id="PlutoTVFilm.de@IT">Pluto TV Film</channel>
+  <channel site="pluto.tv" site_id="699d87093d5dba980705cca8" lang="it" xmltv_id="PlutoTVFilmAncoraPiuRomantici.de@IT">Pluto TV Film Ancora Più Romantici</channel>
+  <channel site="pluto.tv" site_id="608aa20a2e7f270007c4878d" lang="it" xmltv_id="PlutoTVFilmAzione.de@IT">Pluto TV Film Azione</channel>
+  <channel site="pluto.tv" site_id="608aa512d67fd900072323db" lang="it" xmltv_id="PlutoTVFilmCommedia.de@IT">Pluto TV Film Commedia</channel>
+  <channel site="pluto.tv" site_id="608aa4a4cc92820007b663af" lang="it" xmltv_id="PlutoTVFilmRomantici.de@IT">Pluto TV Film Romantici</channel>
+  <channel site="pluto.tv" site_id="68750875759366af05a151ce" lang="it" xmltv_id="PlutoTVFilmStorici.de@IT">Pluto TV Film Storici</channel>
+  <channel site="pluto.tv" site_id="608aa5e995132a00075f7005" lang="it" xmltv_id="PlutoTVFilmThriller.de@IT">Pluto TV Film Thriller</channel>
+  <channel site="pluto.tv" site_id="61c09e3ac210ed0007606620" lang="it" xmltv_id="PlutoTVHorror.de@IT">Pluto TV Horror</channel>
+  <channel site="pluto.tv" site_id="64808a8c536e0c0008a276d1" lang="it" xmltv_id="PlutoTVLegamiLetali.de@IT">Pluto TV Legami Letali</channel>
+  <channel site="pluto.tv" site_id="6911c9704316999535eb21cf" lang="it" xmltv_id="PlutoTVNottidiPassione.de@IT">Pluto TV Notti di Passione</channel>
+  <channel site="pluto.tv" site_id="6911c92b4316999535eb1e08" lang="it" xmltv_id="PlutoTVNottidiSangue.de@IT">Pluto TV Notti di Sangue</channel>
+  <channel site="pluto.tv" site_id="6911c8dd8caba6f046c5c5d5" lang="it" xmltv_id="PlutoTVNottidiTerrore.de@IT">Pluto TV Notti di Terrore</channel>
+  <channel site="pluto.tv" site_id="66c70033b1a34600087bb09a" lang="it" xmltv_id="PlutoTVParanormal.de@IT">Pluto TV Paranormal</channel>
+  <channel site="pluto.tv" site_id="61728bb9ee3773000840c1fa" lang="it" xmltv_id="PlutoTVSciFi.de@IT">Pluto TV Sci-Fi</channel>
+  <channel site="pluto.tv" site_id="67ed14aaf7c5d70b9089c3bf" lang="it" xmltv_id="PlutoTVSerieSciFi.de@IT">Pluto TV Serie Sci-Fi</channel>
+  <channel site="pluto.tv" site_id="65253f9881f942000833ccd5" lang="it" xmltv_id="PlutoTVToto.de@IT">Pluto TV Totò</channel>
+  <channel site="pluto.tv" site_id="62e7fb67478a5b0007e6c50c" lang="it" xmltv_id="PlutoTVWestern.de@IT">Pluto TV Western</channel>
+  <channel site="pluto.tv" site_id="6823648580b2665220d9e69a" lang="fr" xmltv_id="Cine666byPlutoTV.de@FR">Ciné 666 by Pluto TV</channel>
+  <channel site="pluto.tv" site_id="5f8ed1ff5c39700007e2204a" lang="fr" xmltv_id="CineActionbyPlutoTV.de@FR">Ciné Action by Pluto TV</channel>
+  <channel site="pluto.tv" site_id="5f8ed0f17564a300082b676a" lang="fr" xmltv_id="CinebyPlutoTV.de@FR">Ciné by Pluto TV</channel>
+  <channel site="pluto.tv" site_id="65a69ef53af63d000825e0ee" lang="fr" xmltv_id="CineCatastrophebyPlutoTV.de@FR">Ciné Catastrophe by Pluto TV</channel>
+  <channel site="pluto.tv" site_id="62f3e2d000418d00070f7dbc" lang="fr" xmltv_id="CinedAsiebyPlutoTV.de@FR">Ciné d&apos;Asie by Pluto TV</channel>
+  <channel site="pluto.tv" site_id="66e1978babec540008ce41ac" lang="fr" xmltv_id="CineHorreurbyPlutoTV.de@FR">Ciné Horreur by Pluto TV</channel>
+  <channel site="pluto.tv" site_id="5f8ed168f72fcd0007e56269" lang="fr" xmltv_id="CineRetrobyPlutoTV.de@FR">Ciné Rétro by Pluto TV</channel>
+  <channel site="pluto.tv" site_id="60812fc8539963000707d1e1" lang="fr" xmltv_id="CineRomancebyPlutoTV.de@FR">Ciné Romance by Pluto TV</channel>
+  <channel site="pluto.tv" site_id="60c34592c911890007f29a73" lang="fr" xmltv_id="CineSciFibyPlutoTV.de@FR">Ciné Sci-Fi by Pluto TV</channel>
+  <channel site="pluto.tv" site_id="60c3472a51a2050008dad272" lang="fr" xmltv_id="CineThrillersbyPlutoTV.de@FR">Ciné Thrillers by Pluto TV</channel>
+  <channel site="pluto.tv" site_id="65cca3e2ec452d0008af3a65" lang="fr" xmltv_id="CineWesternbyPlutoTV.de@FR">Ciné Western by Pluto TV</channel>
+  <channel site="pluto.tv" site_id="66b4990746762a00084c2f78" lang="fr" xmltv_id="PlutoTV90sClassics.de@FR">Pluto TV 90&apos;s Classics</channel>
+  <channel site="pluto.tv" site_id="67b4b2d976a934282e92d71c" lang="fr" xmltv_id="PlutoTVComediesCultes.de@FR">Pluto TV Comédies Cultes</channel>
+  <channel site="pluto.tv" site_id="5f8ed9461b35690007a0bc3a" lang="fr" xmltv_id="PlutoTVParanormal.de@FR">Pluto TV Paranormal</channel>
+  <channel site="pluto.tv" site_id="5dfcde52d28b09000a42d7a2" lang="es" xmltv_id="PlutoTVALaMexicana.us@LatAm">Pluto TV A La Mexicana</channel>
+  <channel site="pluto.tv" site_id="5dcb62e63d4d8f0009f36881" lang="es" xmltv_id="PlutoTVCineAccion.us@LatAm">Pluto TV Cine Acción</channel>
+  <channel site="pluto.tv" site_id="609059dc63be6e0007b4eca6" lang="es" xmltv_id="PlutoTVCineClasico.us@LatAm">Pluto TV Cine Clásico</channel>
+  <channel site="pluto.tv" site_id="5dcdde78f080d900098550e4" lang="es" xmltv_id="PlutoTVCineComedia.us@LatAm">Pluto TV Cine Comedia</channel>
+  <channel site="pluto.tv" site_id="624af40c004f8000079b784d" lang="es" xmltv_id="PlutoTVCineCrimen.us@LatAm">Pluto TV Cine Crimen</channel>
+  <channel site="pluto.tv" site_id="5dcddfcb229eff00091b6bdf" lang="es" xmltv_id="PlutoTVCineDrama.us@LatAm">Pluto TV Cine Drama</channel>
+  <channel site="pluto.tv" site_id="5dcde437229eff00091b6c30" lang="es" xmltv_id="PlutoTVCineEstelar.us@LatAm">Pluto TV Cine Estelar</channel>
+  <channel site="pluto.tv" site_id="5dd6ddb30a1d8a000908ed4c" lang="es" xmltv_id="PlutoTVCineFamilia.us@LatAm">Pluto TV Cine Familia</channel>
+  <channel site="pluto.tv" site_id="6806d519fea7414f33f57016" lang="es" xmltv_id="PlutoTVCineInspirador.us@LatAm">Pluto TV Cine Inspirador</channel>
+  <channel site="pluto.tv" site_id="5dd7ea2aeab5230009986735" lang="es" xmltv_id="PlutoTVCineRomance.us@LatAm">Pluto TV Cine Romance</channel>
+  <channel site="pluto.tv" site_id="5ddc4e8bcbb9010009b4e84f" lang="es" xmltv_id="PlutoTVCineSuspenso.us@LatAm">Pluto TV Cine Suspenso</channel>
+  <channel site="pluto.tv" site_id="5dcddf1ed95e740009fef7ab" lang="es" xmltv_id="CineTerror.us@LatAm">Pluto TV Cine Terror</channel>
+  <channel site="pluto.tv" site_id="5defde6d6c07b50009cf0757" lang="es" xmltv_id="PlutoTVNuestroCine.us@LatAm">Pluto TV Nuestro Cine</channel>
+  <channel site="pluto.tv" site_id="5f2817d3d7573a00080f9175" lang="es" xmltv_id="PlutoTVSciFi.us@LatAm">Pluto TV Sci-Fi</channel>
+  <channel site="pluto.tv" site_id="61c095861782bd000780e0ba" lang="da" xmltv_id="PlutoTVAction.se@DK">Pluto TV Action</channel>
+  <channel site="pluto.tv" site_id="65b915b1dc10a40008d53797" lang="da" xmltv_id="PlutoTVBudTerence.se@DK">Pluto TV Bud &amp; Terence</channel>
+  <channel site="pluto.tv" site_id="67d2b814fe36d6e7b1d2318a" lang="da" xmltv_id="PlutoTVDanskeklassikere.se@DK">Pluto TV Danske klassikere</channel>
+  <channel site="pluto.tv" site_id="61c09515fbb4b50007d221f5" lang="da" xmltv_id="PlutoTVFilm.se@DK">Pluto TV Film</channel>
+  <channel site="pluto.tv" site_id="68c01afa3efb41cd9759dafb" lang="da" xmltv_id="PlutoTVHarlequin.se@DK">Pluto TV Harlequin</channel>
+  <channel site="pluto.tv" site_id="63a1c9790cc44a0007dc8857" lang="da" xmltv_id="PlutoTVHorror.se@DK">Pluto TV Horror</channel>
+  <channel site="pluto.tv" site_id="61c0974945b45d0007aaa5ac" lang="da" xmltv_id="PlutoTVHumor.se@DK">Pluto TV Humor</channel>
+  <channel site="pluto.tv" site_id="655ca7aa635c3c000855d655" lang="da" xmltv_id="PlutoTVJohnWayne.se@DK">Pluto TV John Wayne</channel>
+  <channel site="pluto.tv" site_id="63dbe7ed51f5d000083e9499" lang="da" xmltv_id="PlutoTVKultfilm.se@DK">Pluto TV Kultfilm</channel>
+  <channel site="pluto.tv" site_id="62b30beb81f89900071fc7b9" lang="da" xmltv_id="PlutoTVParanormal.se@DK">Pluto TV Paranormal</channel>
+  <channel site="pluto.tv" site_id="63a1c954d3897300079fcb12" lang="da" xmltv_id="PlutoTVRomantik.se@DK">Pluto TV Romantik</channel>
+  <channel site="pluto.tv" site_id="61f9598588f86000078ee7d6" lang="da" xmltv_id="PlutoTVSciFi.se@DK">Pluto TV Sci-Fi</channel>
+  <channel site="pluto.tv" site_id="61c1979dfa307000070bbe4d" lang="da" xmltv_id="PlutoTVStarTrek.se@DK">Pluto TV Star Trek</channel>
+  <channel site="pluto.tv" site_id="68c01732b3900870ec74766f" lang="da" xmltv_id="PlutoTVWildWest.se@DK">Pluto TV Wild West</channel>
+  <channel site="pluto.tv" site_id="65b916ec3af63d00084c5841" lang="da" xmltv_id="PlutoTVBudTerence.se@NO">Pluto TV Bud &amp; Terence</channel>
+  <channel site="pluto.tv" site_id="61c1e1e55deef000075aed0c" lang="da" xmltv_id="PlutoTVFilm.se@NO">Pluto TV Film</channel>
+  <channel site="pluto.tv" site_id="61c1e270489a9c000874d209" lang="no" xmltv_id="PlutoTVAction.se@NO">Pluto TV Action</channel>
+  <channel site="pluto.tv" site_id="68c01b9a6bdcf3b9a64febcc" lang="no" xmltv_id="PlutoTVHarlequin.se@NO">Pluto TV Harlequin</channel>
+  <channel site="pluto.tv" site_id="63a19cb7847a090007f230d7" lang="no" xmltv_id="PlutoTVHorror.se@NO">Pluto TV Horror</channel>
+  <channel site="pluto.tv" site_id="655ca99dfbc15b00081f209c" lang="no" xmltv_id="PlutoTVJohnWayne.se@NO">Pluto TV John Wayne</channel>
+  <channel site="pluto.tv" site_id="61c1e3a679a4390007c78136" lang="no" xmltv_id="PlutoTVKomedie.se@NO">Pluto TV Komedie</channel>
+  <channel site="pluto.tv" site_id="63dbe80f60bc8f0008aa7c78" lang="no" xmltv_id="PlutoTVKultfilmer.se@NO">Pluto TV Kultfilmer</channel>
+  <channel site="pluto.tv" site_id="63a19bb5e6914b000721b5c0" lang="no" xmltv_id="PlutoTVRomantikk.se@NO">Pluto TV Romantikk</channel>
+  <channel site="pluto.tv" site_id="61f957e051cca800076f2358" lang="no" xmltv_id="PlutoTVSciFi.se@NO">Pluto TV Sci-Fi</channel>
+  <channel site="pluto.tv" site_id="68c01785b3900870ec7480e4" lang="no" xmltv_id="PlutoTVWildWest.se@NO">Pluto TV Wild West</channel>
+</channels>

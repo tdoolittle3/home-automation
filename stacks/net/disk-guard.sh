@@ -33,12 +33,15 @@ mqtt_pub() {
 }
 
 publish_discovery() {
-  local key name unit icon cls topic payload
+  local key name unit icon cls topic payload oid
   # key|name|unit|icon|device_class
+  # object_id pins the entity_id to ladybird_storage_<slugified name>, which is
+  # what the dashboard's config/dashboard.json references.
   while IFS='|' read -r key name unit icon cls; do
     [ -z "$key" ] && continue
+    oid="ladybird_storage_$(echo "$name" | tr 'A-Z ' 'a-z_')"
     topic="$DISC_PREFIX/sensor/ladybird_storage/$key/config"
-    payload="{\"name\":\"$name\",\"unique_id\":\"ladybird_storage_$key\",\"state_topic\":\"$STATE_TOPIC\",\"unit_of_measurement\":\"$unit\",\"value_template\":\"{{ value_json.$key }}\",\"icon\":\"$icon\",\"state_class\":\"measurement\",\"device\":$DEVICE}"
+    payload="{\"name\":\"$name\",\"unique_id\":\"ladybird_storage_$key\",\"object_id\":\"$oid\",\"state_topic\":\"$STATE_TOPIC\",\"unit_of_measurement\":\"$unit\",\"value_template\":\"{{ value_json.$key }}\",\"icon\":\"$icon\",\"state_class\":\"measurement\"${cls:+,\"device_class\":\"$cls\"},\"device\":$DEVICE}"
     mqtt_pub "$topic" "$payload" retain
   done <<EOF
 disk_pct|Disk Used|%|mdi:harddisk|
@@ -46,11 +49,12 @@ free_gb|Disk Free|GB|mdi:database|
 frigate_gb|Frigate Recordings|GB|mdi:cctv|
 media_gb|Media Library|GB|mdi:filmstrip|
 photos_gb|Immich Library|GB|mdi:image-multiple|
+nvme_c|NVMe Temperature|°C|mdi:thermometer|temperature
 EOF
 
   # problem binary sensor
   topic="$DISC_PREFIX/binary_sensor/ladybird_storage/status/config"
-  payload="{\"name\":\"Storage Problem\",\"unique_id\":\"ladybird_storage_status\",\"state_topic\":\"$STATE_TOPIC\",\"value_template\":\"{{ 'ON' if value_json.status != 'ok' else 'OFF' }}\",\"device_class\":\"problem\",\"json_attributes_topic\":\"$STATE_TOPIC\",\"device\":$DEVICE}"
+  payload="{\"name\":\"Storage Problem\",\"unique_id\":\"ladybird_storage_status\",\"object_id\":\"ladybird_storage_storage_problem\",\"state_topic\":\"$STATE_TOPIC\",\"value_template\":\"{{ 'ON' if value_json.status != 'ok' else 'OFF' }}\",\"device_class\":\"problem\",\"json_attributes_topic\":\"$STATE_TOPIC\",\"device\":$DEVICE}"
   mqtt_pub "$topic" "$payload" retain
 }
 
@@ -70,6 +74,15 @@ FRIGATE_GB=$(dirsize_gb "$STORAGE_ROOT/frigate")
 MEDIA_GB=$(dirsize_gb "$STORAGE_ROOT/media")
 PHOTOS_GB=$(dirsize_gb "$STORAGE_ROOT/photos")
 FILES_GB=$(dirsize_gb "$STORAGE_ROOT/files")
+
+# NVMe temperature via the kernel hwmon interface - works unprivileged, unlike smartctl.
+NVME_C=null
+for h in /sys/class/hwmon/hwmon*; do
+  if [ "$(cat "$h/name" 2>/dev/null)" = nvme ]; then
+    t=$(cat "$h/temp1_input" 2>/dev/null) && [ -n "$t" ] && NVME_C=$(( t / 1000 ))
+    break
+  fi
+done
 
 # ---------- evaluate ----------
 STATUS=ok
@@ -100,7 +113,7 @@ fi
 [ -f "$SENTINEL" ] || { publish_discovery && touch "$SENTINEL"; }
 [ "${1:-}" = "--discovery" ] && publish_discovery
 
-PAYLOAD="{\"disk_pct\":$DISK_PCT,\"free_gb\":$FREE_GB,\"frigate_gb\":$FRIGATE_GB,\"media_gb\":$MEDIA_GB,\"photos_gb\":$PHOTOS_GB,\"files_gb\":$FILES_GB,\"status\":\"$STATUS\",\"reason\":\"$REASON\"}"
+PAYLOAD="{\"disk_pct\":$DISK_PCT,\"free_gb\":$FREE_GB,\"frigate_gb\":$FRIGATE_GB,\"media_gb\":$MEDIA_GB,\"photos_gb\":$PHOTOS_GB,\"files_gb\":$FILES_GB,\"nvme_c\":$NVME_C,\"status\":\"$STATUS\",\"reason\":\"$REASON\"}"
 mqtt_pub "$STATE_TOPIC" "$PAYLOAD" retain
 
 # Uptime Kuma: only beat while healthy, so silence itself becomes the alert.
@@ -110,5 +123,5 @@ if [ "$STATUS" = ok ] && [ -s "$KUMA_URL_FILE" ]; then
   curl -fsS --max-time 10 "$(head -1 "$KUMA_URL_FILE")&status=up&msg=disk+${DISK_PCT}%25+free+${FREE_GB}GB" -o /dev/null || true
 fi
 
-echo "storage-guard: $STATUS | disk ${DISK_PCT}% | free ${FREE_GB}GB | frigate ${FRIGATE_GB}GB | media ${MEDIA_GB}GB | photos ${PHOTOS_GB}GB | $REASON"
+echo "storage-guard: $STATUS | disk ${DISK_PCT}% | free ${FREE_GB}GB | frigate ${FRIGATE_GB}GB | media ${MEDIA_GB}GB | photos ${PHOTOS_GB}GB | nvme ${NVME_C}C | $REASON"
 [ "$STATUS" = ok ]

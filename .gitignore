@@ -8,6 +8,9 @@
 *.pem
 *.key
 **/kuma-push-url.txt
+**/kuma-push-url-ups.txt
+# n8n's data dir holds the encryption key and every credential
+**/n8n-data/
 
 # ---- Runtime state pulled from the server by mistake ----
 **/*.db
