@@ -134,7 +134,11 @@ dns:
   serve_http3: false
   use_http3_upstreams: false
   serve_plain_dns: true
-  hostsfile_enabled: true
+  # false, not the default true. The container is host-networked, so AdGuard
+  # reads the HOST's /etc/hosts — and Debian's stock "127.0.1.1 ladybird" line
+  # outranks the rewrites below. Found at first deploy 2026-09-20: every LAN
+  # client asking for `ladybird` got 127.0.1.1, i.e. itself.
+  hostsfile_enabled: false
   pending_requests:
     enabled: true
 
@@ -265,11 +269,16 @@ filtering:
   #
   # The compose healthcheck resolves `ladybird` against 127.0.0.1, so removing
   # that first rewrite will mark the container unhealthy.
+  # `enabled: true` is mandatory on every entry: v0.107.79 added the field, and
+  # an entry without it loads as enabled: FALSE — the rewrite silently answers
+  # NXDOMAIN and the healthcheck goes red. Found at first deploy 2026-09-20.
   rewrites:
     - domain: ladybird
       answer: 192.168.0.13
+      enabled: true
     - domain: ladybird.lan
       answer: 192.168.0.13
+      enabled: true
 
   safe_fs_patterns:
     - /opt/adguardhome/work/userfilters/*

@@ -4,7 +4,7 @@ kernel: 6.12.107+deb13-amd64
 docker: Docker version 29.7.2, build a7dcaa6
 compose: Docker Compose version v5.5.0
 
-# running images (13 containers, all Up)
+# running images (14 containers, all Up)
 frigate	ghcr.io/blakeblackshear/frigate:stable
 homeassistant	ghcr.io/home-assistant/home-assistant:stable
 jellyfin	jellyfin/jellyfin:latest
@@ -19,8 +19,7 @@ n8n	docker.n8n.io/n8nio/n8n:latest	# n8n 2.38.1 on capture day
 ultrafeeder	ghcr.io/sdr-enthusiasts/docker-adsb-ultrafeeder:latest	# sdr stack, live and feeding since 2026-09-20
 home-dashboard	home-dashboard:local	# built on the host from ~thomas/src/home-dashboard (github.com/tdoolittle3/home-dashboard)
 # rtl_tcp (ghcr.io/sdr-enthusiasts/docker-rtl-tcp) is behind compose profile 'rtltcp', manual start only - not running
-# dns stack - image pulled and config verified 2026-09-20, not yet deployed
-# adguardhome	adguard/adguardhome:latest	# v0.107.79; LAN DNS + ad filtering, replaces the Pi-hole on 192.168.0.14
+adguardhome	adguard/adguardhome:latest	# v0.107.79; deployed 2026-09-20, router cutover pending - Pi-hole on 192.168.0.14 still serves the LAN
 
 # image digests
 docker.n8n.io/n8nio/n8n:latest	sha256:9f21fbf422982bbdddc31085c180bef82d59cc608ba16dfec4fc48611d0b51b8
