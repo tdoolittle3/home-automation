@@ -56,6 +56,7 @@ TYPES = {
     "port": MonitorType.PORT,
     "ping": MonitorType.PING,
     "push": MonitorType.PUSH,
+    "dns": MonitorType.DNS,
 }
 
 
@@ -81,6 +82,11 @@ def build_kwargs(m, parent_id, notification_ids):
         ("expected_value", "expectedValue"),
         ("ignore_tls", "ignoreTls"),
         ("expiry_notification", "expiryNotification"),
+        # DNS monitors. `hostname` above is the name being looked up; these two
+        # say which resolver to ask and for which record type. Kuma reuses the
+        # generic `port` field for the resolver's port, so it needs no entry.
+        ("resolver_server", "dns_resolve_server"),
+        ("resolve_type", "dns_resolve_type"),
     ):
         if src in m:
             kw[dst] = m[src]

@@ -1,0 +1,65 @@
+services:
+  # AdGuard Home — LAN-wide DNS with ad/tracker filtering.
+  #
+  # This replaces the Pi-hole that used to run on the Raspberry Pi at
+  # 192.168.0.14. Cutover, rollback and the Pi-hole export are in docs/dns.md.
+  #
+  # ONCE THE ROUTER HANDS THIS OUT, IT IS LOAD-BEARING: every device on the LAN
+  # resolves through this container. A failed `docker compose up` here looks
+  # exactly like "the internet is down" to everyone in the house. Read the
+  # rollback section of docs/dns.md before touching it.
+  adguardhome:
+    container_name: adguardhome
+    image: adguard/adguardhome:latest
+    restart: unless-stopped
+
+    # Host networking, deliberately — NOT a ports: mapping.
+    #
+    # With a bridge mapping ("53:53/udp"), Docker's userland proxy rewrites the
+    # source address of every inbound UDP query to the bridge gateway. AdGuard
+    # then sees all traffic as coming from one host: per-client query logs,
+    # per-client rules and the "top clients" view all collapse into a single
+    # useless row, and you cannot tell the TV from the phone. Host networking
+    # keeps the real LAN source IP.
+    #
+    # Home Assistant and Frigate already run this way, so this is the house
+    # pattern rather than an exception.
+    #
+    # Consequence: AdGuard binds port 53 on EVERY interface — the LAN
+    # (192.168.0.13), the camera island (10.10.10.50) and Tailscale. The camera
+    # island has no gateway so nothing there can abuse it; Tailscale exposure is
+    # a feature, it gives you filtered DNS while away. Nothing else on this host
+    # listens on 53 (systemd-resolved is inactive on this build — verify with
+    # `systemctl is-active systemd-resolved` before first start).
+    network_mode: host
+
+    volumes:
+      # Live config. The repo's AdGuardHome.yaml is the SEED, not this file:
+      # AdGuard rewrites its own config on every UI change, so conf/ is
+      # gitignored the same way Kuma's SQLite database is. Copy up, then
+      # copy back and commit — docs/dns.md -> Config drift.
+      - ./conf:/opt/adguardhome/conf
+      # Query log, statistics and downloaded filter lists.
+      - ./work:/opt/adguardhome/work
+
+    environment:
+      TZ: America/Denver
+
+    # Resolves a name AdGuard answers LOCALLY (a rewrite in AdGuardHome.yaml),
+    # not a real domain. An internet or upstream outage must not mark the
+    # resolver unhealthy — it is still correctly serving cache and local names,
+    # and "unhealthy" here would be a lie that sends you debugging the wrong box.
+    healthcheck:
+      test: ["CMD", "nslookup", "ladybird", "127.0.0.1"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          # Generous: cache_size is 4 MiB, but the filter lists cost ~250 MB of
+          # RSS while they compile on startup and after each daily update.
+          memory: 512M
