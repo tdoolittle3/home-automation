@@ -269,6 +269,16 @@ docker compose up -d
 
 ## Gotchas
 
+- **`hostsfile_enabled` must be `false`.** The container is host-networked, so
+  AdGuard reads the *host's* `/etc/hosts` — and Debian's stock
+  `127.0.1.1 ladybird` line outranks the DNS rewrites. With it on, every LAN
+  client asking for `ladybird` is told 127.0.1.1, i.e. itself. Found at first
+  deploy, 2026-09-20.
+- **Every `rewrites:` entry needs an explicit `enabled: true`.** v0.107.79 added
+  the per-entry field, and an entry without it loads as *disabled*: the rewrite
+  answers NXDOMAIN, and since the compose healthcheck resolves `ladybird`, the
+  container goes unhealthy with a config that looks correct. Also found at first
+  deploy.
 - **`bootstrap_dns` must be plain IP addresses.** They are what resolves the
   DoH upstream hostnames before a resolver exists. Put a hostname there — or
   point it at this server — and AdGuard deadlocks at startup with no DNS on the
