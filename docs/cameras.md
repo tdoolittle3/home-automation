@@ -146,7 +146,7 @@ docker exec frigate sh -c 'FF=$(ls /usr/lib/ffmpeg/*/bin/ffprobe|head -1); \
 ### Step 4 — add to Frigate
 
 Insert into `config/config.yml` **inside the `cameras:` map and before the trailing `version:`
-key** (see the gotcha in the README):
+key** (see the gotcha in [gotchas.md](gotchas.md)):
 
 ```yaml
   backyard:
