@@ -39,7 +39,7 @@ monitors:
     retries: 2
     retry_interval: 60
     accepted_status: [200]
-    # HA is http-only by design (host networking, no TLS) — see README.
+    # HA is http-only by design (host networking, no TLS).
 
   - name: Frigate API
     group: Core services

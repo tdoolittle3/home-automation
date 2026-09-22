@@ -1,7 +1,12 @@
 # DNS — ad filtering on `ladybird`
 
 **AdGuard Home** serving DNS for the whole LAN, with ad and tracker filtering.
-It replaces the Pi-hole that ran on the Raspberry Pi at `192.168.0.14`.
+It replaced the Pi-hole that ran on the Raspberry Pi at `192.168.0.14`.
+
+**Status: live.** The router cutover happened on 2026-09-20 — DHCP hands out
+`192.168.0.13`, real clients and blocks verified in the query log. The Pi-hole
+stays powered as the rollback. Sections 1–3 below are the deploy and cutover
+history, kept because a rebuild has to repeat them.
 
 Stack lives at `stacks/dns/` -> `/opt/stacks/dns/`.
 
@@ -29,7 +34,7 @@ ones belonging to people who cannot fix it.
 Three consequences worth internalising before you touch anything:
 
 - **Ladybird's reboots are now everyone's reboots.** This box has a
-  kernel-panic history (see the README gotchas). Budget for it.
+  kernel-panic history (see [gotchas.md](gotchas.md)). Budget for it.
 - **Do maintenance from a device you have pinned to a different resolver**, or
   you will lose the ability to look things up at exactly the moment you need to.
 - **Keep the Pi powered and working** until this has run clean for a couple of
@@ -147,7 +152,7 @@ AdGuard is **Filters -> DNS rewrites**, already seeded with `ladybird`.
 
 ## 3. Cutover
 
-Two changes, in this order.
+Done 2026-09-20. Two changes, in this order — repeat them on a rebuild.
 
 **a. Point the router's DHCP at ladybird.** In the router admin, set the DHCP
 DNS server to `192.168.0.13` and remove `192.168.0.14`.
@@ -159,8 +164,8 @@ apart, roughly half your queries bypass the list you just edited, and the
 resulting "this site is blocked, but only sometimes" is genuinely unpleasant to
 diagnose.
 
-**Ladybird's LAN address is DHCP.** The README lists the reservation for MAC
-`38:05:25:35:71:69` as an open gap; it stops being optional here. If ladybird
+**Ladybird's LAN address is DHCP.** The reservation for MAC
+`38:05:25:35:71:69` stops being optional here. If ladybird
 ever gets a different address, the whole house loses DNS. Set it now, in the
 same router session.
 
@@ -226,11 +231,11 @@ cutover. It costs nothing, and it is the only fast rollback.
 When you do retire it:
 
 - Take a Teleporter export first and keep it with the backups.
-- Power it down but leave it on the switch — the README already earmarks this
-  Pi as the future independent watchdog for ladybird, and that role becomes
+- Power it down but leave it on the switch — this Pi is earmarked as the
+  future independent watchdog for ladybird, and that role becomes
   *more* valuable now that ladybird owns DNS. See
   [planned Pi watchdog](diagrams/README.md#planned-pi-watchdog).
-- Update the README service table and the network diagram.
+- Update [known-gaps.md](known-gaps.md) and the network diagram.
 
 ---
 
