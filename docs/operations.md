@@ -246,6 +246,10 @@ an empty panel. Its `controls` panels are also the write allowlist — an entity
 cannot be actuated through the dashboard, by design. For quick iteration without rebuilds,
 uncomment the bind-mount in `stacks/dash/docker-compose.yml`.
 
+**The Mesh panel** reads the Meshtastic gateway's JSON topics off Mosquitto; its `MESH_*`
+environment lives in `stacks/dash/docker-compose.yml`, and the node itself is provisioned per
+[meshtastic.md](meshtastic.md).
+
 ---
 
 ## Common tasks

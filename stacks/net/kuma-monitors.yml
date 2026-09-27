@@ -122,6 +122,23 @@ monitors:
     # TCP-open only. For a check that also proves the storage guard is
     # publishing, see "Deeper MQTT check" in docs/uptime-kuma.md.
 
+  - name: Meshtastic gateway
+    group: Core services
+    type: mqtt
+    hostname: 192.168.0.13
+    port: 1883
+    mqtt_topic: "msh/US/2/stat/!REPLACE-WITH-GATEWAY-ID"
+    mqtt_success_message: "online"
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    # The gateway node publishes retained "online" here and the broker's LWT
+    # flips it to retained "offline" ~30s after the node drops. Retained means
+    # the check matches instantly on connect; "offline" fails the keyword and
+    # goes red - exactly the wanted semantics. Fill in the !hex id from
+    # `meshtastic --info` (docs/meshtastic.md), and remember to clear the old
+    # retained frame if the node is ever re-flashed under a new id.
+
   - name: tar1090 (ADS-B)
     group: Core services
     type: http

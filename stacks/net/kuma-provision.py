@@ -57,6 +57,7 @@ TYPES = {
     "ping": MonitorType.PING,
     "push": MonitorType.PUSH,
     "dns": MonitorType.DNS,
+    "mqtt": MonitorType.MQTT,
 }
 
 
@@ -87,6 +88,11 @@ def build_kwargs(m, parent_id, notification_ids):
         # generic `port` field for the resolver's port, so it needs no entry.
         ("resolver_server", "dns_resolve_server"),
         ("resolve_type", "dns_resolve_type"),
+        # MQTT monitors: subscribe to `hostname:port` on this topic and expect
+        # the message to contain this string. The broker is anonymous, so the
+        # username/password fields need no entries.
+        ("mqtt_topic", "mqttTopic"),
+        ("mqtt_success_message", "mqttSuccessMessage"),
     ):
         if src in m:
             kw[dst] = m[src]
