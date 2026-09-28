@@ -47,7 +47,7 @@ record:
   enabled: true
   alerts:
     retain:
-      days: 14
+      days: 10
       mode: motion
   detections:
     retain:
