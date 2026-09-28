@@ -160,43 +160,57 @@ services:
       RTLTCP_SAMPLE_RATE: "2400000"
 
   # ---------------------------------------------------------------------------
-  # rtl_433 — 433 MHz ISM decoding (weather stations, tyre sensors, door
-  # sensors, etc) published to Mosquitto for Home Assistant discovery.
+  # rtl_433 — ISM-band decoding on the SECOND dongle (serial 00000002,
+  # flashed with `rtl_eeprom -s` 2026-09-27), published to Mosquitto.
   #
-  # COMMENTED OUT: no 433 MHz antenna yet. The 1090 MHz ADS-B antenna is
-  # resonant at the wrong frequency and will hear almost nothing at 433.
+  # Band-hopping: one process, three bands, `-H 60` seconds on each.
+  #   433.92 MHz — temp/humidity sensor (tx every ~30-60 s) + some TPMS
+  #   315 MHz    — TPMS on most US vehicles (only transmits while driving,
+  #                so catches are opportunistic by nature)
+  #   912.6 MHz  — ERT water meter (SCM/SCM+/IDM). The meter hops across
+  #                902-928 MHz while we listen to one ~1 MHz slice, so only
+  #                a fraction of its transmissions land here — fine, the
+  #                reading is a cumulative counter and a few catches per
+  #                hour is plenty. If catches are too sparse, rtlamr with a
+  #                wider capture is the upgrade path.
+  # While parked on one band the radio is deaf to the other two — all three
+  # targets are periodic beacons or counters, so nothing needs continuity.
   #
-  # ALSO NOTE: this has the same exclusive-dongle problem as rtl_tcp above.
-  # Running rtl_433 alongside ultrafeeder needs a SECOND dongle — at which
-  # point set RTL433_DEVICE_SERIAL to that dongle's serial and give each
-  # dongle a distinct serial with `rtl_eeprom -s`.
+  # -s 1024k applies to ALL hops (rtl_433 has one global sample rate); it is
+  # comfortably enough for the 433/315 protocols and helps at 912.6.
+  #
+  # The dipole is tuned for 433 (~16.5 cm elements); 315/915 are received
+  # off-resonance, which works because these transmitters are close.
   #
   # MQTT target is pre-filled and verified against the running broker:
   # Mosquitto is on the `home` stack, listener 1883, allow_anonymous true,
   # so no username/password is needed. Bridge networking means we address it
   # by LAN IP, not container name — it is a separate compose project.
-  #
-  # rtl_433:
-  #   container_name: rtl_433
-  #   image: ghcr.io/hertzg/rtl_433_docker:master
-  #   restart: unless-stopped
-  #   device_cgroup_rules:
-  #     - "c 189:* rwm"
-  #   volumes:
-  #     - /dev/bus/usb:/dev/bus/usb:rw
-  #     - /etc/localtime:/etc/localtime:ro
-  #   environment:
-  #     TZ: America/Denver
-  #   command: >-
-  #     -d :SECOND_DONGLE_SERIAL
-  #     -f 433920000
-  #     -M time:iso:usec
-  #     -M protocol
-  #     -M level
-  #     -F json
-  #     -F mqtt://192.168.0.13:1883,retain=0,devices=rtl_433[/model][/id]
-  #   deploy:
-  #     resources:
-  #       limits:
-  #         cpus: "1.0"
-  #         memory: 256M
+  rtl_433:
+    container_name: rtl_433
+    image: ghcr.io/hertzg/rtl_433_docker:master
+    restart: unless-stopped
+    device_cgroup_rules:
+      - "c 189:* rwm"
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb:rw
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      TZ: America/Denver
+    command: >-
+      -d :00000002
+      -f 433.92M
+      -f 315M
+      -f 912.6M
+      -H 60
+      -s 1024k
+      -M time:iso:usec
+      -M protocol
+      -M level
+      -F json
+      -F mqtt://192.168.0.13:1883,retain=0,devices=rtl_433[/model][/id]
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 256M

@@ -152,25 +152,35 @@ ssh -L 30005:127.0.0.1:30005 -N thomas@192.168.0.13
 
 ---
 
-## 5. Adding rtl_433 later
+## 5. rtl_433 — second dongle, band-hopping (live since 2026-09-27)
 
-The service is written and commented out at the bottom of
-`stacks/sdr/docker-compose.yml`, with MQTT already pointed at the Mosquitto
-on the `home` stack (`192.168.0.13:1883`, anonymous — no credentials).
+The `rtl_433` service in `stacks/sdr/docker-compose.yml` runs on a **second
+dongle** (serial `00000002`, dipole antenna) and band-hops with `-H 60`:
+433.92 MHz (temp/humidity, some TPMS) → 315 MHz (US TPMS) → 912.6 MHz (ERT
+water meter). Decodes publish as JSON to the Mosquitto on the `home` stack
+(`192.168.0.13:1883`, anonymous) under `rtl_433/<model>/<id>`.
 
-Before enabling you need **a 433 MHz antenna and a second dongle**. The
-1090 MHz ADS-B antenna is resonant at the wrong frequency and will hear
-almost nothing at 433, and the dongle-exclusivity rule above means it
-cannot share with ultrafeeder.
+Expectations per band: temp/humidity beacons every ~30-60 s (reliable);
+TPMS only transmits while wheels turn (opportunistic); the ERT meter hops
+across 902-928 MHz so only a fraction of its transmissions land in our
+slice — fine for a cumulative counter.
 
-With a second dongle, give each a distinct serial so they can be addressed
-individually:
+### Flashing a serial onto a new dongle
+
+RTL-SDR Blog dongles all ship as `00000001`, which collides with the ADS-B
+dongle — ultrafeeder selects its device by that serial. With **identical
+serials there is no reliable way to address one for flashing**, so the
+recipe is:
 
 ```bash
-rtl_eeprom -d 1 -s 00000002
+cd /opt/stacks/sdr && docker compose stop ultrafeeder  # free the USB claim
+# unplug the OLD dongle (coax can stay), leave only the new one attached
+rtl_eeprom -d 0 -s 00000002
+# REPLUG the new dongle — the serial is only read at USB enumeration
+# plug the old dongle back in
+rtl_test   # should list 00000001 and 00000002; Ctrl-C after the header
+docker compose up -d
 ```
-
-Then set that serial in the `rtl_433` command line and uncomment.
 
 ---
 
