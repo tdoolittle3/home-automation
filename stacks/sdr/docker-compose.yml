@@ -190,6 +190,13 @@ services:
     container_name: rtl_433
     image: ghcr.io/hertzg/rtl_433_docker:master
     restart: unless-stopped
+    ports:
+      # rtl_433's built-in HTTP server: / is a live status/events UI, and the
+      # Kuma "rtl_433 (ISM)" monitor points here. If the dongle dies rtl_433
+      # exits and the container crash-loops, so a plain 200 check does prove
+      # the radio side is alive — unlike tar1090, which serves happily with a
+      # dead SDR. LAN-only like everything else.
+      - "8433:8433"
     device_cgroup_rules:
       - "c 189:* rwm"
     volumes:
@@ -209,6 +216,7 @@ services:
       -M level
       -F json
       -F mqtt://192.168.0.13:1883,retain=0,devices=rtl_433[/model][/id]
+      -F http://0.0.0.0:8433
     deploy:
       resources:
         limits:

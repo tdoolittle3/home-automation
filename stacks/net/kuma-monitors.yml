@@ -153,6 +153,21 @@ monitors:
     # overnight. That is a 3am false alarm, not an outage. If you want decode
     # coverage, watch the message rate in graphs1090 instead.
 
+  - name: rtl_433 (ISM)
+    group: Core services
+    type: http
+    url: http://192.168.0.13:8433/
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    accepted_status: [200]
+    # rtl_433's built-in HTTP server (enabled via -F http in stacks/sdr).
+    # Stronger than the tar1090 check: if the second dongle dies or is
+    # unplugged, rtl_433 exits and the container crash-loops, so this goes
+    # red on a dead radio, not just a dead container. It does NOT prove
+    # decodes are landing — for that, watch MQTT rtl_433/# or the HA
+    # sensor.outdoor_* entities (expire_after marks them unavailable).
+
   - name: DNS resolver
     group: Core services
     type: dns
