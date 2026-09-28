@@ -24,6 +24,18 @@ services:
       FRIGATE_BASE_URL: http://192.168.0.13:5000
       JELLYFIN_BASE_URL: http://192.168.0.13:8096
       UPTIME_KUMA_BASE_URL: http://192.168.0.13:3001
+      # Meshtastic panel (docs/meshtastic.md). None of these are secrets - the
+      # JSON topics are plaintext on the LAN-only broker anyway. CHANNEL is the
+      # channel NAME (an uplink topic segment), CHANNEL_INDEX the numeric index
+      # sends leave on: the same channel two ways, kept in sync by hand.
+      # GATEWAY_NODE is "myNodeNum" from `meshtastic --info`; while it is
+      # commented out the panel is read-only (a non-integer value would fail
+      # the dashboard's config validation at startup, so no placeholder).
+      MESH_MQTT_URL: mqtt://192.168.0.13:1883
+      MESH_ROOT_TOPIC: msh/US
+      MESH_CHANNEL: homemesh
+      MESH_CHANNEL_INDEX: "0"
+      # MESH_GATEWAY_NODE: "123456789"
     # The panel layout ships inside the image (config/dashboard.json in the
     # home-dashboard repo) so there is one source of truth. To edit panels on
     # the host without a rebuild, bind-mount a copy over it:

@@ -97,6 +97,15 @@ There is no GB quota — retention is days-only. See [known-gaps.md](known-gaps.
 
 ---
 
+## Mesh radio
+
+An ESP32 Meshtastic node on the house Wi‑Fi gateways a private LoRa channel onto the Mosquitto
+broker in the `home` stack — decoded JSON in both directions, no public-mesh uplink. The dashboard
+subscribes and renders the channel (messages, node roster, a send box). The node is hardware, not a
+container, so it has no stack directory; its runbook is [meshtastic.md](meshtastic.md).
+
+---
+
 ## Watching itself
 
 Three layers, arranged so that a failure is noticed by *absence* rather than by someone happening to

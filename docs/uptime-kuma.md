@@ -16,7 +16,7 @@ live in a SQLite database at `net/uptime-kuma/kuma.db`, which is gitignored
 because it also holds the admin password hash and the ntfy token. So the YAML
 is a definition Kuma never reads, and something has to carry it across.
 
-**By hand**, following step 3 below. Fifteen monitors and three groups is about
+**By hand**, following step 3 below. Eighteen monitors and three groups is about
 twenty minutes of clicking, once.
 
 **With [kuma-provision.py](../stacks/net/kuma-provision.py)**, which reads the
@@ -264,7 +264,11 @@ tailnet.
 TCP, not that anything is publishing. An **MQTT** monitor against
 `192.168.0.13:1883` on topic `ladybird/storage/state`, keyword `status`, matches
 instantly off the retained message and so proves broker *and* guard in one check.
-Add it if you want the broker covered independently of the push monitor.
+Add it if you want the broker covered independently of the push monitor. The
+**Meshtastic gateway** monitor in the YAML is exactly this pattern already —
+retained `online` on the node's stat topic — and the provisioner understands
+`type: mqtt`, so it doubles as the worked example (see
+[meshtastic.md](meshtastic.md)).
 
 **Docker container monitors.** Kuma can watch containers directly, which catches
 a restart loop that still answers HTTP between crashes. It needs
