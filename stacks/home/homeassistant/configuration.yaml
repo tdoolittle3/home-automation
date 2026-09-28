@@ -10,6 +10,61 @@ automation: !include automations.yaml
 script: !include scripts.yaml
 scene: !include scenes.yaml
 
+# Outdoor temperature/humidity — AcuRite Tower sensor received over 433 MHz
+# by rtl_433 (sdr stack, second dongle) and published per-field to Mosquitto
+# under rtl_433/<model>/<id>/<field>.
+#
+# The id (14893) is RANDOMIZED at battery insertion: a battery swap mints a
+# new id, and every topic below (and anything pinned to these entities)
+# must be updated to match. Find the new id with:
+#   docker logs rtl_433 2>&1 | grep -i acurite | tail
+#
+# expire_after 900: rtl_433 band-hops (60 s on 433 MHz out of every 180 s),
+# so gaps of a few minutes between catches are normal, not an outage. 15
+# minutes of silence = the sensor is genuinely gone.
+#
+# Native unit is °C (what the sensor transmits); HA's US-customary unit
+# system converts to °F for display.
+mqtt:
+  sensor:
+    - name: "Outdoor Temperature"
+      unique_id: rtl433_acurite_tower_14893_temperature
+      state_topic: "rtl_433/Acurite-Tower/14893/temperature_C"
+      unit_of_measurement: "°C"
+      device_class: temperature
+      state_class: measurement
+      expire_after: 900
+      device: &acurite_tower
+        identifiers: ["rtl433_acurite_tower_14893"]
+        name: "AcuRite Tower (outdoor)"
+        manufacturer: AcuRite
+        model: Tower
+    - name: "Outdoor Humidity"
+      unique_id: rtl433_acurite_tower_14893_humidity
+      state_topic: "rtl_433/Acurite-Tower/14893/humidity"
+      unit_of_measurement: "%"
+      device_class: humidity
+      state_class: measurement
+      expire_after: 900
+      device: *acurite_tower
+    - name: "Outdoor Sensor Signal"
+      unique_id: rtl433_acurite_tower_14893_snr
+      state_topic: "rtl_433/Acurite-Tower/14893/snr"
+      unit_of_measurement: "dB"
+      state_class: measurement
+      entity_category: diagnostic
+      expire_after: 900
+      device: *acurite_tower
+  binary_sensor:
+    - name: "Outdoor Sensor Battery Low"
+      unique_id: rtl433_acurite_tower_14893_battery_low
+      state_topic: "rtl_433/Acurite-Tower/14893/battery_ok"
+      payload_on: "0"
+      payload_off: "1"
+      device_class: battery
+      expire_after: 900
+      device: *acurite_tower
+
 # White light on FrontCam (10.10.10.201).
 # The Dahua integration's illuminator entity drives the V1 Lighting table, which on
 # this model is the INFRARED emitter. The white light lives at Lighting_V2[0][0][1],
