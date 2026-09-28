@@ -124,20 +124,18 @@ monitors:
 
   - name: Meshtastic gateway
     group: Core services
-    type: mqtt
-    hostname: 192.168.0.13
-    port: 1883
-    mqtt_topic: "msh/US/2/stat/!REPLACE-WITH-GATEWAY-ID"
-    mqtt_success_message: "online"
+    type: ping
+    hostname: 192.168.0.16   # the Heltec V4 on the house Wi-Fi - see below
     interval: 120
     retries: 2
     retry_interval: 60
-    # The gateway node publishes retained "online" here and the broker's LWT
-    # flips it to retained "offline" ~30s after the node drops. Retained means
-    # the check matches instantly on connect; "offline" fails the keyword and
-    # goes red - exactly the wanted semantics. Fill in the !hex id from
-    # `meshtastic --info` (docs/meshtastic.md), and remember to clear the old
-    # retained frame if the node is ever re-flashed under a new id.
+    # Ping rather than the MQTT stat-topic check the docs describe: firmware
+    # 2.7.26 turned out not to publish msh/<root>/2/stat/<id> at all (verified
+    # against a live subscriber, docs/meshtastic.md). A ping proves the node is
+    # up on Wi-Fi, which is the failure mode that matters - if Mosquitto died
+    # instead, the Mosquitto monitor above catches that. The address must be
+    # DHCP-reserved on the router for MAC f8:5b:1b:be:ef:5c, or this goes red
+    # on the next lease change.
 
   - name: tar1090 (ADS-B)
     group: Core services

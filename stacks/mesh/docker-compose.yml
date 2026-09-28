@@ -1,0 +1,22 @@
+# Meshtastic node administration - a CLI wrapper, not a service. The node
+# itself is hardware on the house Wi-Fi; nothing here runs continuously
+# (docs/meshtastic.md). This exists so talking to the node over its USB
+# serial needs no host packages and no dialout membership: docker passes the
+# device through, and the image is rebuilt from the Dockerfile after a wipe.
+#
+# Usage (any meshtastic CLI arguments after `cli`):
+#   cd /opt/stacks/mesh
+#   docker compose run --rm cli --port /dev/ttyACM0 --info
+#
+# A plain `devices:` mapping is fine HERE, unlike the SDR stack's cgroup
+# rule: every `run` binds the device node fresh, so the node rebooting
+# between commands (which recreates /dev/ttyACM0) cannot leave a long-lived
+# container holding a stale node. If the path moves after a replug, check
+# `ls -l /dev/serial/by-id/`.
+services:
+  cli:
+    build: .
+    image: mesh-cli:local
+    profiles: ["cli"]     # never part of `docker compose up`
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0

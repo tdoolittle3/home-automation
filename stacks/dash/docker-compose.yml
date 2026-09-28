@@ -28,14 +28,13 @@ services:
       # JSON topics are plaintext on the LAN-only broker anyway. CHANNEL is the
       # channel NAME (an uplink topic segment), CHANNEL_INDEX the numeric index
       # sends leave on: the same channel two ways, kept in sync by hand.
-      # GATEWAY_NODE is "myNodeNum" from `meshtastic --info`; while it is
-      # commented out the panel is read-only (a non-integer value would fail
-      # the dashboard's config validation at startup, so no placeholder).
+      # GATEWAY_NODE is "myNodeNum" from `meshtastic --info` - the Heltec V4
+      # (!1bbeef5c) provisioned 2026-09-27 per docs/meshtastic.md.
       MESH_MQTT_URL: mqtt://192.168.0.13:1883
       MESH_ROOT_TOPIC: msh/US
       MESH_CHANNEL: homemesh
       MESH_CHANNEL_INDEX: "0"
-      # MESH_GATEWAY_NODE: "123456789"
+      MESH_GATEWAY_NODE: "465497948"
     # The panel layout ships inside the image (config/dashboard.json in the
     # home-dashboard repo) so there is one source of truth. To edit panels on
     # the host without a rebuild, bind-mount a copy over it:

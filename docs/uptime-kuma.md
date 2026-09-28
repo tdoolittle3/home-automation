@@ -265,10 +265,10 @@ TCP, not that anything is publishing. An **MQTT** monitor against
 `192.168.0.13:1883` on topic `ladybird/storage/state`, keyword `status`, matches
 instantly off the retained message and so proves broker *and* guard in one check.
 Add it if you want the broker covered independently of the push monitor. The
-**Meshtastic gateway** monitor in the YAML is exactly this pattern already —
-retained `online` on the node's stat topic — and the provisioner understands
-`type: mqtt`, so it doubles as the worked example (see
-[meshtastic.md](meshtastic.md)).
+provisioner understands `type: mqtt` for exactly this. (The Meshtastic
+gateway monitor was designed to use it against the node's retained stat
+topic, but firmware 2.7.26 turned out not to publish that topic, so it pings
+the node's IP instead — see [meshtastic.md](meshtastic.md).)
 
 **Docker container monitors.** Kuma can watch containers directly, which catches
 a restart loop that still answers HTTP between crashes. It needs
