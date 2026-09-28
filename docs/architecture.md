@@ -132,6 +132,7 @@ stacks/          -> deploys to /opt/stacks on the server
   home/          Home Assistant + Mosquitto
   immich/        Immich photo library
   media/         Jellyfin + the iptv-org EPG grabber (epg/channels.xml is its channel list)
+  mesh/          Meshtastic CLI wrapper (profile-gated; the node itself is hardware - docs/meshtastic.md)
   n8n/           workflow automation + workflow definitions
   net/           Uptime Kuma, the storage/UPS/Frigate guards, the IPTV playlist builder
                  (kuma-monitors.yml defines the monitor set)

@@ -7,28 +7,56 @@ telemetry, and can send onto it. There is **no public-mesh uplink**:
 `mqtt.address` points at `192.168.0.13`, never `mqtt.meshtastic.org`, and
 remote access is Tailscale → dashboard like everything else here.
 
-No new stack — the broker already exists (`stacks/home/mosquitto/`,
-anonymous, LAN-only) and the panel lives in the
+The broker already exists (`stacks/home/mosquitto/`, anonymous, LAN-only)
+and the panel lives in the
 [home-dashboard](https://github.com/tdoolittle3/home-dashboard) repo. What
-this repo carries is the node runbook, the dashboard's mesh environment in
+this repo carries is the node runbook, a containerised CLI wrapper
+(`stacks/mesh/` — see §1), the dashboard's mesh environment in
 `stacks/dash/docker-compose.yml`, and the Kuma monitor.
 
 | What | Where |
 |---|---|
 | Uplink (mesh → broker), decoded JSON | `msh/US/2/json/homemesh/!<gatewayid>` |
 | Downlink (broker → mesh), JSON envelope | `msh/US/2/json/mqtt/` |
-| Gateway liveness (retained, LWT) | `msh/US/2/stat/!<gatewayid>` |
 | Protobuf twin of the uplink | `msh/US/2/e/homemesh/!<gatewayid>` |
 | Dashboard panel | `Mesh` on http://192.168.0.13/ |
 
 `homemesh` is the private channel's name. Topic scheme per the
 [Meshtastic MQTT docs](https://meshtastic.org/docs/software/integrations/mqtt/).
+The docs also describe a retained liveness topic (`msh/<root>/2/stat/<id>`);
+**firmware 2.7.26 does not publish it** — verified against a live subscriber
+— which is why Kuma pings the node's IP instead and the dashboard's gateway
+dot reads "unknown".
+
+## The deployed node
+
+| | |
+|---|---|
+| Hardware | Heltec V4 (ESP32-S3) — Wi‑Fi, so `mqtt.json_enabled` works |
+| Node id / number | `!1bbeef5c` / `465497948` (this is `MESH_GATEWAY_NODE`) |
+| Wi‑Fi MAC / IP | `f8:5b:1b:be:ef:5c` / `192.168.0.16` — **DHCP-reserve this on the router** |
+| Firmware at provisioning | 2.7.26, 2026-09-27 |
+| Physically | On ladybird's USB (`/dev/ttyACM0`) for power + admin; radio works anywhere in Wi‑Fi range |
+| On-device web UI | http://192.168.0.16/ (and https, self-signed) — serves the full web client |
+| Config backup (PSK + Wi‑Fi password) | `/home/thomas/meshtastic-node1.yaml`, mode 600, **never in git** |
 
 ---
 
 ## 1. Provision the node — USB, once
 
-Needs the Python CLI (`pip install meshtastic`) and the node on USB. Order
+The node hangs off ladybird's USB, and `thomas` is not in `dialout`, so the
+CLI runs containerised — nothing installs on the host. `stacks/mesh/` holds a
+one-service compose file (profile-gated, never part of `docker compose up`)
+that wraps the pinned Meshtastic CLI with the serial device passed through:
+
+```bash
+cd /opt/stacks/mesh
+docker compose --profile cli build          # once, and after a wipe
+docker compose run --rm cli --port /dev/ttyACM0 --info
+```
+
+Every `meshtastic ...` command below is really
+`docker compose run --rm cli ...` with the `--port /dev/ttyACM0` flag. Order
 matters: the node reboots after each config write, and the channel URL
 changes when the PSK does, so share the QR only after step 2.
 
@@ -84,13 +112,14 @@ This isolates node config from dashboard config. From any LAN machine with
 `mosquitto-clients`:
 
 ```bash
-# everything, including the retained "online" on the stat topic - should
-# print immediately on connect; nodeinfo/telemetry JSON follows within minutes
+# nodeinfo/telemetry JSON appears within a few minutes of the node booting
 mosquitto_sub -h 192.168.0.13 -t 'msh/#' -v
 
 # just the private channel's decoded JSON
 mosquitto_sub -h 192.168.0.13 -t 'msh/US/2/json/homemesh/+' -v
 ```
+
+(Do not wait for a retained `stat` frame — 2.7.26 never sends one.)
 
 Send a text from the phone app on `homemesh` — it appears as `"type":"text"`
 JSON. Then prove the downlink path (this is the step that validates the
@@ -123,8 +152,9 @@ wrong channel, silently. Leaving `MESH_GATEWAY_NODE` or
 `MESH_CHANNEL_INDEX` unset makes the panel read-only.
 
 The Kuma monitor (`Meshtastic gateway` in `stacks/net/kuma-monitors.yml`)
-subscribes to the retained stat topic and expects `online`. Fill in the
-gateway id, then provision as in [uptime-kuma.md](uptime-kuma.md).
+pings the node's reserved IP — the stat-topic MQTT check the Meshtastic docs
+suggest is not possible on this firmware (no stat topic). Provision it as in
+[uptime-kuma.md](uptime-kuma.md).
 
 ---
 
@@ -161,10 +191,13 @@ will never appear as JSON until its key is loaded onto the gateway node.
 - **The `mqtt`-named channel requirement** for JSON downlink has shifted
   across firmware versions. If downlink stops working after an upgrade,
   re-run the step 2 `mosquitto_pub` test first.
-- **Stale retained stat.** After re-flashing or renumbering the node, the old
-  id's retained `online`/`offline` lingers. Clear it:
-  `mosquitto_pub -h 192.168.0.13 -r -n -t 'msh/US/2/stat/!<oldid>'`.
-  The LWT also lags ~30 s, so "online" trails reality slightly.
+- **No stat topic on 2.7.26** — the retained `msh/<root>/2/stat/<id>`
+  liveness frame in the Meshtastic docs simply is not published. If a later
+  firmware starts sending it, the Kuma monitor could go back to the MQTT
+  check (the provisioner already understands `type: mqtt`) and the
+  dashboard's gateway dot would come alive on its own; until then both lean
+  on ping/traffic. If a stale retained frame ever appears after a re-flash,
+  clear it: `mosquitto_pub -h 192.168.0.13 -r -n -t 'msh/US/2/stat/!<oldid>'`.
 - **Unsynced clocks send `timestamp: 0`.** The dashboard substitutes its
   receive time, so ordering can be approximate right after a node boots.
 - **LoRa airtime is shared.** The dashboard caps sends at 200 bytes and one
