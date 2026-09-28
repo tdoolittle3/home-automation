@@ -165,11 +165,13 @@ key** (see the gotcha in [gotchas.md](gotchas.md)):
 RTSP paths are `subtype=0` for the main stream, `subtype=1` for sub stream 1, and `subtype=2` for
 sub stream 2.
 
-The driveway camera is wired differently: both of its streams are declared under a top-level
-`go2rtc:` block and Frigate reads them from `rtsp://127.0.0.1:8554/driveway` (main) and
-`rtsp://127.0.0.1:8554/driveway_sub` (720p) with `input_args: preset-rtsp-restream`. The camera
-then serves each stream once, and the `live: streams:` block lets the Frigate UI switch between the
-4MP main stream and the 720p sub stream instead of showing the detect stream.
+Direct wiring like the above works, but it bypasses go2rtc — the dashboard's live viewer plays
+go2rtc's HLS restream, so a camera absent from the `go2rtc:` block gets no live video there. Both
+cameras are therefore declared under the top-level `go2rtc:` block (`<name>` main, `<name>_sub`)
+and Frigate reads them from `rtsp://127.0.0.1:8554/<name>` and `.../<name>_sub` with
+`input_args: preset-rtsp-restream`. The camera then serves each stream once no matter how many
+consumers, and the `live: streams:` block lets the Frigate UI switch between the main and sub
+streams instead of showing the detect stream.
 
 ---
 
