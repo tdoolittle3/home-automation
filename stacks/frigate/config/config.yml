@@ -24,15 +24,21 @@ ffmpeg:
 detect:
   enabled: true
 # ---- go2rtc restreams ----
-# Frigate pulls each camera stream once through go2rtc; the UI live view and the
-# detect/record roles all read from these. driveway_sub is the camera's third
-# stream (subtype=2), the only sub-stream on the T54PRO-ZE that goes above D1.
+# Frigate pulls each camera stream once through go2rtc; the UI live view, the
+# dashboard's HLS proxy, and the detect/record roles all read from these.
+# driveway_sub is the camera's third stream (subtype=2), the only sub-stream on
+# the T54PRO-ZE that goes above D1. The T24IR has no sub stream 2, so
+# backyard_sub is sub stream 1 (subtype=1, 704x480).
 go2rtc:
   streams:
     driveway:
       - rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.201:554/cam/realmonitor?channel=1&subtype=0
     driveway_sub:
       - rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.201:554/cam/realmonitor?channel=1&subtype=2
+    backyard:
+      - rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.202:554/cam/realmonitor?channel=1&subtype=0
+    backyard_sub:
+      - rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.202:554/cam/realmonitor?channel=1&subtype=1
 # ---- Tiered retention ----
 # Tier 1: full footage, short window
 # Tier 2: motion/event clips, medium window
@@ -41,7 +47,7 @@ record:
   enabled: true
   alerts:
     retain:
-      days: 14
+      days: 10
       mode: motion
   detections:
     retain:
@@ -83,12 +89,18 @@ cameras:
   backyard:
     ffmpeg:
       inputs:
-        - path: rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.202:554/cam/realmonitor?channel=1&subtype=1
+        - path: rtsp://127.0.0.1:8554/backyard_sub
+          input_args: preset-rtsp-restream
           roles: [detect]
-        - path: rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.202:554/cam/realmonitor?channel=1&subtype=0
+        - path: rtsp://127.0.0.1:8554/backyard
+          input_args: preset-rtsp-restream
           roles: [record]
     detect:
       width: 704
       height: 480
       fps: 5
+    live:
+      streams:
+        Main 2MP: backyard
+        Sub 480p: backyard_sub
 version: 0.17-0
