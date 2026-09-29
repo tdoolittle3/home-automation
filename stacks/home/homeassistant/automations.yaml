@@ -27,3 +27,109 @@
       entity_id: light.frontcam_illuminator
     data: {}
   mode: single
+- id: door_open_5min_ntfy
+  alias: Door left open 5 minutes
+  description: ntfy alert when an exterior door has been open 5 minutes straight,
+    then a reminder every 10 minutes until it closes. Each door runs its own copy
+    (mode parallel); closing re-arms it.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.living_room_front_door
+    - binary_sensor.sun_room_sliding_glass_door
+    to: 'on'
+    for:
+      minutes: 5
+  actions:
+  - variables:
+      door: '{{ trigger.entity_id }}'
+      door_name: '{{ trigger.to_state.name }}'
+  - action: rest_command.ntfy_alert
+    data:
+      title: Door left open
+      message: '{{ door_name }} has been open for 5 minutes.'
+      priority: high
+      tags: door
+  - repeat:
+      sequence:
+      - wait_template: '{{ is_state(door, ''off'') }}'
+        timeout:
+          minutes: 10
+        continue_on_timeout: true
+      - if:
+        - condition: template
+          value_template: '{{ is_state(door, ''on'') }}'
+        then:
+        - action: rest_command.ntfy_alert
+          data:
+            title: Door still open
+            message: '{{ door_name }} has been open for {{ 5 + 10 * repeat.index
+              }} minutes.'
+            priority: high
+            tags: door
+      until:
+      - condition: template
+        value_template: '{{ is_state(door, ''off'') }}'
+  mode: parallel
+- id: door_open_overnight_ntfy
+  alias: Door open overnight
+  description: Between midnight and 5:30 AM an open exterior door alerts immediately
+    and then every 2 minutes until every door is closed or the window ends. The
+    midnight trigger catches a door already open when the window starts. Mode
+    restart so a second door opening mid-loop alerts right away; each alert lists
+    every door currently open.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.living_room_front_door
+    - binary_sensor.sun_room_sliding_glass_door
+    to: 'on'
+  - trigger: time
+    at: '00:00:00'
+  conditions:
+  - condition: time
+    after: '00:00:00'
+    before: '05:30:00'
+  actions:
+  - variables:
+      doors:
+      - binary_sensor.living_room_front_door
+      - binary_sensor.sun_room_sliding_glass_door
+  - repeat:
+      while:
+      - condition: template
+        value_template: '{{ expand(doors) | selectattr(''state'', ''eq'', ''on'')
+          | list | count > 0 }}'
+      - condition: time
+        after: '00:00:00'
+        before: '05:30:00'
+      sequence:
+      - action: rest_command.ntfy_alert
+        data:
+          title: Door open overnight
+          message: '{{ expand(doors) | selectattr(''state'', ''eq'', ''on'') | map(attribute=''name'')
+            | join('' and '') }} open at {{ now().strftime(''%H:%M'') }}.'
+          priority: urgent
+          tags: door,new_moon
+      - wait_template: '{{ expand(doors) | selectattr(''state'', ''eq'', ''on'')
+          | list | count == 0 }}'
+        timeout:
+          minutes: 2
+        continue_on_timeout: true
+  mode: restart
+- id: water_leak_ntfy
+  alias: Water leak alert
+  description: ntfy alert the moment the sink moisture detector reports water.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.sink_moisture_detector
+    to: 'on'
+  actions:
+  - action: rest_command.ntfy_alert
+    data:
+      title: WATER LEAK
+      message: '{{ trigger.to_state.name }} is detecting water!'
+      priority: urgent
+      tags: rotating_light,droplet
+  mode: parallel
