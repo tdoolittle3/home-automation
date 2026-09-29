@@ -65,6 +65,21 @@ mqtt:
       expire_after: 900
       device: *acurite_tower
 
+# Push alerts to ntfy.sh — the same topic Uptime Kuma notifies on, so every
+# alert lands in the one phone subscription. The topic name is the only
+# secret on ntfy.sh (anyone who knows it reads every alert), so the full URL
+# lives in secrets.yaml (ntfy_url: https://ntfy.sh/<topic>), never in git.
+# Priority is a name (min/low/default/high/urgent); tags render as emoji.
+rest_command:
+  ntfy_alert:
+    url: !secret ntfy_url
+    method: POST
+    payload: "{{ message }}"
+    headers:
+      Title: "{{ title }}"
+      Priority: "{{ priority | default('default') }}"
+      Tags: "{{ tags | default('house') }}"
+
 # White light on FrontCam (10.10.10.201).
 # The Dahua integration's illuminator entity drives the V1 Lighting table, which on
 # this model is the INFRARED emitter. The white light lives at Lighting_V2[0][0][1],
