@@ -168,6 +168,38 @@ monitors:
     # decodes are landing — for that, watch MQTT rtl_433/# or the HA
     # sensor.outdoor_* entities (expire_after marks them unavailable).
 
+  - name: Outdoor sensor battery
+    group: Core services
+    type: mqtt
+    hostname: 192.168.0.13
+    port: 1883
+    mqtt_topic: rtl_433/Acurite-Tower/14893/battery_ok
+    mqtt_success_message: "1"
+    interval: 600
+    retries: 1
+    retry_interval: 60
+    # The AcuRite tower sensor's battery flag as decoded by rtl_433: the topic
+    # carries "1" (ok) or "0" (low), so the keyword match goes red the moment
+    # the sensor itself reports a low battery — no threshold guessing.
+    #
+    # Interval 600 is a floor, not a preference. rtl_433 publishes with
+    # retain=0 (stacks/sdr), so Kuma has to catch a LIVE message, and it only
+    # listens for 0.8x the interval before calling the check a miss. The
+    # radio band-hops (60 s on 433 MHz out of every 180 s), so ~3-minute gaps
+    # between catches are normal; 600 gives an 8-minute listening window.
+    # Shorten it and this monitor false-alarms on ordinary hop gaps — same
+    # reasoning as the expire_after: 900 on the HA sensors.
+    #
+    # Silence is also a failure here: no message inside the window means the
+    # sensor is gone (dead battery, out of range) or rtl_433 stopped decoding,
+    # and both deserve the alert. Expect overlap with "rtl_433 (ISM)" above
+    # when the radio dies — that one says which side broke.
+    #
+    # The id (14893) is RANDOMIZED at battery insertion, so servicing the very
+    # battery this watches mints a new id. After a swap, update this topic AND
+    # the matching topics in stacks/home/homeassistant/configuration.yaml,
+    # then re-apply. Find the new id:  docker logs rtl_433 2>&1 | grep -i acurite
+
   - name: DNS resolver
     group: Core services
     type: dns
