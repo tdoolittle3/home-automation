@@ -29,8 +29,9 @@
   mode: single
 - id: door_open_5min_ntfy
   alias: Door left open 5 minutes
-  description: ntfy alert when an exterior door has been open 5 minutes straight.
-    Fires once per opening; closing and reopening re-arms it.
+  description: ntfy alert when an exterior door has been open 5 minutes straight,
+    then a reminder every 10 minutes until it closes. Each door runs its own copy
+    (mode parallel); closing re-arms it.
   triggers:
   - trigger: state
     entity_id:
@@ -40,12 +41,35 @@
     for:
       minutes: 5
   actions:
+  - variables:
+      door: '{{ trigger.entity_id }}'
+      door_name: '{{ trigger.to_state.name }}'
   - action: rest_command.ntfy_alert
     data:
       title: Door left open
-      message: '{{ trigger.to_state.name }} has been open for 5 minutes.'
+      message: '{{ door_name }} has been open for 5 minutes.'
       priority: high
       tags: door
+  - repeat:
+      sequence:
+      - wait_template: '{{ is_state(door, ''off'') }}'
+        timeout:
+          minutes: 10
+        continue_on_timeout: true
+      - if:
+        - condition: template
+          value_template: '{{ is_state(door, ''on'') }}'
+        then:
+        - action: rest_command.ntfy_alert
+          data:
+            title: Door still open
+            message: '{{ door_name }} has been open for {{ 5 + 10 * repeat.index
+              }} minutes.'
+            priority: high
+            tags: door
+      until:
+      - condition: template
+        value_template: '{{ is_state(door, ''off'') }}'
   mode: parallel
 - id: water_leak_ntfy
   alias: Water leak alert
