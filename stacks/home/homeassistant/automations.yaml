@@ -71,6 +71,52 @@
       - condition: template
         value_template: '{{ is_state(door, ''off'') }}'
   mode: parallel
+- id: door_open_overnight_ntfy
+  alias: Door open overnight
+  description: Between midnight and 5:30 AM an open exterior door alerts immediately
+    and then every 2 minutes until every door is closed or the window ends. The
+    midnight trigger catches a door already open when the window starts. Mode
+    restart so a second door opening mid-loop alerts right away; each alert lists
+    every door currently open.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.living_room_front_door
+    - binary_sensor.sun_room_sliding_glass_door
+    to: 'on'
+  - trigger: time
+    at: '00:00:00'
+  conditions:
+  - condition: time
+    after: '00:00:00'
+    before: '05:30:00'
+  actions:
+  - variables:
+      doors:
+      - binary_sensor.living_room_front_door
+      - binary_sensor.sun_room_sliding_glass_door
+  - repeat:
+      while:
+      - condition: template
+        value_template: '{{ expand(doors) | selectattr(''state'', ''eq'', ''on'')
+          | list | count > 0 }}'
+      - condition: time
+        after: '00:00:00'
+        before: '05:30:00'
+      sequence:
+      - action: rest_command.ntfy_alert
+        data:
+          title: Door open overnight
+          message: '{{ expand(doors) | selectattr(''state'', ''eq'', ''on'') | map(attribute=''name'')
+            | join('' and '') }} open at {{ now().strftime(''%H:%M'') }}.'
+          priority: urgent
+          tags: door,new_moon
+      - wait_template: '{{ expand(doors) | selectattr(''state'', ''eq'', ''on'')
+          | list | count == 0 }}'
+        timeout:
+          minutes: 2
+        continue_on_timeout: true
+  mode: restart
 - id: water_leak_ntfy
   alias: Water leak alert
   description: ntfy alert the moment the sink moisture detector reports water.
