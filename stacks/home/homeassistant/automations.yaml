@@ -117,6 +117,30 @@
           minutes: 2
         continue_on_timeout: true
   mode: restart
+- id: person_overnight_ntfy
+  alias: Person detected overnight
+  description: ntfy alert when Frigate sees a person on either camera between
+    22:00 and 07:00. Each detection alerts once (occupancy going on); mode
+    parallel so both cameras can alert independently.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.driveway_person_occupancy
+    - binary_sensor.backyard_person_occupancy
+    to: 'on'
+  conditions:
+  - condition: time
+    after: '22:00:00'
+    before: '07:00:00'
+  actions:
+  - action: rest_command.ntfy_alert
+    data:
+      title: Person detected overnight
+      message: 'Person on the {{ trigger.entity_id.split(''.'')[1].replace(''_person_occupancy'',
+        '''') }} camera at {{ now().strftime(''%H:%M'') }}.'
+      priority: urgent
+      tags: bust_in_silhouette,camera
+  mode: parallel
 - id: water_leak_ntfy
   alias: Water leak alert
   description: ntfy alert the moment the sink moisture detector reports water.
