@@ -30,8 +30,8 @@
 - id: door_open_5min_ntfy
   alias: Door left open 5 minutes
   description: ntfy alert when an exterior door has been open 5 minutes straight,
-    then a reminder every 10 minutes until it closes. Each door runs its own copy
-    (mode parallel); closing re-arms it.
+    then a reminder every 10 minutes until it closes, then an all-clear when it
+    closes. Each door runs its own copy (mode parallel); closing re-arms it.
   triggers:
   - trigger: state
     entity_id:
@@ -70,6 +70,13 @@
       until:
       - condition: template
         value_template: '{{ is_state(door, ''off'') }}'
+  - action: rest_command.ntfy_alert
+    data:
+      title: Door closed
+      message: '{{ door_name }} is now closed (was open {{ ((now() - trigger.to_state.last_changed).total_seconds()
+        / 60) | round }} minutes).'
+      priority: default
+      tags: door,white_check_mark
   mode: parallel
 - id: door_open_overnight_ntfy
   alias: Door open overnight
