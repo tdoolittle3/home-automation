@@ -148,6 +148,146 @@
       priority: urgent
       tags: bust_in_silhouette,camera
   mode: parallel
+- id: garage_open_overnight_ntfy
+  alias: Garage door open overnight
+  description: Between 21:00 and 09:00 the garage door alerts the moment it opens,
+    reminds every 10 minutes while open, and sends an all-clear the moment it
+    closes. The 21:00 time trigger catches a door already open when the window
+    starts; past 09:00 the loop stops and the daytime automation takes over, so
+    no close alert is sent then. Mode restart re-arms cleanly on reopen.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.garage_door
+    to: 'on'
+  - trigger: time
+    at: '21:00:00'
+  conditions:
+  - condition: state
+    entity_id: binary_sensor.garage_door
+    state: 'on'
+  - condition: time
+    after: '21:00:00'
+    before: '09:00:00'
+  actions:
+  - variables:
+      opened_at: '{{ states.binary_sensor.garage_door.last_changed.isoformat() }}'
+  - action: rest_command.ntfy_alert
+    data:
+      title: Garage door open overnight
+      message: Garage door open at {{ now().strftime('%H:%M') }}.
+      priority: urgent
+      tags: door,new_moon
+  - repeat:
+      while:
+      - condition: state
+        entity_id: binary_sensor.garage_door
+        state: 'on'
+      - condition: time
+        after: '21:00:00'
+        before: '09:00:00'
+      sequence:
+      - wait_template: '{{ is_state(''binary_sensor.garage_door'', ''off'') }}'
+        timeout:
+          minutes: 10
+        continue_on_timeout: true
+      - if:
+        - condition: state
+          entity_id: binary_sensor.garage_door
+          state: 'on'
+        then:
+        - action: rest_command.ntfy_alert
+          data:
+            title: Garage door still open
+            message: Garage door has been open for {{ ((now() - as_datetime(opened_at)).total_seconds()
+              / 60) | round }} minutes.
+            priority: urgent
+            tags: door,new_moon
+  - if:
+    - condition: state
+      entity_id: binary_sensor.garage_door
+      state: 'off'
+    then:
+    - action: rest_command.ntfy_alert
+      data:
+        title: Garage door closed
+        message: Garage door is now closed (was open {{ ((now() - as_datetime(opened_at)).total_seconds()
+          / 60) | round }} minutes).
+        priority: default
+        tags: door,white_check_mark
+  mode: restart
+- id: garage_open_daytime_ntfy
+  alias: Garage door left open daytime
+  description: Between 09:00 and 21:00 the garage door alerts only after being
+    open 20 minutes straight, reminds every 20 minutes while open, and sends an
+    all-clear when it closes. The 09:00 time trigger picks up a door still open
+    from the overnight window; past 21:00 the loop stops and the overnight
+    automation takes over, so no close alert is sent then. Mode restart re-arms
+    the 20-minute timer on reopen.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.garage_door
+    to: 'on'
+    for:
+      minutes: 20
+  - trigger: time
+    at: '09:00:00'
+  conditions:
+  - condition: state
+    entity_id: binary_sensor.garage_door
+    state: 'on'
+  - condition: time
+    after: '09:00:00'
+    before: '21:00:00'
+  actions:
+  - variables:
+      opened_at: '{{ states.binary_sensor.garage_door.last_changed.isoformat() }}'
+  - action: rest_command.ntfy_alert
+    data:
+      title: Garage door left open
+      message: Garage door has been open for {{ ((now() - as_datetime(opened_at)).total_seconds()
+        / 60) | round }} minutes.
+      priority: high
+      tags: door
+  - repeat:
+      while:
+      - condition: state
+        entity_id: binary_sensor.garage_door
+        state: 'on'
+      - condition: time
+        after: '09:00:00'
+        before: '21:00:00'
+      sequence:
+      - wait_template: '{{ is_state(''binary_sensor.garage_door'', ''off'') }}'
+        timeout:
+          minutes: 20
+        continue_on_timeout: true
+      - if:
+        - condition: state
+          entity_id: binary_sensor.garage_door
+          state: 'on'
+        then:
+        - action: rest_command.ntfy_alert
+          data:
+            title: Garage door still open
+            message: Garage door has been open for {{ ((now() - as_datetime(opened_at)).total_seconds()
+              / 60) | round }} minutes.
+            priority: high
+            tags: door
+  - if:
+    - condition: state
+      entity_id: binary_sensor.garage_door
+      state: 'off'
+    then:
+    - action: rest_command.ntfy_alert
+      data:
+        title: Garage door closed
+        message: Garage door is now closed (was open {{ ((now() - as_datetime(opened_at)).total_seconds()
+          / 60) | round }} minutes).
+        priority: default
+        tags: door,white_check_mark
+  mode: restart
 - id: water_leak_ntfy
   alias: Water leak alert
   description: ntfy alert the moment the sink moisture detector reports water.
