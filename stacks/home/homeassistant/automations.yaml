@@ -35,7 +35,6 @@
   triggers:
   - trigger: state
     entity_id:
-    - binary_sensor.living_room_front_door
     - binary_sensor.sun_room_sliding_glass_door
     to: 'on'
     for:
@@ -88,7 +87,6 @@
   triggers:
   - trigger: state
     entity_id:
-    - binary_sensor.living_room_front_door
     - binary_sensor.sun_room_sliding_glass_door
     to: 'on'
   - trigger: time
@@ -100,7 +98,6 @@
   actions:
   - variables:
       doors:
-      - binary_sensor.living_room_front_door
       - binary_sensor.sun_room_sliding_glass_door
   - repeat:
       while:
