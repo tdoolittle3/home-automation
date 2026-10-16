@@ -93,6 +93,7 @@ Full notes, the hardware inventory and what is still unconfirmed: [system atlas]
 | touch DNS | [dns.md](docs/dns.md) |
 | touch the radio | [sdr.md](docs/sdr.md) |
 | change what is monitored | [uptime-kuma.md](docs/uptime-kuma.md) |
+| touch the LLM box (a second machine) | [snibbly.md](docs/snibbly.md) |
 
 ## The machine
 

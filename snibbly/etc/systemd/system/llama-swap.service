@@ -1,0 +1,14 @@
+[Unit]
+Description=llama-swap model router
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=llama
+EnvironmentFile=/etc/llama/llama.env
+ExecStart=/opt/llama-swap/llama-swap -config /etc/llama-swap/config.yaml -listen 0.0.0.0:8080 -watch-config
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
