@@ -1,0 +1,61 @@
+healthCheckTimeout: 300
+startPort: 5800
+apiKeys:
+  - "${env.LLAMA_API_KEY}"
+
+models:
+  "fast-8b":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/Qwen3-8B-Q4_K_M.gguf -ngl 99 -t 4 -c 16384 -np 2 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=0"]
+    ttl: 0
+  "small-4b":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/Qwen3-4B-Instruct-2507-Q4_K_M.gguf -ngl 99 -t 4 -c 8192 -np 1 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=1"]
+    ttl: 0
+  "big-30b-thinking":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/Qwen3-30B-A3B-Thinking-2507-Q4_K_M.gguf -ngl 99 --n-cpu-moe 32
+      -t 4 -c 16384 -ctk q8_0 -ctv q8_0 -fa on -np 1 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=0"]
+    ttl: 0
+  "big-14b":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/Qwen3-14B-Q4_K_M.gguf -ngl 99 -ts 7/1 -t 4 -c 8192 -ctk q8_0 -ctv q8_0 -fa on -np 1 --jinja
+    env: ["CUDA_DEVICE_ORDER=PCI_BUS_ID"]
+    ttl: 0
+  "8b-abliterated":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/qwen3-8b-abliterated.Q4_K_M.gguf -ngl 99 -t 4 -c 8192 -np 2 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=0"]
+    ttl: 0
+  "small-4b-abliterated":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/qwen3-4b-abliterated.Q4_K_M.gguf -ngl 99 -t 4 -c 8192 -np 1 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=1"]
+    ttl: 0
+
+routing:
+  router:
+    use: group
+    settings:
+      groups:
+        "dual":
+          swap: false
+          exclusive: true
+          members: ["fast-8b", "small-4b"]
+        "big":
+          swap: true
+          exclusive: true
+          members: ["big-30b-thinking", "big-14b"]
+        "ablit":
+          swap: false
+          exclusive: true
+          members: ["8b-abliterated", "small-4b-abliterated"]
