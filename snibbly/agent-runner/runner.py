@@ -108,6 +108,55 @@ TOOLS = [
 
 THINK_RE = re.compile(r"<think>.*?</think>\s*", re.DOTALL)
 
+# Served at / so llama-swap's per-model chat link works for "agent" the way
+# it does for llama-server backends (which ship their own web UI).
+AGENT_PAGE = """<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>agent - two-tier runner</title><style>
+body{font:15px/1.5 system-ui;margin:0;background:#111;color:#ddd;display:flex;flex-direction:column;height:100vh}
+header{padding:8px 14px;background:#1a1a1a;display:flex;gap:10px;align-items:center}
+header b{color:#7ac}header input{flex:1;max-width:320px;background:#222;border:1px solid #333;color:#ddd;padding:4px 8px;border-radius:6px}
+#log{flex:1;overflow-y:auto;padding:14px;max-width:860px;width:100%;margin:0 auto;box-sizing:border-box}
+.msg{margin:10px 0;padding:10px 14px;border-radius:10px;white-space:pre-wrap;word-break:break-word}
+.user{background:#1d3a5f;margin-left:15%}.bot{background:#222;margin-right:15%}
+details{margin:6px 0;color:#998}details pre{white-space:pre-wrap;color:#887;margin:4px 0;font-size:13px}
+form{display:flex;gap:8px;padding:12px;max-width:860px;width:100%;margin:0 auto;box-sizing:border-box}
+textarea{flex:1;background:#1a1a1a;border:1px solid #333;color:#ddd;border-radius:8px;padding:8px;resize:none;font:inherit}
+button{background:#2a6;border:0;color:#fff;border-radius:8px;padding:0 18px;cursor:pointer}button:disabled{background:#444}
+.err{color:#e77}</style></head><body>
+<header><b>agent</b><span style="color:#777">8B orchestrator + 4B worker</span>
+<input id="key" type="password" placeholder="API key"></header>
+<div id="log"></div>
+<form id="f"><textarea id="q" rows="2" placeholder="Ask the agent... (Enter to send)"></textarea>
+<button id="go">Send</button></form>
+<script>
+const log=document.getElementById('log'),q=document.getElementById('q'),go=document.getElementById('go'),
+key=document.getElementById('key'),hist=[],base=location.pathname.endsWith('/')?location.pathname:location.pathname+'/';
+key.value=localStorage.getItem('agent-key')||'';key.onchange=()=>localStorage.setItem('agent-key',key.value);
+function div(cls,txt){const d=document.createElement('div');d.className='msg '+cls;d.textContent=txt;log.appendChild(d);
+log.scrollTop=log.scrollHeight;return d}
+async function send(ev){ev.preventDefault();const text=q.value.trim();if(!text||go.disabled)return;
+q.value='';go.disabled=true;hist.push({role:'user',content:text});div('user',text);
+const bot=div('bot','...'),det=document.createElement('details'),pre=document.createElement('pre');
+det.innerHTML='<summary>orchestration</summary>';det.appendChild(pre);bot.before(det);let answer='';
+try{
+const r=await fetch(base+'v1/chat/completions',{method:'POST',headers:{'Content-Type':'application/json',
+'Authorization':'Bearer '+key.value},body:JSON.stringify({model:'agent',stream:true,messages:hist})});
+if(!r.ok)throw new Error('HTTP '+r.status+(r.status==401?' - set the API key (top right)':''));
+const rd=r.body.getReader(),dec=new TextDecoder();let buf='';
+for(;;){const{done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});
+const parts=buf.split('\\n\\n');buf=parts.pop();
+for(const p of parts){const line=p.trim();if(!line.startsWith('data: ')||line==='data: [DONE]')continue;
+const d=JSON.parse(line.slice(6)).choices[0].delta;
+if(d.reasoning_content){pre.textContent+=d.reasoning_content;det.open=true}
+if(d.content){answer+=d.content;bot.textContent=answer}log.scrollTop=log.scrollHeight}}
+det.open=false;hist.push({role:'assistant',content:answer});
+}catch(e){bot.className='msg bot err';bot.textContent='error: '+e.message;hist.pop()}
+go.disabled=false;q.focus()}
+document.getElementById('f').onsubmit=send;
+q.onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey)send(e)};
+</script></body></html>"""
+
 
 def resolve_api_key(args):
     key = os.environ.get("LLAMA_API_KEY") or args.api_key
@@ -287,7 +336,14 @@ def make_handler(client, pair, run_args):
             self.wfile.write(body)
 
         def do_GET(self):
-            if self.path == "/health":
+            if self.path in ("/", "/index.html"):
+                body = AGENT_PAGE.encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+            elif self.path == "/health":
                 self._json(200, {"status": "ok"})
             elif self.path == "/v1/models":
                 self._json(200, {"object": "list",

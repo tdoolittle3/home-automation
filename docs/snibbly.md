@@ -104,6 +104,10 @@ trace streams as `reasoning_content`, which the llama.cpp web UI renders as the 
 "thinking" block — you can watch it hand work to the 4B live. Selecting `agent` evicts the ablit/big
 groups like selecting any dual model would.
 
+The facade also serves its own minimal chat page at `/`, so llama-swap's per-model **chat link**
+(`/upstream/agent/`) works like it does for llama-server backends: open it, paste the API key once
+(top right, kept in the browser), and chat — orchestration trace shown per reply.
+
 ## Secrets — not in this repo
 
 One secret: `LLAMA_API_KEY` in `/etc/llama/llama.env` (root:root, mode 600 — read it with
