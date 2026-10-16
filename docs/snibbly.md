@@ -77,6 +77,24 @@ Qwen3-8B is a *thinking* model: it spends tokens inside `<think>…</think>` bef
 request with a small `max_tokens` can burn the whole budget thinking and return empty content —
 raise the budget, don't debug the model.
 
+## The agent runner
+
+[snibbly/agent-runner/runner.py](../snibbly/agent-runner/runner.py) (deployed to
+`/opt/agent-runner/` on the box, stdlib-only) turns a pair into a two-tier agent: the 8B
+orchestrates with tool calling, and a `delegate` tool runs closed subtasks (summarize, extract,
+classify, reformat) on its 4B partner. `delegate` with `wait=false` plus a later `collect` lets the
+4B grind on GPU 1 while the 8B keeps reasoning on GPU 0 — that concurrency, and keeping bulk text
+out of the orchestrator's 8k context, is the whole point (the 4B is *not* faster; see the speed
+table above). Delegation stays inside the pair by construction, which sidesteps the cross-group
+eviction trap.
+
+```bash
+# on snibbly (key auto-read via sudo), stock pair:
+/opt/agent-runner/runner.py --verbose "task..."
+# uncensored pair, from anywhere on the LAN:
+LLAMA_API_KEY=... ./runner.py --pair ablit --base-url http://192.168.0.19:8080/v1 "task..."
+```
+
 ## Secrets — not in this repo
 
 One secret: `LLAMA_API_KEY` in `/etc/llama/llama.env` (root:root, mode 600 — read it with
