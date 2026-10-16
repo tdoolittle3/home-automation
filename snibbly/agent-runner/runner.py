@@ -6,17 +6,27 @@ card) takes delegated subtasks. Delegation only ever targets the orchestrator's
 own pair partner - cross-group calls make llama-swap evict the caller mid-wait
 (see docs/snibbly.md). Stdlib only; deploys as a single file.
 
+One-shot CLI:
   LLAMA_API_KEY=... ./runner.py "task..."
   ./runner.py --pair ablit --verbose "task..."
+
+Server mode - speaks enough OpenAI API for llama-swap to run it as the
+"agent" model (chat with it from any UI; delegation trace streams as
+reasoning_content):
+  ./runner.py --serve 5900 --pair dual
 """
 
 import argparse
 import concurrent.futures
+import http.server
 import json
 import os
+import queue
 import re
 import subprocess
 import sys
+import threading
+import time
 import urllib.error
 import urllib.request
 
@@ -173,7 +183,7 @@ class WorkerPool:
                                max_tokens=self.max_tokens)
         return THINK_RE.sub("", msg.get("content") or "").strip()
 
-    def submit(self, tasks):
+    def submit(self, tasks, emit):
         tickets = []
         for t in tasks:
             self.counter += 1
@@ -181,7 +191,7 @@ class WorkerPool:
             self.futures[ticket] = self.pool.submit(
                 self._run, t.get("instruction", ""), t.get("input", ""))
             tickets.append(ticket)
-            self.client.log(f"worker <- {ticket}: {t.get('instruction', '')[:80]}")
+            emit(f"worker <- {ticket}: {t.get('instruction', '')[:80]}")
         return tickets
 
     def result(self, ticket):
@@ -198,9 +208,9 @@ class WorkerPool:
             return f"worker error: {e}"
 
 
-def execute_tool(name, args, workers, client):
+def execute_tool(name, args, workers, emit):
     if name == "delegate":
-        tickets = workers.submit(args.get("tasks", []))
+        tickets = workers.submit(args.get("tasks", []), emit)
         if args.get("wait", True):
             return [{"ticket": t, "result": workers.result(t)} for t in tickets]
         return {"tickets": tickets, "note": "running in background; call collect"}
@@ -209,28 +219,14 @@ def execute_tool(name, args, workers, client):
     return f"unknown tool {name}"
 
 
-def main():
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("task", help="the task, or - to read it from stdin")
-    ap.add_argument("--pair", choices=PAIRS, default="dual")
-    ap.add_argument("--base-url", default="http://localhost:8080/v1")
-    ap.add_argument("--api-key", default=None)
-    ap.add_argument("--max-steps", type=int, default=10)
-    ap.add_argument("--worker-tokens", type=int, default=1024)
-    ap.add_argument("--verbose", action="store_true")
-    args = ap.parse_args()
+def run_agent(client, pair, chat_messages, max_steps, worker_tokens, emit=lambda s: None):
+    """Drive the orchestrator's tool loop. Returns the final answer text."""
+    workers = WorkerPool(client, pair["worker"], worker_tokens)
+    messages = [{"role": "system",
+                 "content": SYSTEM_PROMPT.format(worker=pair["worker"])}]
+    messages += [m for m in chat_messages if m.get("role") in ("user", "assistant")]
 
-    task = sys.stdin.read() if args.task == "-" else args.task
-    pair = PAIRS[args.pair]
-    client = Client(args.base_url, resolve_api_key(args), args.verbose)
-    workers = WorkerPool(client, pair["worker"], args.worker_tokens)
-
-    messages = [
-        {"role": "system", "content": SYSTEM_PROMPT.format(worker=pair["worker"])},
-        {"role": "user", "content": task},
-    ]
-
-    for step in range(args.max_steps):
+    for step in range(max_steps):
         # A degraded model can emit tool-call JSON bad enough that the
         # server itself 500s - worth a couple of fresh samples.
         for attempt in range(3):
@@ -238,19 +234,18 @@ def main():
                 msg = client.chat(pair["orchestrator"], messages, tools=TOOLS)
                 break
             except RuntimeError as e:
-                client.log(f"orchestrator call failed (attempt {attempt + 1}/3): {e}")
+                emit(f"orchestrator call failed (attempt {attempt + 1}/3): {e}")
         else:
-            sys.exit("orchestrator kept failing; giving up")
+            raise RuntimeError("orchestrator kept failing")
         tool_calls = msg.get("tool_calls")
         if not tool_calls:
-            print(THINK_RE.sub("", msg.get("content") or "").strip())
-            return
+            return THINK_RE.sub("", msg.get("content") or "").strip()
         seen = set()
         deduped = [c for c in tool_calls
                    if (k := (c["function"]["name"], c["function"].get("arguments")))
                    not in seen and not seen.add(k)]
         if len(deduped) > 8 or len(deduped) < len(tool_calls):
-            client.log(f"capped {len(tool_calls)} tool calls to {min(len(deduped), 8)}")
+            emit(f"capped {len(tool_calls)} tool calls to {min(len(deduped), 8)}")
         tool_calls = deduped[:8]
         messages.append({"role": "assistant",
                          "content": msg.get("content") or "",
@@ -261,12 +256,131 @@ def main():
                 fn_args = json.loads(fn.get("arguments") or "{}")
             except json.JSONDecodeError:
                 fn_args = {}
-            client.log(f"orchestrator -> {fn['name']}({json.dumps(fn_args)[:120]})")
-            result = execute_tool(fn["name"], fn_args, workers, client)
+            emit(f"orchestrator -> {fn['name']}({json.dumps(fn_args)[:120]})")
+            result = execute_tool(fn["name"], fn_args, workers, emit)
             messages.append({"role": "tool",
                              "tool_call_id": call.get("id", fn["name"]),
                              "content": json.dumps(result)})
-    sys.exit(f"gave up after {args.max_steps} steps without a final answer")
+    raise RuntimeError(f"gave up after {max_steps} steps without a final answer")
+
+
+def make_handler(client, pair, run_args):
+    """OpenAI-compatible facade so llama-swap can run this as a model."""
+
+    def chunk(delta, finish=None):
+        return ("data: " + json.dumps({
+            "id": "agentcmpl", "object": "chat.completion.chunk",
+            "created": int(time.time()), "model": "agent",
+            "choices": [{"index": 0, "delta": delta, "finish_reason": finish}],
+        }) + "\n\n").encode()
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        def log_message(self, fmt, *a):
+            client.log(f"http: {fmt % a}")
+
+        def _json(self, code, obj):
+            body = json.dumps(obj).encode()
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def do_GET(self):
+            if self.path == "/health":
+                self._json(200, {"status": "ok"})
+            elif self.path == "/v1/models":
+                self._json(200, {"object": "list",
+                                 "data": [{"id": "agent", "object": "model"}]})
+            else:
+                self._json(404, {"error": "not found"})
+
+        def do_POST(self):
+            if self.path not in ("/v1/chat/completions", "/chat/completions"):
+                return self._json(404, {"error": "not found"})
+            try:
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            except Exception:
+                return self._json(400, {"error": "bad json"})
+            msgs = body.get("messages", [])
+            if body.get("stream"):
+                self._stream(msgs)
+            else:
+                try:
+                    text = run_agent(client, pair, msgs, **run_args)
+                except Exception as e:
+                    return self._json(500, {"error": {"message": str(e)}})
+                self._json(200, {
+                    "id": "agentcmpl", "object": "chat.completion",
+                    "created": int(time.time()), "model": "agent",
+                    "choices": [{"index": 0, "finish_reason": "stop",
+                                 "message": {"role": "assistant", "content": text}}],
+                    "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+                })
+
+        def _stream(self, msgs):
+            # Progress goes out as reasoning_content deltas - the llama.cpp
+            # web UI shows them as a live collapsible "thinking" block.
+            self.send_response(200)
+            self.send_header("Content-Type", "text/event-stream")
+            self.send_header("Cache-Control", "no-cache")
+            self.end_headers()
+            events = queue.Queue()
+            box = {}
+
+            def work():
+                try:
+                    box["text"] = run_agent(client, pair, msgs, **run_args,
+                                            emit=lambda s: events.put(s))
+                except Exception as e:
+                    box["text"] = f"agent error: {e}"
+                events.put(None)
+
+            threading.Thread(target=work, daemon=True).start()
+            self.wfile.write(chunk({"role": "assistant"}))
+            while (ev := events.get()) is not None:
+                self.wfile.write(chunk({"reasoning_content": ev + "\n"}))
+                self.wfile.flush()
+            self.wfile.write(chunk({"content": box.get("text", "")}))
+            self.wfile.write(chunk({}, finish="stop"))
+            self.wfile.write(b"data: [DONE]\n\n")
+
+    return Handler
+
+
+def main():
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("task", nargs="?", help="the task, or - to read it from stdin")
+    ap.add_argument("--pair", choices=PAIRS, default="dual")
+    ap.add_argument("--base-url", default="http://localhost:8080/v1")
+    ap.add_argument("--api-key", default=None)
+    ap.add_argument("--max-steps", type=int, default=10)
+    ap.add_argument("--worker-tokens", type=int, default=1024)
+    ap.add_argument("--serve", type=int, metavar="PORT",
+                    help="run as an OpenAI-compatible server instead of one-shot")
+    ap.add_argument("--verbose", action="store_true")
+    args = ap.parse_args()
+
+    client = Client(args.base_url, resolve_api_key(args), args.verbose)
+    pair = PAIRS[args.pair]
+    run_args = {"max_steps": args.max_steps, "worker_tokens": args.worker_tokens}
+
+    if args.serve:
+        server = http.server.ThreadingHTTPServer(
+            ("127.0.0.1", args.serve), make_handler(client, pair, run_args))
+        client.log(f"agent server on 127.0.0.1:{args.serve} (pair: {args.pair})")
+        server.serve_forever()
+        return
+
+    if not args.task:
+        ap.error("a task is required unless --serve is given")
+    task = sys.stdin.read() if args.task == "-" else args.task
+    emit = client.log if args.verbose else (lambda s: None)
+    try:
+        print(run_agent(client, pair, [{"role": "user", "content": task}],
+                        emit=emit, **run_args))
+    except RuntimeError as e:
+        sys.exit(str(e))
 
 
 if __name__ == "__main__":
