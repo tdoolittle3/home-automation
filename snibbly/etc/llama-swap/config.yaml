@@ -41,14 +41,6 @@ models:
       -m /opt/models/qwen3-4b-abliterated.Q4_K_M.gguf -ngl 99 -t 4 -c 8192 -np 1 --jinja
     env: ["CUDA_VISIBLE_DEVICES=1"]
     ttl: 0
-  # Not an LLM: the two-tier agent runner in server mode (see agent-runner/).
-  # Chatting with "agent" makes fast-8b orchestrate and delegate to small-4b,
-  # which is why it lives in the dual group - its backends must be co-resident.
-  "agent":
-    cmd: |
-      /usr/bin/python3 /opt/agent-runner/runner.py --serve ${PORT} --pair dual --verbose
-    env: ["LLAMA_API_KEY=${env.LLAMA_API_KEY}"]
-    ttl: 0
 
 routing:
   router:
@@ -58,7 +50,7 @@ routing:
         "dual":
           swap: false
           exclusive: true
-          members: ["fast-8b", "small-4b", "agent"]
+          members: ["fast-8b", "small-4b"]
         "big":
           swap: true
           exclusive: true
