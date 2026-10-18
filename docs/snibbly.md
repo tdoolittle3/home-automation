@@ -31,7 +31,6 @@ edits apply on the next model load — no restart needed.
 | `big-14b` | Qwen3-14B Q4_K_M, split 7/1 across both cards | both | — |
 | `8b-abliterated` | Qwen3-8B abliterated (uncensored), 8k ctx, 2 slots | GPU 0 | 5.5 GB |
 | `small-4b-abliterated` | Huihui Qwen3-4B-Instruct-2507 abliterated ([mradermacher GGUF](https://huggingface.co/mradermacher/Huihui-Qwen3-4B-Instruct-2507-abliterated-GGUF)) | GPU 1 | 3.7 GB |
-| `agent` | not an LLM — the [agent runner](#the-agent-runner) in server mode: fast-8b orchestrating small-4b | — | — |
 
 Measured generation speed (2026-10-15): **~72 tok/s** for an 8B on GPU 0, **~22 tok/s** for a 4B on
 GPU 1. Counterintuitive but true: the *big* model is 3× faster, because the 1050 Ti's memory
@@ -95,18 +94,6 @@ eviction trap.
 # uncensored pair, from anywhere on the LAN:
 LLAMA_API_KEY=... ./runner.py --pair ablit --base-url http://192.168.0.19:8080/v1 "task..."
 ```
-
-The easiest way to use it, though, is the **`agent` model**: `runner.py --serve` speaks enough of
-the OpenAI API (`/v1/chat/completions` + `/health`) that llama-swap runs it like any backend, so
-`agent` appears in every chat UI's model dropdown and supports normal multi-turn chat. It is a
-member of the `dual` group (its two backing models must be co-resident with it), and the delegation
-trace streams as `reasoning_content`, which the llama.cpp web UI renders as the collapsible
-"thinking" block — you can watch it hand work to the 4B live. Selecting `agent` evicts the ablit/big
-groups like selecting any dual model would.
-
-The facade also serves its own minimal chat page at `/`, so llama-swap's per-model **chat link**
-(`/upstream/agent/`) works like it does for llama-server backends: open it, paste the API key once
-(top right, kept in the browser), and chat — orchestration trace shown per reply.
 
 ## Secrets — not in this repo
 
