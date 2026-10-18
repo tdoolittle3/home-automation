@@ -1,0 +1,24 @@
+services:
+  stt:
+    container_name: whisper-stt
+    image: ghcr.io/ggml-org/whisper.cpp:main
+    restart: unless-stopped
+    # The image's default entrypoint is a bare `bash -c`; run the server
+    # directly. --convert lets it accept whatever the browser records
+    # (webm/opus, mp4/aac) via the ffmpeg bundled in the image.
+    entrypoint: ["/app/build/bin/whisper-server"]
+    command:
+      - --model
+      - /models/ggml-small.en-q5_1.bin
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8990"
+      - --convert
+      - --threads
+      - "6"
+    volumes:
+      # Model is a plain download, not tracked in git - see docs/stt.md.
+      - ./models:/models:ro
+    ports:
+      - "8990:8990"

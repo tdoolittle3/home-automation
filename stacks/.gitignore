@@ -17,6 +17,8 @@ net/uptime-kuma/
 # Immich runtime state — postgres data and the generated .env (see immich/.env.example)
 immich/postgres/
 net/.venv/
+# Whisper model — a plain download, see docs/stt.md
+stt/models/
 # Push/heartbeat URLs are secrets - they authenticate the beat
 net/kuma-push-url.txt
 net/kuma-frigate-push-url.txt
