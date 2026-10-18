@@ -54,7 +54,7 @@ A single root, so the Phase 2 drive swap is a remount rather than a reconfigurat
 
 ```bash
 mkdir -p /srv/storage/{frigate,media,photos,files,archive}
-mkdir -p /opt/stacks/{frigate,media,immich,home,net,n8n,sdr,dns,dash}
+mkdir -p /opt/stacks/{frigate,media,immich,home,net,n8n,sdr,dns,dash,stt}
 chown -R <user>:<user> /srv/storage /opt/stacks
 ```
 
@@ -89,7 +89,12 @@ sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=$(openssl rand -hex 24)/" .env
 # n8n runs as UID 1000 inside the container and needs its data dir owned by it
 mkdir -p /opt/stacks/n8n/n8n-data && chown 1000:1000 /opt/stacks/n8n/n8n-data
 
-for d in frigate home media immich net n8n; do (cd /opt/stacks/$d && docker compose up -d); done
+# whisper's model is a plain download, not in git - see docs/stt.md
+mkdir -p /opt/stacks/stt/models
+curl -L -o /opt/stacks/stt/models/ggml-small.en-q5_1.bin \
+  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en-q5_1.bin
+
+for d in frigate home media immich net n8n stt; do (cd /opt/stacks/$d && docker compose up -d); done
 ```
 
 Three things only happen on a first start:
