@@ -34,6 +34,13 @@ Want better accuracy at ~2× the latency? `ggml-medium.en-q5_0.bin`. Faster and 
 ## The one gotcha: microphones need HTTPS
 
 Browsers only expose `getUserMedia` in a secure context, and the dashboard is served over plain
-http — so the mic button works via `http://localhost` (dev) or an HTTPS front like
-`tailscale serve` (`https://ladybird.<tailnet>.ts.net`), but **not** via `http://ladybird/`. The
-STT service itself doesn't care; this is purely a browser rule about the page that's recording.
+http — so the mic button works via `http://localhost` (dev) or an HTTPS front, but **not** via
+`http://ladybird/`. The STT service itself doesn't care; this is purely a browser rule about the
+page that's recording.
+
+The HTTPS front is live (2026-10-18): `tailscale serve` fronts the dashboard at
+**`https://ladybird.tail0e6756.ts.net`** with a real Let's Encrypt certificate, tailnet-only.
+That's the address to use for voice. Set up once with Serve enabled in the tailnet admin console,
+`sudo tailscale set --operator=thomas` (so serve is manageable without root), then
+`tailscale serve --bg 80`. It survives reboots; `tailscale serve status` to inspect,
+`tailscale serve --https=443 off` to undo.
