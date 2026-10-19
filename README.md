@@ -31,6 +31,7 @@ in over Tailscale.
 | | Address | Notes |
 |---|---|---|
 | **Dashboard** | `http://ladybird/` | the everyday view — custom UI over the Home Assistant API |
+| Dashboard (https) | `https://ladybird.tail0e6756.ts.net` | same app via `tailscale serve` — required for the assistant's mic ([stt.md](docs/stt.md)) |
 | **Cameras** (Frigate) | `https://192.168.0.13:8971` | login required |
 | **Home Assistant** | `http://192.168.0.13:8123` | http, not https — by design |
 | **Photos** (Immich) | `http://192.168.0.13:2283` | first account created becomes the admin |
