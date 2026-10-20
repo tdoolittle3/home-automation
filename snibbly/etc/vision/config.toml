@@ -1,0 +1,34 @@
+# Vision pipeline worker — tracked at snibbly/etc/vision/config.toml, deployed
+# to /etc/vision/config.toml. The worker reads it once at startup: restart the
+# vision-worker service after editing. Omitted keys fall back to the defaults
+# in vision_worker.py.
+
+[frigate]
+base_url = "http://192.168.0.13:5000"   # unauthenticated Frigate API — LAN only
+cameras = ["driveway", "backyard"]      # swept cameras; MQTT events are taken from any camera
+
+[mqtt]
+host = "192.168.0.13"
+port = 1883
+topic = "frigate/events"
+
+[http]
+bind = "0.0.0.0"                        # health/status JSON for Kuma and humans
+port = 8098
+
+[storage]
+data_dir = "/opt/vision/data"
+event_frames_retain_days = 30
+sweep_frames_retain_days = 7
+
+[events]
+fps = 2.0             # event clips are short — decode fully at 2 fps
+clip_wait_secs = 15   # Frigate finalizes the clip shortly after the event ends
+
+[sweep]
+enabled = true
+chunk_minutes = 20    # one job = one chunk of continuous recording, streamed to ffmpeg
+lag_minutes = 10      # stay this far behind "now" so recordings have settled
+start_offset_hours = 6   # on first ever run, begin sweeping this far back (retention is 2 days)
+keep_frames = false   # phase 1 has no detector: count sweep frames, discard them.
+                      # phase 2 keeps only frames with detections and creates events.

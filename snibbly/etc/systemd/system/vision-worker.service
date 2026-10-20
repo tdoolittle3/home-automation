@@ -1,0 +1,19 @@
+[Unit]
+Description=Vision pipeline ingest worker (frigate fast path + recordings sweep)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=vision
+Group=vision
+ExecStart=/opt/vision/venv/bin/python /opt/vision/vision_worker.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/vision/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

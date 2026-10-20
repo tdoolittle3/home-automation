@@ -69,6 +69,9 @@ within its own group (since 2026-10-20 that means the same model's second slot).
 nvidia-smi --query-gpu=index,memory.used,memory.total --format=csv,noheader
 # llama-swap logs
 journalctl -u llama-swap -f
+# the vision pipeline's worker (see vision.md)
+journalctl -u vision-worker -f
+curl http://192.168.0.19:8098/
 # talk to it (any OpenAI client works the same way)
 curl http://192.168.0.19:8080/v1/chat/completions \
   -H "Authorization: Bearer $LLAMA_API_KEY" -H "Content-Type: application/json" \
