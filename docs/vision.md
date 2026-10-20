@@ -6,15 +6,15 @@ Frigate misses (its 300×300 SSDLite detector skips plenty — raccoons, notably
 can't do: re-identifying recurring cars/people/animals and custom tagging, browsable in its own
 web view.
 
-**Status: Phase 0 complete (2026-10-20).** GPU 1 is carved out and the runtime is validated;
-nothing ingests yet.
+**Status: Phases 0–1 complete (2026-10-20).** GPU 1 is carved out, the runtime is validated,
+and the ingest worker runs on snibbly; frames flow, nothing analyzes them yet.
 
 ## The plan
 
 | Phase | What | Status |
 |---|---|---|
 | 0 | Hand GPU 1 to vision (drop the 4B LLMs), validate an sm_61 runtime | **done 2026-10-20** |
-| 1 | Ingest worker: MQTT fast path + recordings sweep, frame sampling, job queue | — |
+| 1 | Ingest worker: MQTT fast path + recordings sweep, frame sampling, job queue | **done 2026-10-20** |
 | 2 | Detection (YOLO11s), embeddings (OSNet/CLIP), entity clustering, zero-shot + manual tags | — |
 | 3 | Web view: event browser, entity pages, tag management (FastAPI + htmx, on snibbly) | — |
 | 4 | Kuma monitor, backfill, ops polish | — |
@@ -30,6 +30,41 @@ Two ingest paths feed one database, each event marked by source:
   cameras record with a 1-second GOP, so 1 fps sampling is keyframe-only extraction — no full
   decode. Where detections cluster in time, the sweep creates its own events. Downtime is
   caught up from the retention window, which a live-RTSP tap could not do.
+
+## How it runs (Phase 1)
+
+One systemd service on snibbly, `vision-worker`, user `vision`
+([unit](../snibbly/etc/systemd/system/vision-worker.service),
+[worker](../snibbly/vision/vision_worker.py)). Config at `/etc/vision/config.toml`
+([tracked copy](../snibbly/etc/vision/config.toml)) — read once at startup, so restart after
+editing. No secrets: the Frigate API and Mosquitto are unauthenticated LAN services.
+
+```bash
+curl http://192.168.0.19:8098/            # health + queue depth + sweep lag + counters
+sudo journalctl -u vision-worker -f       # one line per event sampled / sweep chunk done
+```
+
+Layout on the box: `/opt/vision/venv` (uv Python 3.12 + paho-mqtt; Phase 2 adds torch),
+`/opt/vision/vision_worker.py`, and `/opt/vision/data/` (vision-owned) holding `vision.db`
+(SQLite, WAL) and `frames/events/<camera>/<event_id>/*.jpg`. Everything flows through a jobs
+table in the DB — queue survives restarts, event jobs outrank sweep jobs, failures retry on a
+backoff then park as `error`.
+
+Verified at deploy (2026-10-20): a real driveway car event sampled to 2688×1520 frames
+(record-stream resolution — the whole point), sweep chunks each yield 1199 keyframes
+(1/s exactly) and take ~2 min of mostly-network time, and steady-state sweeping costs ~12 min
+of wall-time per hour. Sweep frames are counted and **discarded** until Phase 2's detector
+decides which are worth keeping (`keep_frames = false`); event frames are kept 30 days, future
+sweep keepers 7 (retention sweep runs daily).
+
+Two deploy gotchas, both already baked into the tracked files:
+
+* The unit sets `ProtectHome=true`, and a uv venv symlinks its interpreter into
+  `~/.local/share/uv` by default — the service dies with `status=203/EXEC`. The managed
+  interpreter must live outside /home: `UV_PYTHON_INSTALL_DIR=/opt/uv-python uv python
+  install 3.12`, then create the venv with that same env var set.
+* `/tmp` on snibbly is a 16 GB **tmpfs** — don't put venvs or sweep scratch there. The worker
+  scratches under `/opt/vision/data/tmp`.
 
 ## Phase 0 results — what runs on a Pascal card in 2026
 
