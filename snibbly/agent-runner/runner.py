@@ -1,10 +1,14 @@
 #!/usr/bin/env python3
-"""Two-tier agent runner for snibbly's llama-swap pairs.
+"""Two-tier agent runner for snibbly's llama-swap models.
 
-The big model of a pair (8B, fast card) orchestrates; the small one (4B, slow
-card) takes delegated subtasks. Delegation only ever targets the orchestrator's
-own pair partner - cross-group calls make llama-swap evict the caller mid-wait
-(see docs/snibbly.md). Stdlib only; deploys as a single file.
+The 8B orchestrates; delegated subtasks run on the *same* model's second
+parallel slot (-np 2). GPU 1 belongs to the vision pipeline since 2026-10-20,
+so the old 4B pair partner is gone — same-model delegation keeps the two
+things that mattered: bulk text stays out of the orchestrator's context, and
+a wait=false delegation grinds on slot 2 while the orchestrator reasons on
+slot 1. Delegation never leaves the orchestrator's own group — cross-group
+calls make llama-swap evict the caller mid-wait (see docs/snibbly.md).
+Stdlib only; deploys as a single file.
 
   LLAMA_API_KEY=... ./runner.py "task..."
   ./runner.py --pair ablit --verbose "task..."
@@ -21,20 +25,21 @@ import urllib.error
 import urllib.request
 
 PAIRS = {
-    "dual": {"orchestrator": "fast-8b", "worker": "small-4b"},
-    "ablit": {"orchestrator": "8b-abliterated", "worker": "small-4b-abliterated"},
+    "dual": {"orchestrator": "fast-8b", "worker": "fast-8b"},
+    "ablit": {"orchestrator": "8b-abliterated", "worker": "8b-abliterated"},
 }
 
-# Worker context is 8k tokens; leave room for instruction + output.
+# Each -np 2 slot gets half the model's context (fast-8b: 16k/2 = 8k per slot);
+# leave room for instruction + output.
 WORKER_INPUT_MAX_CHARS = 20_000
 
 SYSTEM_PROMPT = """\
-You are the orchestrator, a capable model paired with a smaller, weaker worker
-model ({worker}) running on a second GPU. Solve the user's task, delegating
-self-contained subtasks to the worker when that keeps your own context clean or
-lets work proceed in parallel.
+You are the orchestrator. A worker ({worker}) is available on a second parallel
+slot of your backend. Solve the user's task, delegating self-contained subtasks
+to the worker when that keeps your own context clean or lets work proceed in
+parallel with your own reasoning.
 
-The worker is mediocre and literal. Give it closed tasks with all needed input
+The worker is stateless and literal. Give it closed tasks with all needed input
 inline ("summarize the following to 3 bullets", "extract all dates as a JSON
 array") - never open-ended ones, and never assume it remembers anything between
 calls. It cannot see this conversation.
@@ -159,8 +164,9 @@ class WorkerPool:
         self.client = client
         self.model = model
         self.max_tokens = max_tokens
-        # Worker backend is -np 1 anyway; 2 lets a queued task start the
-        # moment the first finishes without the runner in the way.
+        # The backend has 2 slots and the orchestrator holds one only while it
+        # is itself generating; 2 threads let a queued task start the moment a
+        # slot frees without the runner in the way.
         self.pool = concurrent.futures.ThreadPoolExecutor(max_workers=2)
         self.futures = {}
         self.counter = 0

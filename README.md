@@ -96,6 +96,7 @@ Full notes, the hardware inventory and what is still unconfirmed: [system atlas]
 | change what is monitored | [uptime-kuma.md](docs/uptime-kuma.md) |
 | touch the LLM box (a second machine) | [snibbly.md](docs/snibbly.md) |
 | voice input for the assistant | [stt.md](docs/stt.md) |
+| the camera vision pipeline on snibbly | [vision.md](docs/vision.md) |
 
 ## The machine
 
