@@ -6,13 +6,18 @@ Wants=network-online.target
 [Service]
 User=vision
 Group=vision
+WorkingDirectory=/opt/vision
 ExecStart=/opt/vision/venv/bin/python /opt/vision/vision_worker.py
 Restart=always
 RestartSec=5
+# GPU 1 is the vision card; hiding GPU 0 makes "cuda:0" always mean the 1050 Ti
+Environment=CUDA_VISIBLE_DEVICES=1
+Environment=HF_HOME=/opt/vision/models/hf
+Environment=YOLO_CONFIG_DIR=/opt/vision/data/ultralytics
 NoNewPrivileges=true
 ProtectSystem=full
 ProtectHome=true
-ReadWritePaths=/opt/vision/data
+ReadWritePaths=/opt/vision/data /opt/vision/models
 PrivateTmp=true
 
 [Install]
