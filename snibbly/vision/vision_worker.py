@@ -55,7 +55,7 @@ DEFAULTS = {
               "start_offset_hours": 6},
     "analyze": {"conf_threshold": 0.40, "sweep_keep_threshold": 0.50,
                 "entity_match_threshold": 0.85, "sweep_event_gap_secs": 90,
-                "batch_size": 16},
+                "batch_size": 16, "static_presence": 0.5},
 }
 
 SCHEMA = """

@@ -32,7 +32,9 @@ import numpy as np
 log = logging.getLogger("vision")
 
 YOLO_WEIGHTS = "/opt/vision/models/yolo11s.pt"
-CLIP_MODEL, CLIP_PRETRAINED = "ViT-B-16", "openai"
+# the -quickgelu variant matters: OpenAI weights use QuickGELU, and plain
+# ViT-B-16 silently runs them with the wrong activation (open_clip warns)
+CLIP_MODEL, CLIP_PRETRAINED = "ViT-B-16-quickgelu", "openai"
 
 
 def _to_blob(vec):
@@ -41,6 +43,47 @@ def _to_blob(vec):
 
 def _from_blob(blob):
     return np.frombuffer(blob, dtype=np.float32)
+
+
+def _iou(a, b):
+    ix1, iy1 = max(a[0], b[0]), max(a[1], b[1])
+    ix2, iy2 = min(a[2], b[2]), min(a[3], b[3])
+    inter = max(0, ix2 - ix1) * max(0, iy2 - iy1)
+    if not inter:
+        return 0.0
+    area_a = (a[2] - a[0]) * (a[3] - a[1])
+    area_b = (b[2] - b[0]) * (b[3] - b[1])
+    return inter / (area_a + area_b - inter)
+
+
+def _static_mask(per_frame, min_presence):
+    """Scenery suppression. A detection that sits in (nearly) the same box
+    with the same label across >= min_presence of the frames is a static
+    object — a parked car, a grill YOLO calls a suitcase — not an event.
+    Returns, per frame, the set of detection indices to suppress. Needs a
+    decent frame count to judge; short batches are left untouched."""
+    n = len(per_frame)
+    masks = [set() for _ in per_frame]
+    if n < 8:
+        return masks
+    all_dets = [(fi, di, lab, box) for fi, dets in enumerate(per_frame)
+                for di, (lab, _conf, box) in enumerate(dets)]
+    assigned = set()
+    for i, (fi, di, lab, box) in enumerate(all_dets):
+        if (fi, di) in assigned:
+            continue
+        members, frames_seen = [(fi, di)], {fi}
+        for fj, dj, lab2, box2 in all_dets[i + 1:]:
+            if (fj, dj) in assigned or lab2 != lab:
+                continue
+            if _iou(box, box2) >= 0.6:
+                members.append((fj, dj))
+                frames_seen.add(fj)
+        if len(frames_seen) >= min_presence * n:
+            for m in members:
+                assigned.add(m)
+                masks[m[0]].add(m[1])
+    return masks
 
 
 class Analyzer:
@@ -145,53 +188,58 @@ class Analyzer:
 
     # ---- the main entry points ----
 
-    def analyze_frames(self, frames, event_id=None):
-        """frames: rows with id/camera/ts/path. Detect, embed, match, tag.
-        Returns indices of frames that had at least one detection."""
+    def _persist(self, frame, dets, event_id=None):
+        """Crops, embeddings, entity match, tag scores, DB rows for one
+        frame's (non-static) detections. Caller holds gpu_lock."""
         from PIL import Image
+        img = Image.open(frame["path"]).convert("RGB")
+        crops = [img.crop(box) for _, _, box in dets]
+        vecs = self._embed_crops(crops)
+        tags = self._tag_vectors()
+        crop_dir = os.path.join(self.data_dir, "crops", frame["camera"],
+                                time.strftime("%Y%m%d", time.localtime(frame["ts"])))
+        os.makedirs(crop_dir, exist_ok=True)
+        for i, ((label, conf, box), vec, crop) in enumerate(zip(dets, vecs, crops)):
+            crop_path = os.path.join(crop_dir, f"{frame['id']}-{i}.jpg")
+            crop.save(crop_path, quality=85)
+            entity_id = self._match_entity(label, vec, frame["ts"])
+            cur = self.db.execute(
+                "INSERT INTO detections(frame_id, event_id, camera, ts, label,"
+                " conf, box, crop_path, embedding, entity_id)"
+                " VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (frame["id"], event_id, frame["camera"], frame["ts"], label,
+                 conf, json.dumps(box), crop_path, _to_blob(vec), entity_id))
+            det_id = cur.lastrowid
+            for tag_id, _name, thr, tvec in tags:
+                score = float(np.dot(vec, tvec))
+                if score >= thr:
+                    self.db.execute(
+                        "INSERT OR IGNORE INTO detection_tags"
+                        "(detection_id, tag_id, score, source)"
+                        " VALUES(?,?,?,'auto')", (det_id, tag_id, score))
+
+    def analyze_frames(self, frames, event_id=None):
+        """frames: rows with id/camera/ts/path. Detect (with scenery
+        suppression across the batch), embed, match, tag. Returns the frames
+        that had at least one live detection."""
         self._ensure_models()
         with self.gpu_lock:
             per_frame = self._detect([f["path"] for f in frames])
+            masks = _static_mask(per_frame, self.cfg["static_presence"])
             hits = []
-            for frame, dets in zip(frames, per_frame):
-                if not dets:
-                    self.db.execute("UPDATE frames SET analyzed=1 WHERE id=?",
-                                    (frame["id"],))
-                    continue
-                hits.append(frame)
-                img = Image.open(frame["path"]).convert("RGB")
-                crops = [img.crop(box) for _, _, box in dets]
-                vecs = self._embed_crops(crops)
-                tags = self._tag_vectors()
-                crop_dir = os.path.join(self.data_dir, "crops", frame["camera"],
-                                        time.strftime("%Y%m%d", time.localtime(frame["ts"])))
-                os.makedirs(crop_dir, exist_ok=True)
-                for i, ((label, conf, box), vec, crop) in enumerate(zip(dets, vecs, crops)):
-                    crop_path = os.path.join(crop_dir, f"{frame['id']}-{i}.jpg")
-                    crop.save(crop_path, quality=85)
-                    entity_id = self._match_entity(label, vec, frame["ts"])
-                    cur = self.db.execute(
-                        "INSERT INTO detections(frame_id, event_id, camera, ts, label,"
-                        " conf, box, crop_path, embedding, entity_id)"
-                        " VALUES(?,?,?,?,?,?,?,?,?,?)",
-                        (frame["id"], event_id, frame["camera"], frame["ts"], label,
-                         conf, json.dumps(box), crop_path, _to_blob(vec), entity_id))
-                    det_id = cur.lastrowid
-                    for tag_id, _name, thr, tvec in tags:
-                        score = float(np.dot(vec, tvec))
-                        if score >= thr:
-                            self.db.execute(
-                                "INSERT OR IGNORE INTO detection_tags"
-                                "(detection_id, tag_id, score, source)"
-                                " VALUES(?,?,?,'auto')", (det_id, tag_id, score))
+            for frame, dets, static in zip(frames, per_frame, masks):
+                live = [d for k, d in enumerate(dets) if k not in static]
+                if live:
+                    hits.append(frame)
+                    self._persist(frame, live, event_id)
                 self.db.execute("UPDATE frames SET analyzed=1 WHERE id=?", (frame["id"],))
         return hits
 
     def analyze_sweep_chunk(self, camera, start, tmp_dir):
         """Detect over a sweep chunk's keyframes. Frames with a confident
-        detection are kept (moved into data/frames/sweep/...), recorded, and
-        clustered into sweep-source events; the rest stay in tmp_dir and die
-        with it. Returns (frames_seen, frames_kept, events_created)."""
+        non-static detection are kept (moved into data/frames/sweep/...),
+        recorded, and clustered into sweep-source events; the rest stay in
+        tmp_dir and die with it. Returns (seen, kept, events_created)."""
         names = sorted(os.listdir(tmp_dir))
         if not names:
             return 0, 0, 0
@@ -199,24 +247,29 @@ class Analyzer:
         keep_thr = self.cfg["sweep_keep_threshold"]
         with self.gpu_lock:
             per_frame = self._detect([os.path.join(tmp_dir, n) for n in names])
-        kept = []  # frame rows to analyze properly after the move
+        masks = _static_mask(per_frame, self.cfg["static_presence"])
+        kept = []  # (frame row, live dets)
         stamp = time.strftime("%Y%m%d-%H%M", time.localtime(start))
         keep_dir = os.path.join(self.data_dir, "frames", "sweep", camera, stamp)
-        for i, (name, dets) in enumerate(zip(names, per_frame)):
-            if not any(conf >= keep_thr for _, conf, _ in dets):
+        for i, (name, dets, static) in enumerate(zip(names, per_frame, masks)):
+            live = [d for k, d in enumerate(dets) if k not in static]
+            if not any(conf >= keep_thr for _, conf, _ in live):
                 continue
             os.makedirs(keep_dir, exist_ok=True)
             path = os.path.join(keep_dir, name)
             os.replace(os.path.join(tmp_dir, name), path)
             ts = start + i  # keyframes are 1/s
             cur = self.db.execute(
-                "INSERT INTO frames(camera, ts, path) VALUES(?,?,?)",
+                "INSERT INTO frames(camera, ts, path, analyzed) VALUES(?,?,?,1)",
                 (camera, ts, path))
-            kept.append({"id": cur.lastrowid, "camera": camera, "ts": ts, "path": path})
+            kept.append(({"id": cur.lastrowid, "camera": camera, "ts": ts,
+                          "path": path}, live))
         if not kept:
             return len(names), 0, 0
-        self.analyze_frames(kept)  # embeddings, entities, tags, crops
-        events = self._cluster_sweep_events(camera, kept)
+        with self.gpu_lock:
+            for frame, live in kept:
+                self._persist(frame, live)  # already detected; no second pass
+        events = self._cluster_sweep_events(camera, [f for f, _ in kept])
         return len(names), len(kept), events
 
     def _cluster_sweep_events(self, camera, kept):
