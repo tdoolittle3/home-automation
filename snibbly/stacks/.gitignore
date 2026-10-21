@@ -1,0 +1,2 @@
+# Same rule as ladybird's stacks/.gitignore: the .env files hold the secrets.
+*/.env

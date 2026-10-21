@@ -10,13 +10,18 @@ ladybird's.
 | **Machine** | i7-9700KF, 30 GB RAM, Ubuntu 26.04 LTS, kernel 7.0 |
 | **GPU 0** | RTX 2070 Super, 8 GB — the fast card, the LLMs' card |
 | **GPU 1** | GTX 1050 Ti, 4 GB — reserved for the vision pipeline since 2026-10-20 (a quarter of GPU 0's memory bandwidth; LLM inference on it was dismal, vision CNNs fit it fine) |
-| **Router** | [llama-swap](https://github.com/mostlygeek/llama-swap) v265 at `/opt/llama-swap`, listening on `0.0.0.0:8080` |
+| **Door** | LiteLLM proxy (`litellm.service`) on `0.0.0.0:8080`, capturing every conversation to [Langfuse](langfuse.md) |
+| **Router** | [llama-swap](https://github.com/mostlygeek/llama-swap) v265 at `/opt/llama-swap`, listening on `127.0.0.1:9292` |
 | **Backend** | llama.cpp CUDA build (b11382) at `/opt/llama.cpp/build-cuda/bin/llama-server` |
 | **Models** | GGUF files in `/opt/models/` (thomas-writable) |
+| **Observability** | Langfuse v3 at `http://192.168.0.19:3000` (`/opt/stacks/langfuse`) — see [langfuse.md](langfuse.md) |
 
-llama-swap is the only door: it owns `:8080`, speaks the OpenAI API, and starts/stops llama-server
-backends on demand. The backends bind to `127.0.0.1` on ephemeral ports (5800+) with no auth of
-their own. One API key guards everything — see [Secrets](#secrets--not-in-this-repo).
+The LiteLLM proxy is the only door: it owns `:8080`, speaks the OpenAI API, logs every
+request/response to [Langfuse](langfuse.md), and forwards untouched to llama-swap on
+`127.0.0.1:9292`, which starts/stops llama-server backends on demand. The backends bind to
+`127.0.0.1` on ephemeral ports (5800+) with no auth of their own. Clients never noticed the
+proxy appearing — same port, same API key value, same model names. One API key value guards
+everything — see [Secrets](#secrets--not-in-this-repo).
 
 Config lives at `/etc/llama-swap/config.yaml` ([tracked copy](../snibbly/etc/llama-swap/config.yaml)),
 run by the `llama-swap.service` systemd unit as user `llama`. The `-watch-config` flag means config
@@ -67,8 +72,9 @@ within its own group (since 2026-10-20 that means the same model's second slot).
 ```bash
 # what's loaded right now
 nvidia-smi --query-gpu=index,memory.used,memory.total --format=csv,noheader
-# llama-swap logs
+# llama-swap logs; litellm for the door itself, and see langfuse.md for traces
 journalctl -u llama-swap -f
+journalctl -u litellm -f
 # the vision pipeline's worker (see vision.md)
 journalctl -u vision-worker -f
 curl http://192.168.0.19:8098/
@@ -104,17 +110,24 @@ LLAMA_API_KEY=... ./runner.py --pair ablit --base-url http://192.168.0.19:8080/v
 
 ## Secrets — not in this repo
 
-One secret: `LLAMA_API_KEY` in `/etc/llama/llama.env` (root:root, mode 600 — read it with
-`sudo cat`). Template at [snibbly/etc/llama/llama.env.example](../snibbly/etc/llama/llama.env.example).
-It is the only thing standing between the LAN and the models; the backends have no auth.
+One key *value* guards the models, stored in three lines across two files: `LLAMA_API_KEY` in
+`/etc/llama/llama.env` (what llama-swap enforces on loopback), and in `/etc/litellm/litellm.env`
+both as the upstream copy and as `LITELLM_MASTER_KEY` (what clients present on `:8080` — same
+value by convention, so nothing client-side ever changed). All root:root, mode 600 — read with
+`sudo cat`. Templates: [llama.env.example](../snibbly/etc/llama/llama.env.example),
+[litellm.env.example](../snibbly/etc/litellm/litellm.env.example). Rotate all three lines
+together, restart both services. The Langfuse stack keeps its own secrets — see
+[langfuse.md](langfuse.md#secrets--not-in-this-repo).
 
 ## Rebuild sketch
 
 1. Ubuntu + NVIDIA driver; verify both cards in `nvidia-smi`.
 2. Build llama.cpp with CUDA into `/opt/llama.cpp/build-cuda`; download a llama-swap release to
    `/opt/llama-swap`.
-3. Create user `llama`; copy the three files under [snibbly/etc/](../snibbly/etc/) into `/etc/`,
+3. Create user `llama`; copy the files under [snibbly/etc/](../snibbly/etc/) into `/etc/`,
    fill in a fresh `LLAMA_API_KEY`.
 4. Re-download the GGUFs in the table above into `/opt/models/` (names must match
    `config.yaml`).
-5. `systemctl enable --now llama-swap`, then curl a completion as above.
+5. `systemctl enable --now llama-swap` (loopback `:9292` — nothing answers on the LAN yet).
+6. The door and the traces: Langfuse stack + LiteLLM proxy per the deploy steps in
+   [langfuse.md](langfuse.md#deploy--rebuild), then curl a completion as above.

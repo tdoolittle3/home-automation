@@ -1,0 +1,29 @@
+# LiteLLM proxy — the LAN door to the models since the Langfuse change, at
+# /etc/litellm/config.yaml on snibbly, run by litellm.service as user litellm.
+#
+# It owns 0.0.0.0:8080 (the address every client already uses) and passes
+# everything through to llama-swap, which moved to 127.0.0.1:9292. Its only
+# job is capture: every request/response is logged to Langfuse on this same
+# box. It adds no routing opinions — model names, groups and the eviction
+# rules in llama-swap/config.yaml behave exactly as before.
+
+model_list:
+  # Wildcard passthrough: whatever model the client names is forwarded to
+  # llama-swap under the same name, so new models in llama-swap/config.yaml
+  # need no edit here.
+  - model_name: "*"
+    litellm_params:
+      model: openai/*
+      api_base: http://127.0.0.1:9292/v1
+      api_key: os.environ/LLAMA_API_KEY
+
+litellm_settings:
+  # Both callbacks, deliberately: failures (timeouts, evictions, empty
+  # responses from a burned thinking budget) are half the reason to capture.
+  success_callback: ["langfuse"]
+  failure_callback: ["langfuse"]
+
+general_settings:
+  # Clients authenticate to LiteLLM with this; it is set to the same VALUE as
+  # LLAMA_API_KEY so no client changes — see docs/langfuse.md on rotation.
+  master_key: os.environ/LITELLM_MASTER_KEY
