@@ -321,6 +321,20 @@ monitors:
     retries: 2
     retry_interval: 60
 
+  - name: snibbly
+    group: Host and network
+    type: ping
+    hostname: 192.168.0.19
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    # The LLM/vision box (llama-swap, vision ingest worker). Ping only: it
+    # already dropped off the network once mid-sweep (2026-10-20), and a host
+    # that answers ICMP but has a wedged llama-swap is a different, rarer
+    # failure — add a port monitor on 8080 if that ever actually happens.
+    # The address should be DHCP-reserved on the router, same caveat as the
+    # Meshtastic gateway: a lease change turns this red with nothing wrong.
+
   - name: Internet
     group: Host and network
     type: http
