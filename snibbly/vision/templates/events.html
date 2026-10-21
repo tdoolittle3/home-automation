@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}events — vision{% endblock %}
+{% block body %}
+<form class="filters" method="get" action="/">
+  <select name="camera"><option value="">camera: any</option>
+    {% for c in cameras %}<option value="{{c}}" {{'selected' if f.camera==c}}>{{c}}</option>{% endfor %}
+  </select>
+  <select name="source"><option value="">source: any</option>
+    {% for s in ["frigate","sweep"] %}<option value="{{s}}" {{'selected' if f.source==s}}>{{s}}</option>{% endfor %}
+  </select>
+  <select name="label"><option value="">label: any</option>
+    {% for l in labels %}<option value="{{l}}" {{'selected' if f.label==l}}>{{l}}</option>{% endfor %}
+  </select>
+  <select name="tag"><option value="0">tag: any</option>
+    {% for t in tags %}<option value="{{t.id}}" {{'selected' if f.tag==t.id}}>{{t.name}}</option>{% endfor %}
+  </select>
+  <button>filter</button>
+  {% if f.entity %}<span class="badge">entity #{{f.entity}} <a href="/">×</a></span>{% endif %}
+</form>
+
+<div class="grid">
+{% for e in events %}
+  <div class="card">
+    <a href="/event/{{e.id}}">
+      {% if e.thumb %}<img src="{{e.thumb|media}}" loading="lazy" alt="">{% else %}<img alt="">{% endif %}
+    </a>
+    <div>
+      <span class="badge {{e.source}}">{{e.source}}</span>
+      <strong>{{e.label or "?"}}</strong> · {{e.camera}}
+    </div>
+    <div class="muted">{{e.start_ts|dt}}
+      · {{((e.end_ts or e.start_ts) - e.start_ts)|round|int}}s · {{e.dets}} det</div>
+  </div>
+{% else %}
+  <p class="muted">No events match.</p>
+{% endfor %}
+</div>
+
+<p>
+  {% if page > 0 %}<a href="?camera={{f.camera}}&source={{f.source}}&label={{f.label}}&tag={{f.tag}}&entity={{f.entity}}&page={{page-1}}">« newer</a>{% endif %}
+  {% if events|length == 48 %}<a href="?camera={{f.camera}}&source={{f.source}}&label={{f.label}}&tag={{f.tag}}&entity={{f.entity}}&page={{page+1}}">older »</a>{% endif %}
+</p>
+{% endblock %}

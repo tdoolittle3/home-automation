@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}vision{% endblock %}</title>
+<style>
+  :root { color-scheme: dark; }
+  body { background:#14161a; color:#d8dce2; font:15px/1.45 system-ui, sans-serif;
+         margin:0; }
+  header { background:#1c2027; padding:10px 18px; display:flex; gap:22px;
+           align-items:baseline; border-bottom:1px solid #2a2f38; }
+  header .brand { font-weight:700; color:#8ab4f8; }
+  header a { color:#d8dce2; text-decoration:none; }
+  header a:hover { color:#8ab4f8; }
+  main { padding:18px; max-width:1500px; margin:0 auto; }
+  a { color:#8ab4f8; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(230px,1fr));
+          gap:12px; }
+  .card { background:#1c2027; border:1px solid #2a2f38; border-radius:8px;
+          padding:10px; }
+  .card img { width:100%; height:150px; object-fit:contain; background:#0e1013;
+              border-radius:4px; }
+  .muted { color:#8b93a1; font-size:13px; }
+  .badge { display:inline-block; padding:1px 7px; border-radius:9px; font-size:12px;
+           background:#2a3240; color:#a9c7ff; margin-right:4px; }
+  .badge.sweep { background:#3a2f1c; color:#ffd599; }
+  .chip { display:inline-block; padding:0 6px; border-radius:8px; font-size:12px;
+          background:#223027; color:#9fd6ad; margin:1px; }
+  input, select, button { background:#242a33; color:#d8dce2; border:1px solid #39414e;
+          border-radius:5px; padding:4px 8px; font-size:14px; }
+  button { cursor:pointer; } button:hover { border-color:#8ab4f8; }
+  form.inline { display:inline; }
+  table { border-collapse:collapse; width:100%; }
+  td, th { padding:6px 10px; border-bottom:1px solid #2a2f38; text-align:left;
+           vertical-align:top; }
+  .filters { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; }
+  .thumbs img { height:96px; border-radius:4px; margin:2px; background:#0e1013; }
+  h2 { margin:18px 0 10px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">vision</span>
+  <a href="/">Events</a>
+  <a href="/entities">Entities</a>
+  <a href="/tags">Tags</a>
+</header>
+<main>{% block body %}{% endblock %}</main>
+</body>
+</html>

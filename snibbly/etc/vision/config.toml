@@ -16,6 +16,10 @@ topic = "frigate/events"
 bind = "0.0.0.0"                        # health/status JSON for Kuma and humans
 port = 8098
 
+[web]
+bind = "0.0.0.0"                        # the browsing UI (vision-web service)
+port = 8099
+
 [storage]
 data_dir = "/opt/vision/data"
 event_frames_retain_days = 30
