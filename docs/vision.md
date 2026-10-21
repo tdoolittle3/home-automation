@@ -6,8 +6,9 @@ Frigate misses (its 300×300 SSDLite detector skips plenty — raccoons, notably
 can't do: re-identifying recurring cars/people/animals and custom tagging, browsable in its own
 web view.
 
-**Status: Phases 0–1 complete (2026-10-20).** GPU 1 is carved out, the runtime is validated,
-and the ingest worker runs on snibbly; frames flow, nothing analyzes them yet.
+**Status: Phases 0–2 complete (2026-10-21).** GPU 1 is carved out, the ingest worker runs on
+snibbly, and every frame now gets detection, embeddings, entity clustering, and tag scoring.
+No UI yet — the data accrues in SQLite until Phase 3.
 
 ## The plan
 
@@ -15,7 +16,7 @@ and the ingest worker runs on snibbly; frames flow, nothing analyzes them yet.
 |---|---|---|
 | 0 | Hand GPU 1 to vision (drop the 4B LLMs), validate an sm_61 runtime | **done 2026-10-20** |
 | 1 | Ingest worker: MQTT fast path + recordings sweep, frame sampling, job queue | **done 2026-10-20** |
-| 2 | Detection (YOLO11s), embeddings (OSNet/CLIP), entity clustering, zero-shot + manual tags | — |
+| 2 | Detection (YOLO11s), embeddings (CLIP), entity clustering, zero-shot + manual tags | **done 2026-10-21** |
 | 3 | Web view: event browser, entity pages, tag management (FastAPI + htmx, on snibbly) | — |
 | 4 | Kuma monitor, backfill, ops polish | — |
 
@@ -57,6 +58,15 @@ of wall-time per hour. Sweep frames are counted and **discarded** until Phase 2'
 decides which are worth keeping (`keep_frames = false`); event frames are kept 30 days, future
 sweep keepers 7 (retention sweep runs daily).
 
+Operational facts that bit once already:
+
+* **Snibbly is on WiFi** (`wlo1`; `eno2` is unplugged). The 2026-10-20 evening "outage" — box
+  unreachable for hours, no crash evidence — was almost certainly a wireless drop, and the sweep
+  streams gigabytes per hour over that link. Cable it.
+* The worker's `:8098` health endpoint answers locally but snibbly's **ufw blocks it from the
+  LAN**. Before pointing Kuma at it:
+  `sudo ufw allow from 192.168.0.0/24 to any port 8098 proto tcp comment "vision-worker health"`
+
 Two deploy gotchas, both already baked into the tracked files:
 
 * The unit sets `ProtectHome=true`, and a uv venv symlinks its interpreter into
@@ -65,6 +75,42 @@ Two deploy gotchas, both already baked into the tracked files:
   install 3.12`, then create the venv with that same env var set.
 * `/tmp` on snibbly is a 16 GB **tmpfs** — don't put venvs or sweep scratch there. The worker
   scratches under `/opt/vision/data/tmp`.
+
+## What analysis produces (Phase 2)
+
+`analyzer.py` runs on everything Phase 1 ingests, fp32 on the 1050 Ti (the unit sets
+`CUDA_VISIBLE_DEVICES=1`, so `cuda:0` in code is always the vision card; YOLO11s + CLIP
+ViT-B/16 load in ~2 s and hold ~700 MiB VRAM):
+
+* **Detections** — YOLO11s over every frame; each detection ≥0.4 confidence becomes a row with
+  box, crop JPEG (`data/crops/…`, kept indefinitely — they're ~20 KB and feed the galleries),
+  and a 512-d CLIP embedding.
+* **Entities** ("have I seen this car before") — each embedding cosine-matches per-label entity
+  centroids: ≥0.85 joins and nudges the centroid (running mean); below founds a new unnamed
+  entity. Naming/merging is Phase 3 UI. It works: the first live run clustered two distinct
+  recurring people (347 and 111 sightings) unprompted. Persons use CLIP like everything else —
+  OSNet was the plan but torchreid won't install on py3.12/torch-2.14, so person matching is
+  clothing-level for now.
+* **Zero-shot tags** — any row in the `tags` table with a `prompt` is CLIP-text-embedded and
+  scored against every crop; scores ≥ the tag's threshold are recorded in `detection_tags`.
+  Manual tags use the same table with `prompt NULL` (Phase 3 UI). Expect thresholds to need
+  tuning per prompt (~0.22–0.30 cosine is the useful range).
+* **Sweep events** — sweep keyframes with a confident detection survive and cluster (90 s gap)
+  into `sweep`-source events; this is the Frigate-independent path, so things Frigate never
+  noticed become first-class events.
+
+**Scenery suppression** (`static_presence`, the lesson of the first live run): YOLO on a static
+scene is confidently wrong — a backyard fixture read as "surfboard" in every keyframe, so the
+first chunk kept 1200/1200 frames as one 20-minute "surfboard event", and a parked car was
+re-detected 470 times. A detection whose label+box (IoU ≥ 0.6) recurs in ≥50 % of a batch's
+frames is scenery: suppressed from keeps, events, and entities. Same chunk after the fix:
+2 frames kept, one real 28-second car event. Suppression needs ≥8 frames of context, so short
+event batches are untouched.
+
+Known rough edges: brief detect-only Frigate events can 404 from its API before the worker
+fetches them (they park as `error`; the sweep covers those spans anyway), and OpenAI CLIP
+weights must load as `ViT-B-16-quickgelu` — the plain variant silently uses the wrong
+activation.
 
 ## Phase 0 results — what runs on a Pascal card in 2026
 
