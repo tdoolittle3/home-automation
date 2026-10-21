@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ev.label}} @ {{ev.camera}} — vision{% endblock %}
+{% block body %}
+<h2>
+  <span class="badge {{ev.source}}">{{ev.source}}</span>
+  {{ev.label or "?"}} · {{ev.camera}}
+</h2>
+<p class="muted">
+  {{ev.start_ts|dt}} → {{ev.end_ts|dt}}
+  ({{((ev.end_ts or ev.start_ts) - ev.start_ts)|round|int}}s)
+  · status {{ev.status}}
+  {% if ev.top_score %}· top score {{"%.2f"|format(ev.top_score)}}{% endif %}
+  {% if clip %}· <a href="{{clip}}">frigate clip</a> <span class="muted">(while retained)</span>{% endif %}
+</p>
+
+{% if frames %}
+<h2>Frames <span class="muted">(first {{frames|length}})</span></h2>
+<div class="thumbs">
+  {% for fr in frames %}<a href="{{fr.path|media}}"><img src="{{fr.path|media}}" loading="lazy" alt=""></a>{% endfor %}
+</div>
+{% endif %}
+
+<h2>Detections <span class="muted">({{dets|length}})</span></h2>
+<table>
+  <tr><th>crop</th><th>label</th><th>conf</th><th>entity</th><th>tags</th></tr>
+  {% for d in dets %}
+  <tr>
+    <td>{% if d.crop_path %}<a href="{{d.crop_path|media}}"><img src="{{d.crop_path|media}}" style="height:72px;border-radius:4px" loading="lazy" alt=""></a>{% endif %}</td>
+    <td>{{d.label}}</td>
+    <td>{{"%.2f"|format(d.conf)}}</td>
+    <td>{% if d.entity_id %}<a href="/entity/{{d.entity_id}}">{{d.entity_name or "entity #%d"|format(d.entity_id)}}</a>{% endif %}</td>
+    <td>
+      {% for t in det_tags.get(d.id, []) %}
+        <span class="chip">{{t.name}}{% if t.score %} {{t.score}}{% endif %}
+          <form class="inline" method="post" action="/detection/{{d.id}}/untag">
+            <input type="hidden" name="tag_id" value="{{t.tag_id}}">
+            <input type="hidden" name="back" value="/event/{{ev.id}}">
+            <button style="padding:0 4px;font-size:11px">×</button>
+          </form>
+        </span>
+      {% endfor %}
+      {% if all_tags %}
+      <form class="inline" method="post" action="/detection/{{d.id}}/tag">
+        <select name="tag_id">{% for t in all_tags %}<option value="{{t.id}}">{{t.name}}</option>{% endfor %}</select>
+        <input type="hidden" name="back" value="/event/{{ev.id}}">
+        <button>tag</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

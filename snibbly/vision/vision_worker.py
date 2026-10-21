@@ -48,6 +48,7 @@ DEFAULTS = {
     "frigate": {"base_url": "http://192.168.0.13:5000", "cameras": ["driveway", "backyard"]},
     "mqtt": {"host": "192.168.0.13", "port": 1883, "topic": "frigate/events"},
     "http": {"bind": "0.0.0.0", "port": 8098},
+    "web": {"bind": "0.0.0.0", "port": 8099},
     "storage": {"data_dir": "/opt/vision/data",
                 "event_frames_retain_days": 30, "sweep_frames_retain_days": 7},
     "events": {"fps": 2.0, "clip_wait_secs": 15},

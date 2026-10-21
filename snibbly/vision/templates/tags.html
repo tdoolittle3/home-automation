@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}tags — vision{% endblock %}
+{% block body %}
+<p class="muted">Tags with a prompt are scored by CLIP against every new detection
+(zero-shot); useful thresholds live around 0.22–0.30 — raise if a tag over-fires.
+Prompt-less tags are manual-only. Changes apply to detections analyzed from now on.</p>
+
+<table>
+  <tr><th>name</th><th>prompt</th><th>threshold</th><th>enabled</th><th>hits</th><th></th></tr>
+  {% for t in tags %}
+  <tr>
+    <td><strong>{{t.name}}</strong><br>
+        <a class="muted" href="/?tag={{t.id}}">events</a></td>
+    <form method="post" action="/tags/{{t.id}}/update">
+    <td><input name="prompt" value="{{t.prompt or ''}}" size="42"
+               placeholder="manual-only"></td>
+    <td><input name="threshold" value="{{t.threshold}}" size="5"></td>
+    <td><select name="enabled"><option value="1" {{'selected' if t.enabled}}>yes</option>
+        <option value="0" {{'selected' if not t.enabled}}>no</option></select></td>
+    <td>{{t.hits}}</td>
+    <td><button>save</button></form>
+      <form class="inline" method="post" action="/tags/{{t.id}}/delete"
+            onsubmit="return confirm('Delete tag and all its assignments?')">
+        <button>delete</button></form></td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>New tag</h2>
+<form method="post" action="/tags/create">
+  <input name="name" placeholder="name" required>
+  <input name="prompt" size="42" placeholder="CLIP prompt, e.g. 'a photo of a delivery van' (empty = manual-only)">
+  <input name="threshold" value="0.25" size="5">
+  <button>create</button>
+</form>
+{% endblock %}

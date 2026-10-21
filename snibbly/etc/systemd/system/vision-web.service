@@ -1,0 +1,21 @@
+[Unit]
+Description=Vision pipeline web view
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=vision
+Group=vision
+WorkingDirectory=/opt/vision
+ExecStart=/opt/vision/venv/bin/python /opt/vision/webapp.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+# rw: entity renames/merges and tag edits write the shared SQLite DB
+ReadWritePaths=/opt/vision/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
