@@ -65,7 +65,7 @@ Langfuse first (so the proxy has somewhere to log), then the proxy, then the lla
                                                 # ProtectHome=true in the unit can't read
                                                 # interpreters under ~/.local (the 203/EXEC
                                                 # lesson from the vision worker)
-   sudo /opt/litellm/venv/bin/pip install 'litellm[proxy]' 'langfuse>=2,<3'
+   sudo /opt/litellm/venv/bin/pip install 'litellm[proxy]' 'langfuse>=4.7,<5'
    sudo mkdir -p /opt/litellm/cache && sudo chown -R litellm:litellm /opt/litellm/cache
    ```
 
@@ -103,10 +103,13 @@ same value by convention). Change all three lines, restart `llama-swap` and `lit
 
 ## Gotchas
 
-- **Pin `langfuse>=2,<3` in the proxy's venv.** LiteLLM's `langfuse` callback is built on the
-  v2 SDK; the v3 SDK moved to OpenTelemetry and needs the separate `langfuse_otel` callback.
-  A v2 SDK talking to the v3 *server* is fine — that's the supported pairing here. If a
-  litellm upgrade ever drops v2 support, switch the callback name and the pin together.
+- **Pin `langfuse>=4.7,<5` in the proxy's venv — and believe litellm over your memory.** The
+  first deploy pinned the v2 SDK on stale knowledge; litellm 1.106 refused it at runtime
+  ("requires langfuse>=4.7,<5 for the 'langfuse' callback") and served requests happily
+  while **silently capturing nothing** (the callback error is non-blocking, visible only in
+  `journalctl -u litellm`). After any litellm upgrade, check that journal for
+  "Error initializing custom logger" before trusting the traces. SDK v4 against the v3
+  *server* is the supported pairing here.
 - **Port 3000 means different things per box.** On ladybird it's the EPG container; on
   snibbly it's Langfuse. Neither conflicts, but don't "fix" one to match the other.
 - **The proxy is the door now.** If `litellm` is down, the models are unreachable from the

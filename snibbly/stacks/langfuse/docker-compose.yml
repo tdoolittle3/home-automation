@@ -128,7 +128,10 @@ services:
 
   minio:
     container_name: langfuse-minio
-    image: minio/minio
+    # Chainguard, not Docker Hub: minio pulled its images off the Hub (and
+    # locked quay) in 2025 — both 401/404'd at deploy 2026-10-21. This is what
+    # upstream langfuse's own compose ships now; free tier = latest tag only.
+    image: cgr.dev/chainguard/minio
     restart: unless-stopped
     entrypoint: sh
     # The bucket must exist before the first event lands; mkdir on the data
@@ -140,7 +143,8 @@ services:
     volumes:
       - minio_data:/data
     healthcheck:
-      test: ["CMD-SHELL", "timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1"]
+      # mc ships in the image; this is upstream's own container healthcheck.
+      test: ["CMD", "mc", "ready", "local"]
       interval: 5s
       timeout: 5s
       retries: 10
