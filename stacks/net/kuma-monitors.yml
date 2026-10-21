@@ -259,9 +259,10 @@ monitors:
     retry_interval: 60
 
   # ---- Snibbly (the LLM box, 192.168.0.19) ----------------------------------
-  # First monitors pointed at the second machine. Kuma still runs on ladybird,
-  # which is the right place: a monitor on snibbly could not report snibbly
-  # being gone — which is exactly how it failed on 2026-10-20.
+  # Service checks; the host itself is the "snibbly" ping under Host and
+  # network. Kuma stays on ladybird, which is the right place: a monitor on
+  # snibbly could not report snibbly being gone — which is exactly how it
+  # failed on 2026-10-20.
 
   - name: LLM proxy (snibbly)
     group: Snibbly
@@ -328,10 +329,10 @@ monitors:
     interval: 120
     retries: 2
     retry_interval: 60
-    # The LLM/vision box (llama-swap, vision ingest worker). Ping only: it
-    # already dropped off the network once mid-sweep (2026-10-20), and a host
-    # that answers ICMP but has a wedged llama-swap is a different, rarer
-    # failure — add a port monitor on 8080 if that ever actually happens.
+    # The LLM/vision box (llama-swap, vision ingest worker). Host-level ping:
+    # it already dropped off the network once mid-sweep (2026-10-20). Service
+    # health on :8080/:3000 is the Snibbly group above — when both fire, this
+    # one says whether the box or just a service is gone.
     # The address should be DHCP-reserved on the router, same caveat as the
     # Meshtastic gateway: a lease change turns this red with nothing wrong.
 
