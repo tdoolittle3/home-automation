@@ -25,6 +25,7 @@ notifications:
 groups:
   - name: Core services
   - name: Cameras
+  - name: Snibbly
   - name: Host and network
 
 monitors:
@@ -256,6 +257,37 @@ monitors:
     interval: 120
     retries: 3
     retry_interval: 60
+
+  # ---- Snibbly (the LLM box, 192.168.0.19) ----------------------------------
+  # First monitors pointed at the second machine. Kuma still runs on ladybird,
+  # which is the right place: a monitor on snibbly could not report snibbly
+  # being gone — which is exactly how it failed on 2026-10-20.
+
+  - name: LLM proxy (snibbly)
+    group: Snibbly
+    type: http
+    url: http://192.168.0.19:8080/health/liveliness
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    accepted_status: [200]
+    # LiteLLM's unauthenticated liveness endpoint — since the Langfuse change
+    # the proxy IS the LAN door to the models (docs/langfuse.md), so this red
+    # means "nobody can talk to the LLMs", even with llama-swap healthy on
+    # loopback behind it. Deliberately NOT a completion check: that would load
+    # a model every interval and thrash the eviction groups.
+
+  - name: Langfuse (snibbly)
+    group: Snibbly
+    type: http
+    url: http://192.168.0.19:3000/api/public/health
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    accepted_status: [200]
+    # Langfuse's health endpoint (web container + its Postgres). Models keep
+    # serving when this is red — the proxy drops traces rather than block —
+    # so this is "conversations are not being captured", not an outage.
 
   # ---- Host and network ----------------------------------------------------
 

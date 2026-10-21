@@ -1,0 +1,24 @@
+[Unit]
+Description=LiteLLM proxy (LAN door to the models, Langfuse capture)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=litellm
+Group=litellm
+EnvironmentFile=/etc/litellm/litellm.env
+ExecStart=/opt/litellm/venv/bin/litellm --config /etc/litellm/config.yaml --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+# litellm's tokenizer (tiktoken) downloads its encoding files on first use and
+# caches them under $HOME — with ProtectHome=true that must live in /opt
+# (which ProtectSystem=full leaves writable) or token counting dies at runtime.
+Environment=HOME=/opt/litellm
+Environment=TIKTOKEN_CACHE_DIR=/opt/litellm/cache
+
+[Install]
+WantedBy=multi-user.target

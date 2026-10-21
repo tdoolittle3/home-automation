@@ -97,6 +97,7 @@ Full notes, the hardware inventory and what is still unconfirmed: [system atlas]
 | touch the LLM box (a second machine) | [snibbly.md](docs/snibbly.md) |
 | voice input for the assistant | [stt.md](docs/stt.md) |
 | the camera vision pipeline on snibbly | [vision.md](docs/vision.md) |
+| see what the LLMs are being asked | [langfuse.md](docs/langfuse.md) — trace capture on snibbly |
 
 ## The machine
 

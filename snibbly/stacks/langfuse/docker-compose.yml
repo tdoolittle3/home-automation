@@ -1,0 +1,152 @@
+# Langfuse v3 — LLM observability, deployed to /opt/stacks/langfuse on snibbly.
+#
+# This lives on snibbly, not ladybird, on purpose: ClickHouse is the heavy
+# piece here, snibbly has 30 GB of RAM and a mostly idle CPU, and ladybird
+# (16 GB, and the house DNS) should stay lean. Keeping it on the same box as
+# llama-swap also means a trace is captured even when ladybird is down.
+#
+# Only langfuse-web publishes a port (:3000). Postgres, ClickHouse, Redis and
+# MinIO stay on the compose network with no LAN exposure. Traces arrive from
+# the LiteLLM proxy on this same host (see ../../etc/litellm/ and
+# docs/langfuse.md).
+#
+# Trimmed from the official langfuse docker-compose: S3 batch export and
+# media upload are not configured — media upload would need MinIO reachable
+# by the browser via presigned URLs, which is more exposure than text traces
+# are worth.
+
+services:
+  # The worker comes first only because YAML anchors must be defined before
+  # they are used — langfuse-web below merges this service's env block.
+  langfuse-worker:
+    container_name: langfuse-worker
+    image: langfuse/langfuse-worker:3
+    restart: unless-stopped
+    depends_on: &langfuse-depends
+      postgres:
+        condition: service_healthy
+      clickhouse:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    environment:
+      &langfuse-env
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres
+      SALT: ${SALT}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      TELEMETRY_ENABLED: "false"
+      CLICKHOUSE_MIGRATION_URL: clickhouse://clickhouse:9000
+      CLICKHOUSE_URL: http://clickhouse:8123
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: minio
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: ${MINIO_ROOT_PASSWORD}
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_AUTH: ${REDIS_AUTH}
+
+  langfuse-web:
+    container_name: langfuse-web
+    image: langfuse/langfuse:3
+    restart: unless-stopped
+    depends_on: *langfuse-depends
+    ports:
+      - "3000:3000"
+    environment:
+      <<: *langfuse-env
+      # Must match how the browser reaches it, or login redirects break.
+      NEXTAUTH_URL: http://192.168.0.19:3000
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      # The LANGFUSE_INIT_* block bootstraps the org, project, admin user and
+      # API keys on FIRST start against an empty database — that is what lets
+      # /etc/litellm/litellm.env be written before anyone has clicked through
+      # the UI. On later starts they are no-ops.
+      LANGFUSE_INIT_ORG_ID: home
+      LANGFUSE_INIT_ORG_NAME: home
+      LANGFUSE_INIT_PROJECT_ID: snibbly
+      LANGFUSE_INIT_PROJECT_NAME: snibbly
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_INIT_PROJECT_PUBLIC_KEY}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_INIT_PROJECT_SECRET_KEY}
+      LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL}
+      LANGFUSE_INIT_USER_NAME: thomas
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD}
+
+  postgres:
+    container_name: langfuse-postgres
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  clickhouse:
+    container_name: langfuse-clickhouse
+    image: clickhouse/clickhouse-server:24.12
+    restart: unless-stopped
+    user: "101:101"
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD}
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+      - clickhouse_logs:/var/log/clickhouse-server
+    healthcheck:
+      # /ping is unauthenticated, so no password gymnastics in the check.
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 1m
+
+  redis:
+    container_name: langfuse-redis
+    image: redis:7
+    restart: unless-stopped
+    command: --requirepass ${REDIS_AUTH} --maxmemory-policy noeviction
+    healthcheck:
+      # ${REDIS_AUTH} is compose-interpolated into the check; it is already
+      # visible in the command line above, so this hides nothing new.
+      test: ["CMD-SHELL", "redis-cli -a ${REDIS_AUTH} ping | grep PONG"]
+      interval: 3s
+      timeout: 10s
+      retries: 10
+
+  minio:
+    container_name: langfuse-minio
+    image: minio/minio
+    restart: unless-stopped
+    entrypoint: sh
+    # The bucket must exist before the first event lands; mkdir on the data
+    # dir is how the official compose creates it without a client container.
+    command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 5s bash -c ':> /dev/tcp/127.0.0.1/9000' || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+  clickhouse_data:
+  clickhouse_logs:
+  minio_data:
