@@ -304,3 +304,126 @@
       priority: urgent
       tags: rotating_light,droplet
   mode: parallel
+- id: zigbee_sensor_offline_ntfy
+  alias: Zigbee sensor offline
+  description: ntfy alert when a Zigbee sensor has been unavailable for 30 minutes,
+    a reminder every 6 hours while it stays offline, and an all-clear when it
+    reports again. ZHA only marks a silent battery device unavailable after its
+    ~6 hour consider-unavailable window, so this fires roughly 6.5 hours after
+    the sensor actually stopped talking; the 30-minute hold absorbs the brief
+    unavailable flap of an HA restart. Suppressed when ALL sensors are gone -
+    that is a coordinator problem and "Zigbee network down" owns it. Each sensor
+    runs its own copy (mode parallel).
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.living_room_front_door
+    - binary_sensor.sun_room_sliding_glass_door
+    - binary_sensor.sink_moisture_detector
+    - binary_sensor.garage_door
+    to: unavailable
+    for:
+      minutes: 30
+  conditions:
+  - condition: template
+    value_template: '{{ expand([''binary_sensor.living_room_front_door'', ''binary_sensor.sun_room_sliding_glass_door'',
+      ''binary_sensor.sink_moisture_detector'', ''binary_sensor.garage_door'']) |
+      selectattr(''state'', ''eq'', ''unavailable'') | list | count < 4 }}'
+  actions:
+  - variables:
+      sensor: '{{ trigger.entity_id }}'
+      sensor_name: '{{ trigger.to_state.name }}'
+  - action: rest_command.ntfy_alert
+    data:
+      title: Zigbee sensor offline
+      message: '{{ sensor_name }} has stopped reporting - check its battery and placement.'
+      priority: high
+      tags: warning,battery
+  - repeat:
+      sequence:
+      - wait_template: '{{ states(sensor) != ''unavailable'' }}'
+        timeout:
+          hours: 6
+        continue_on_timeout: true
+      - if:
+        - condition: template
+          value_template: '{{ states(sensor) == ''unavailable'' }}'
+        then:
+        - action: rest_command.ntfy_alert
+          data:
+            title: Zigbee sensor still offline
+            message: '{{ sensor_name }} has been offline for {{ ((now() - trigger.to_state.last_changed).total_seconds()
+              / 3600) | round(1) }} hours.'
+            priority: high
+            tags: warning,battery
+      until:
+      - condition: template
+        value_template: '{{ states(sensor) != ''unavailable'' }}'
+  - action: rest_command.ntfy_alert
+    data:
+      title: Zigbee sensor back online
+      message: '{{ sensor_name }} is reporting again (was offline {{ ((now() - trigger.to_state.last_changed).total_seconds()
+        / 3600) | round(1) }} hours).'
+      priority: default
+      tags: white_check_mark
+  mode: parallel
+- id: zigbee_down_ntfy
+  alias: Zigbee network down
+  description: Urgent ntfy when ALL Zigbee sensors are unavailable for 15 minutes
+    straight - the signature of a dead coordinator dongle rather than one bad
+    sensor - then a reminder every 30 minutes and an all-clear when any sensor
+    reports again. Door, garage and water-leak alerting is blind while this is
+    firing. Lag caveat - ZHA marks silent battery devices unavailable only after
+    ~6 hours, so a dead dongle can take that long to surface here.
+  triggers:
+  - trigger: template
+    value_template: '{{ expand([''binary_sensor.living_room_front_door'', ''binary_sensor.sun_room_sliding_glass_door'',
+      ''binary_sensor.sink_moisture_detector'', ''binary_sensor.garage_door'']) |
+      selectattr(''state'', ''eq'', ''unavailable'') | list | count == 4 }}'
+    for:
+      minutes: 15
+  actions:
+  - variables:
+      sensors:
+      - binary_sensor.living_room_front_door
+      - binary_sensor.sun_room_sliding_glass_door
+      - binary_sensor.sink_moisture_detector
+      - binary_sensor.garage_door
+  - action: rest_command.ntfy_alert
+    data:
+      title: Zigbee network down
+      message: All Zigbee sensors are unavailable - likely the coordinator dongle.
+        Door, garage and water-leak alerts are blind.
+      priority: urgent
+      tags: rotating_light,signal_strength
+  - repeat:
+      sequence:
+      - wait_template: '{{ expand(sensors) | selectattr(''state'', ''eq'', ''unavailable'')
+          | list | count < 4 }}'
+        timeout:
+          minutes: 30
+        continue_on_timeout: true
+      - if:
+        - condition: template
+          value_template: '{{ expand(sensors) | selectattr(''state'', ''eq'', ''unavailable'')
+            | list | count == 4 }}'
+        then:
+        - action: rest_command.ntfy_alert
+          data:
+            title: Zigbee network still down
+            message: All Zigbee sensors still unavailable at {{ now().strftime('%H:%M')
+              }}.
+            priority: urgent
+            tags: rotating_light,signal_strength
+      until:
+      - condition: template
+        value_template: '{{ expand(sensors) | selectattr(''state'', ''eq'', ''unavailable'')
+          | list | count < 4 }}'
+  - action: rest_command.ntfy_alert
+    data:
+      title: Zigbee network recovered
+      message: '{{ expand(sensors) | rejectattr(''state'', ''eq'', ''unavailable'')
+        | list | count }} of 4 Zigbee sensors reporting again.'
+      priority: default
+      tags: white_check_mark
+  mode: restart
