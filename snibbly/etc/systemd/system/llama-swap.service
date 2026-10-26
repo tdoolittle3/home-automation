@@ -6,9 +6,13 @@ Wants=network-online.target
 [Service]
 User=llama
 EnvironmentFile=/etc/llama/llama.env
-# Loopback since the Langfuse change: the LiteLLM proxy (litellm.service) owns
-# 0.0.0.0:8080 and forwards here, so every conversation gets captured.
-ExecStart=/opt/llama-swap/llama-swap -config /etc/llama-swap/config.yaml -listen 127.0.0.1:9292 -watch-config
+# The LiteLLM proxy (litellm.service) owns 0.0.0.0:8080 and forwards chat here,
+# so every conversation gets captured. llama-swap also listens on the LAN
+# (0.0.0.0:9292, ufw-restricted to 192.168.0.0/24) because LiteLLM exposes only
+# the OpenAI chat API - not llama-swap's /running (model load state) or its /ui
+# and /upstream pages. The home-dashboard snibbly panel and its /snibbly UI
+# proxy dial 9292 directly (LLAMA_SWAP_UI_BASE_URL) while chat stays on 8080.
+ExecStart=/opt/llama-swap/llama-swap -config /etc/llama-swap/config.yaml -listen 0.0.0.0:9292 -watch-config
 Restart=on-failure
 RestartSec=5
 
