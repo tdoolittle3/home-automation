@@ -11,17 +11,25 @@ ladybird's.
 | **GPU 0** | RTX 2070 Super, 8 GB — the fast card, the LLMs' card |
 | **GPU 1** | GTX 1050 Ti, 4 GB — reserved for the vision pipeline since 2026-10-20 (a quarter of GPU 0's memory bandwidth; LLM inference on it was dismal, vision CNNs fit it fine) |
 | **Door** | LiteLLM proxy (`litellm.service`) on `0.0.0.0:8080`, capturing every conversation to [Langfuse](langfuse.md) |
-| **Router** | [llama-swap](https://github.com/mostlygeek/llama-swap) v265 at `/opt/llama-swap`, listening on `127.0.0.1:9292` |
+| **Router** | [llama-swap](https://github.com/mostlygeek/llama-swap) v265 at `/opt/llama-swap`, listening on `0.0.0.0:9292` (ufw-restricted to the LAN) |
 | **Backend** | llama.cpp CUDA build (b11382) at `/opt/llama.cpp/build-cuda/bin/llama-server` |
 | **Models** | GGUF files in `/opt/models/` (thomas-writable) |
 | **Observability** | Langfuse v3 at `http://192.168.0.19:3000` (`/opt/stacks/langfuse`) — see [langfuse.md](langfuse.md) |
 
-The LiteLLM proxy is the only door: it owns `:8080`, speaks the OpenAI API, logs every
+The LiteLLM proxy is the chat door: it owns `:8080`, speaks the OpenAI API, logs every
 request/response to [Langfuse](langfuse.md), and forwards untouched to llama-swap on
 `127.0.0.1:9292`, which starts/stops llama-server backends on demand. The backends bind to
 `127.0.0.1` on ephemeral ports (5800+) with no auth of their own. Clients never noticed the
 proxy appearing — same port, same API key value, same model names. One API key value guards
 everything — see [Secrets](#secrets--not-in-this-repo).
+
+llama-swap *also* listens on the LAN at `0.0.0.0:9292` (ufw-restricted to
+`192.168.0.0/24`, guarded by the same API key). LiteLLM only re-exposes the OpenAI chat API,
+not llama-swap's own surfaces — `/running` (which models hold VRAM), `/ui` (its dashboard),
+and `/upstream/<model>/` (the llama.cpp chat UI). The [home-dashboard](https://github.com/tdoolittle3/home-dashboard)
+snibbly panel reads load state and proxies those pages straight from `:9292`
+(`LLAMA_SWAP_UI_BASE_URL`) while chat still rides `:8080` for capture. Rule:
+`sudo ufw allow from 192.168.0.0/24 to any port 9292 proto tcp`.
 
 Config lives at `/etc/llama-swap/config.yaml` ([tracked copy](../snibbly/etc/llama-swap/config.yaml)),
 run by the `llama-swap.service` systemd unit as user `llama`. The `-watch-config` flag means config
