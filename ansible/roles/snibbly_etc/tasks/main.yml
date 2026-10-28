@@ -68,4 +68,5 @@
     name: "{{ item }}"
     enabled: true
     state: started
+  ignore_errors: "{{ ansible_check_mode }}"
   loop: [llama-swap, litellm]

@@ -23,11 +23,14 @@
 - name: apply any pending daemon-reload before enabling timers
   ansible.builtin.meta: flush_handlers
 
+# ignore_errors in check mode only: on a box that hasn't converged yet the
+# unit files don't exist until the copy above really runs.
 - name: timers enabled and running
   ansible.builtin.systemd:
     name: "{{ item }}"
     enabled: true
     state: started
+  ignore_errors: "{{ ansible_check_mode }}"
   loop:
     - disk-guard.timer
     - ups-guard.timer

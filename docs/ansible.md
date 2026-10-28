@@ -23,7 +23,9 @@ ansible ladybird -m ping                 # SSH + Python reachable?
 ```
 
 SSH key auth to `thomas@192.168.0.13` / `thomas@192.168.0.19` is assumed (ladybird already uses
-it). Sudo passwords are never stored: pass `-K` (`--ask-become-pass`) on every run.
+it). Sudo passwords are never stored in the repo: pass `-K` (`--ask-become-pass`) interactively,
+or for non-interactive runs point `--become-password-file` at a root-only (mode 600) file outside
+the repo.
 
 ## Running it
 

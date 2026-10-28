@@ -16,4 +16,7 @@ services:
     volumes:
       - ./homeassistant:/config
       - /etc/localtime:/etc/localtime:ro
+    devices:
+      # Sonoff Zigbee Dongle Plus MG24 — by-id so the RTL-SDR can't steal ttyUSB0 on reboot
+      - /dev/serial/by-id/usb-SONOFF_SONOFF_Dongle_Plus_MG24_003d5c1c0d8cf01183c624b9d9065118-if00-port0:/dev/ttyUSB0
     depends_on: [mosquitto]
