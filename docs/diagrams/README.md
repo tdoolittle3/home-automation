@@ -1,8 +1,20 @@
-# Ladybird system atlas
+# Home lab system atlas
 
-Five complementary views of the home lab, designed for the repository README and a future tutorial site.
+Six complementary views of the home lab, designed for the repository README and a future tutorial site.
 The SVG files are the editable source and the publication assets: no export step, font download,
 JavaScript, or diagramming service is required. Open any image on its own to zoom into the details.
+
+## 00 · The fleet
+
+![Overview of both machines, the radios, the camera segment and the data flows between them.](fleet.svg)
+
+The multi-machine view, added 2026-10-27: **ladybird** (the house server — containers, host
+services and its three USB radio systems), **snibbly** (the LLM box — LiteLLM door, llama-swap,
+both GPUs, the vision worker, Langfuse), the **Heltec V4 Meshtastic gateway**, the isolated camera
+segment, and the amber data-flow arrows between them (dashboard chat → snibbly `:8080`; Frigate
+events + clips → the vision worker; mesh ↔ Mosquitto). This is a logical map — rack, wiring and
+patch detail stay in views 03–05. Per-box detail: [snibbly.md](../snibbly.md),
+[meshtastic.md](../meshtastic.md), [vision.md](../vision.md), [stt.md](../stt.md).
 
 ## 01 · Inside Ladybird
 
@@ -11,7 +23,8 @@ JavaScript, or diagramming service is required. Open any image on its own to zoo
 The hosting view separates Docker workloads from services installed directly on Debian. GPU exposure
 is called out separately from CPU machine learning. `/srv/storage` currently shares the root
 filesystem; a dedicated data drive is a future migration, not installed hardware. Refreshed
-2026-09-22 to add the `dns` (AdGuard Home), `sdr` (ADS-B) and `media`/EPG containers.
+2026-09-22 to add the `dns` (AdGuard Home), `sdr` (ADS-B) and `media`/EPG containers; refreshed
+2026-10-27 for the `stt` (Whisper) and `mesh` (profile-gated CLI) stacks — eleven stacks total.
 
 ## 02 · Network topology
 
@@ -19,7 +32,9 @@ filesystem; a dedicated data drive is a future migration, not installed hardware
 
 This is a **logical network view**; the detailed patching schedule is in view 05. The N600 connects
 directly to the host LAN NIC. The other host NIC connects to port/patch 5 of the camera switch,
-which also connects the two cameras and Raspberry Pi 2.
+which also connects the two cameras and Raspberry Pi 2. Refreshed 2026-10-27: the home-LAN column
+now shows **snibbly** (`192.168.0.19`, wired, the LLM box) and the **Heltec V4 Meshtastic node**
+(`192.168.0.16`, Wi-Fi) alongside the ordinary clients.
 
 **LAN DNS now answers on ladybird** — AdGuard Home, cut over 2026-09-20. The Pi at `192.168.0.14`
 keeps its Pi-hole running as the rollback only, and is reachable on the **LAN** — which still sits
@@ -114,7 +129,11 @@ alert delivery with Ladybird powered off. Pi setup is future work, not part of t
 
 ## Evidence and freshness
 
-Snapshot: **2026-09-09**, with status updates through **2026-09-22**. Distinguish observed runtime facts from repository configuration and
+Snapshot: **2026-09-09**, with status updates through **2026-10-27**. Views 00–02 were refreshed
+2026-10-27 (fleet view added; snibbly, the Meshtastic node, and the `stt`/`mesh` stacks drawn in);
+views 03–05 (rack, camera flow, wiring) still reflect the 2026-09-22 state — nothing physical has
+changed except the Zigbee coordinator and second RTL-SDR dongle on ladybird's USB, which those
+views do not draw. Distinguish observed runtime facts from repository configuration and
 owner-supplied physical details when updating these diagrams.
 
 | Subject | Evidence |
@@ -132,6 +151,9 @@ owner-supplied physical details when updating these diagrams.
 | GPU device access | Frigate, media and Immich Compose files; device exposure does not itself prove application transcoding settings |
 | Network isolation design | [`Camera NIC config`](../../host/etc/network/interfaces.d/enp45s0), [`camera guide`](../cameras.md) and README topology |
 | Dashboard integrations | [`Dashboard Compose`](../../stacks/dash/docker-compose.yml) and [`operations guide`](../operations.md#dashboard) |
+| snibbly (view 00) | [`snibbly/` config tree](../../snibbly/) and [snibbly.md](../snibbly.md); LLM door, groups and GPU split per the live config capture of 2026-10-26 |
+| Meshtastic node (views 00, 02) | [meshtastic.md](../meshtastic.md) — node id, IP and firmware captured at provisioning 2026-09-27 |
+| Vision pipeline (view 00) | [vision.md](../vision.md) — phases 0–2 merged and deployed; the Phase 3 web view runs on the box but its code is still on an unmerged draft PR, so it is not drawn |
 
 ### Runtime / documentation differences found
 

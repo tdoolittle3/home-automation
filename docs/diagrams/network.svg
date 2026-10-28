@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc">
   <title id="title">Ladybird network topology — LAN and dedicated camera segment</title>
-  <desc id="desc">The N600 connects directly to Ladybird's LAN NIC, enp44s0 at 192.168.0.13. AdGuard Home on Ladybird answers DNS for every device on the home LAN. Remote clients use Tailscale. The other NIC, enp45s0 at 10.10.10.50, connects through patch 5 to TL-SG105MPE port 5. Port and patch 1 serve the driveway camera; port and patch 2 serve the backyard camera. A Raspberry Pi 2 on U8 connects through patch 3 to port 3 and is powered by the PDU; it still runs Pi-hole at 192.168.0.14 as the DNS rollback, and its intended off-host watchdog role is not configured. Camera time comes from chrony on Ladybird.</desc>
+  <desc id="desc">The N600 connects directly to Ladybird's LAN NIC, enp44s0 at 192.168.0.13. AdGuard Home on Ladybird answers DNS for every device on the home LAN, including snibbly, the LLM box at 192.168.0.19, and the Heltec V4 Meshtastic gateway at 192.168.0.16 on Wi-Fi. Remote clients use Tailscale. Ladybird's other NIC, enp45s0 at 10.10.10.50, connects through patch 5 to TL-SG105MPE port 5. Port and patch 1 serve the driveway camera; port and patch 2 serve the backyard camera. A Raspberry Pi 2 on U8 connects through patch 3 to port 3 and is powered by the PDU; it still runs Pi-hole at 192.168.0.14 as the DNS rollback, and its intended off-host watchdog role is not configured. Camera time comes from chrony on Ladybird.</desc>
   <defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101e34"/><stop offset="1" stop-color="#080f1d"/></linearGradient>
     <style>text{font-family:Inter,"Segoe UI",Arial,sans-serif;fill:#edf3fc}.eyebrow{font-size:13px;font-weight:700;letter-spacing:2px;fill:#66dfcf}.title{font-size:38px;font-weight:700}.sub{font-size:16px;fill:#afbed3}.label{font-size:21px;font-weight:650}.body{font-size:16px;fill:#bfccdf}.mono{font:15px Consolas,monospace;fill:#bfccdf}.small{font-size:13px;fill:#afbed3}.card{fill:#17273e;stroke:#405673}.lan{fill:none;stroke:#8bbcff;stroke-width:3}.poe{fill:none;stroke:#66dfcf;stroke-width:3}.overlay{fill:none;stroke:#c4abff;stroke-width:3;stroke-dasharray:8 6}</style>
   </defs>
@@ -12,9 +12,12 @@
   <rect x="57" y="228" width="300" height="77" rx="12" class="card"/><text x="77" y="259" class="label">Internet</text><text x="77" y="285" class="body">ISP uplink</text>
   <path d="M207 305v42" class="lan"/>
   <rect x="57" y="347" width="300" height="102" rx="12" class="card"/><text x="77" y="379" class="label">N600 modem / router</text><text x="77" y="406" class="mono">Gateway 192.168.0.1</text><text x="77" y="430" class="small">Exact make / model to confirm</text>
-  <path d="M207 449v65" class="lan"/><text x="224" y="485" class="small">Home LAN</text>
-  <rect x="57" y="514" width="300" height="92" rx="12" class="card"/><text x="77" y="547" class="label">Home clients</text><text x="77" y="573" class="body">Browser · apps · media players</text><text x="77" y="596" class="small">DNS → 192.168.0.13</text>
-  <text x="57" y="650" class="small">N600 → mini PC: direct Ethernet cable</text>
+  <path d="M207 449v14" class="lan"/>
+  <rect x="57" y="463" width="300" height="66" rx="12" class="card"/><text x="77" y="491" class="label">Home clients</text><text x="77" y="515" class="small">Phones · TVs · laptops · DNS → 192.168.0.13</text>
+  <path d="M207 529v8" class="lan"/>
+  <rect x="57" y="537" width="300" height="66" rx="12" class="card"/><text x="77" y="565" class="label">snibbly — the LLM box</text><text x="77" y="589" class="small">192.168.0.19 · LLM API :8080 · wired</text>
+  <path d="M207 603v8" class="lan"/>
+  <rect x="57" y="611" width="300" height="66" rx="12" class="card"/><text x="77" y="639" class="label">Heltec V4 Meshtastic node</text><text x="77" y="663" class="small">192.168.0.16 · Wi-Fi · LoRa ↔ MQTT gateway</text>
 
   <path d="M357 398h81" class="lan"/>
   <rect x="438" y="280" width="324" height="311" rx="18" fill="#173439" stroke="#66dfcf" stroke-width="2"/>
@@ -43,5 +46,5 @@
   <text x="52" y="779" class="body">No gateway on the host camera NIC; cameras use a nonexistent gateway (10.10.10.1).</text>
   <text x="52" y="800" class="small">No router on the camera segment. This diagram describes the configured design, not a firewall audit.</text>
   <path d="M48 845h35" class="lan"/><text x="94" y="850" class="small">Home network</text><path d="M265 845h35" class="poe"/><text x="311" y="850" class="small">Camera network</text><path d="M490 845h35" class="overlay"/><text x="536" y="850" class="small">Tailscale overlay</text>
-  <text x="48" y="878" class="small">Sources: repository network + camera configuration; SSH; owner rack inventory · updated 2026-09-22</text><text x="1152" y="878" text-anchor="end" class="eyebrow">L / 02</text>
+  <text x="48" y="878" class="small">Sources: repository network + camera configuration; SSH; owner rack inventory · updated 2026-10-27 (snibbly + Meshtastic node added)</text><text x="1152" y="878" text-anchor="end" class="eyebrow">L / 02</text>
 </svg>

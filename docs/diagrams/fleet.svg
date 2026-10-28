@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1000" viewBox="0 0 1200 1000" role="img" aria-labelledby="title desc">
+  <title id="title">The fleet — ladybird, snibbly, the radios and the camera segment</title>
+  <desc id="desc">Logical overview of every machine the repository manages. The N600 router serves the home LAN, 192.168.0.0/24. Ladybird at 192.168.0.13 runs eleven Docker Compose stacks (Frigate, Home Assistant, Mosquitto, AdGuard Home serving LAN DNS, Jellyfin, Immich, n8n, Uptime Kuma, the dashboard, the EPG grabber, Whisper speech-to-text), host services including a Tailscale subnet router, and three radios: two RTL-SDR dongles for ADS-B and 433/315 MHz sensors, and a Zigbee coordinator for door, garage and leak sensors. Snibbly at 192.168.0.19 serves local LLMs: LiteLLM on 8080 is the door, tracing every conversation to Langfuse on 3000, and forwards to llama-swap on 9292 which runs llama.cpp backends on an RTX 2070 Super; a GTX 1050 Ti runs the camera vision worker on 8098. A Heltec V4 Meshtastic node at 192.168.0.16 gateways a private LoRa channel onto ladybird's Mosquitto. The camera segment, 10.10.10.0/24, has no gateway and cannot reach the internet; it carries the PoE switch, two cameras and the standby Raspberry Pi. Alerts leave the house via ntfy.sh; remote access is Tailscale only.</desc>
+  <defs>
+    <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101e34"/><stop offset="1" stop-color="#080f1d"/></linearGradient>
+    <marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L8 4L0 8z" fill="#f7c66d"/></marker>
+    <style>text{font-family:Inter,"Segoe UI",Arial,sans-serif;fill:#edf3fc}.eyebrow{font-size:13px;font-weight:700;letter-spacing:2px;fill:#66dfcf}.title{font-size:38px;font-weight:700}.sub{font-size:16px;fill:#afbed3}.label{font-size:19px;font-weight:650}.body{font-size:15px;fill:#bfccdf}.mono{font:14px Consolas,monospace;fill:#bfccdf}.small{font-size:13px;fill:#afbed3}.card{fill:#17273e;stroke:#354963}.lan{fill:none;stroke:#8bbcff;stroke-width:3}.poe{fill:none;stroke:#66dfcf;stroke-width:3}.overlay{fill:none;stroke:#c4abff;stroke-width:3;stroke-dasharray:8 6}.flow{fill:none;stroke:#f7c66d;stroke-width:2.5;marker-end:url(#arr)}.teal{fill:#66dfcf}.blue{fill:#8bbcff}.amber{fill:#f7c66d}.violet{fill:#c4abff}</style>
+  </defs>
+  <rect width="1200" height="1000" rx="24" fill="url(#bg)"/>
+  <text x="48" y="47" class="eyebrow">HOME LAB / SYSTEM ATLAS / 00</text>
+  <text x="48" y="100" class="title">Two machines. Three radios. One house.</text>
+  <text x="48" y="132" class="sub">ladybird runs the house · snibbly runs the models · logical overview — wiring and rack detail are in views 02–05</text>
+
+  <rect x="32" y="167" width="280" height="560" rx="18" fill="#15243e" stroke="#405b86"/>
+  <text x="52" y="200" class="eyebrow blue">HOME / 192.168.0.0/24</text>
+  <rect x="52" y="220" width="240" height="70" rx="12" class="card"/>
+  <text x="70" y="248" class="label">Internet</text><text x="70" y="272" class="small">ISP uplink · ntfy.sh alerts go out here</text>
+  <path d="M172 290v30" class="lan"/>
+  <rect x="52" y="320" width="240" height="86" rx="12" class="card"/>
+  <text x="70" y="348" class="label">N600 router</text><text x="70" y="372" class="mono">gw 192.168.0.1 · DHCP</text><text x="70" y="392" class="small">hands every device DNS → .13</text>
+  <path d="M172 406v30" class="lan"/>
+  <rect x="52" y="436" width="240" height="70" rx="12" class="card"/>
+  <text x="70" y="464" class="label">Home clients</text><text x="70" y="488" class="small">phones · TVs · laptops · ntfy app</text>
+  <rect x="52" y="536" width="240" height="80" rx="12" class="card"/>
+  <text x="70" y="564" class="label">Remote clients</text><text x="70" y="588" class="small">Tailscale overlay — the only way in</text><text x="70" y="606" class="small">nothing is port-forwarded</text>
+  <text x="52" y="656" class="small">The Heltec node and most clients are</text>
+  <text x="52" y="676" class="small">on the N600's Wi-Fi; both servers are</text>
+  <text x="52" y="696" class="small">wired.</text>
+
+  <path d="M292 363h48" class="lan"/>
+  <path d="M292 345h24v-193h632v15" class="lan"/>
+  <path d="M292 576h48" class="overlay"/>
+
+  <rect x="340" y="167" width="400" height="560" rx="18" fill="#173439" stroke="#66dfcf" stroke-width="2"/>
+  <text x="360" y="200" class="eyebrow">LADYBIRD · 192.168.0.13</text>
+  <text x="360" y="232" class="label">The house server</text>
+  <text x="360" y="254" class="small">Minisforum M1 Plus · Debian 13 · dual NIC · UPS-backed</text>
+  <path d="M360 268h360" stroke="#326269"/>
+  <text x="360" y="294" class="small teal">CONTAINERS — ELEVEN COMPOSE STACKS</text>
+  <text x="360" y="318" class="body">Frigate NVR · Home Assistant · Mosquitto</text>
+  <text x="360" y="342" class="body">AdGuard Home — DNS :53 for the whole LAN</text>
+  <text x="360" y="366" class="body">Jellyfin · Immich · n8n · Uptime Kuma</text>
+  <text x="360" y="390" class="body">Dashboard :80 · EPG guide · Whisper STT :8990</text>
+  <path d="M360 408h360" stroke="#326269"/>
+  <text x="360" y="434" class="small teal">HOST SERVICES</text>
+  <text x="360" y="458" class="body">chrony · Samba · NUT/UPS · guard timers</text>
+  <text x="360" y="482" class="body">Tailscale subnet router → 192.168.0.0/24</text>
+  <path d="M360 500h360" stroke="#326269"/>
+  <text x="360" y="526" class="small teal">RADIOS ON USB</text>
+  <text x="360" y="550" class="body">RTL-SDR ×2 — ADS-B 1090 MHz · 433/315 MHz</text>
+  <text x="360" y="574" class="body">Zigbee (ZHA) — doors · garage tilt · leak sensor</text>
+  <text x="360" y="598" class="small">Meshtastic node draws power/admin from USB too</text>
+  <text x="360" y="648" class="mono">enp44s0 → LAN · enp45s0 → camera segment</text>
+  <text x="360" y="678" class="small amber">Alerts out: ntfy — doors · garage · leaks · UPS ·</text>
+  <text x="360" y="698" class="small amber">person overnight · Zigbee offline · disk full</text>
+
+  <rect x="768" y="167" width="400" height="380" rx="18" fill="#1f1a30" stroke="#6f5aa8"/>
+  <text x="788" y="200" class="eyebrow violet">SNIBBLY · 192.168.0.19</text>
+  <text x="788" y="232" class="label">The LLM box</text>
+  <text x="788" y="254" class="small">i7-9700KF · 30 GB RAM · Ubuntu · two NVIDIA cards</text>
+  <path d="M788 268h360" stroke="#4a3d73"/>
+  <text x="788" y="294" class="body">LiteLLM :8080 — the door, OpenAI API + key</text>
+  <text x="788" y="316" class="small">every conversation traced to Langfuse :3000</text>
+  <text x="788" y="342" class="body">llama-swap :9292 — loads models on demand</text>
+  <text x="788" y="364" class="small">LAN-visible UI + /running for the dashboard tile</text>
+  <text x="788" y="390" class="body">llama.cpp (CUDA) backends on loopback</text>
+  <path d="M788 410h360" stroke="#4a3d73"/>
+  <text x="788" y="436" class="body">RTX 2070 Super 8 GB — fast-8b · big-30b · 14b</text>
+  <text x="788" y="460" class="body">GTX 1050 Ti 4 GB — vision worker :8098</text>
+  <text x="788" y="482" class="small">YOLO11 + CLIP over Frigate events → entities, tags</text>
+  <text x="788" y="522" class="small">Model groups are exclusive: loading one evicts the rest.</text>
+
+  <rect x="768" y="567" width="400" height="160" rx="12" class="card"/>
+  <text x="788" y="600" class="eyebrow amber">LORA MESH</text>
+  <text x="788" y="630" class="label">Heltec V4 · Meshtastic · 192.168.0.16</text>
+  <text x="788" y="656" class="body">Wi-Fi gateway for the private channel homemesh</text>
+  <text x="788" y="680" class="body">LoRa ↔ Mosquitto JSON · no public-mesh uplink</text>
+  <text x="788" y="704" class="small">the dashboard's Mesh panel reads and sends via MQTT</text>
+
+  <path d="M740 300h28" class="flow"/>
+  <text x="736" y="295" text-anchor="end" class="small amber">chat</text>
+  <path d="M740 470h28" class="flow"/>
+  <text x="736" y="465" text-anchor="end" class="small amber">events</text>
+  <path d="M768 647h-28" class="flow"/>
+
+  <path d="M540 727v20" class="poe"/>
+  <rect x="32" y="747" width="1136" height="150" rx="18" fill="#112c34" stroke="#326269"/>
+  <text x="52" y="780" class="eyebrow">CAMERA SEGMENT · 10.10.10.0/24 · NO GATEWAY — CANNOT REACH THE INTERNET</text>
+  <rect x="52" y="800" width="260" height="80" rx="12" class="card"/>
+  <text x="70" y="828" class="label">TL-SG105MPE PoE</text><text x="70" y="852" class="small">port 5 → ladybird enp45s0 (10.10.10.50)</text>
+  <rect x="332" y="800" width="260" height="80" rx="12" class="card"/>
+  <text x="350" y="828" class="label">Driveway camera</text><text x="350" y="852" class="mono">IPC-T54PRO-ZE · .201</text>
+  <rect x="612" y="800" width="260" height="80" rx="12" class="card"/>
+  <text x="630" y="828" class="label">Backyard camera</text><text x="630" y="852" class="mono">IPC-T24IR-AS · .202</text>
+  <rect x="892" y="800" width="256" height="80" rx="12" class="card"/>
+  <text x="910" y="828" class="label">Raspberry Pi 2</text><text x="910" y="852" class="small">Pi-hole standby · 192.168.0.14 · DNS rollback</text>
+
+  <path d="M48 935h35" class="lan"/><text x="94" y="940" class="small">Ethernet LAN</text>
+  <path d="M225 935h35" class="poe"/><text x="271" y="940" class="small">Camera segment</text>
+  <path d="M430 935h35" class="overlay"/><text x="476" y="940" class="small">Tailscale overlay</text>
+  <path d="M640 935h35" class="flow"/><text x="686" y="940" class="small">Data flow (direction of request)</text>
+  <text x="48" y="972" class="small">Sources: repository stacks + snibbly/ config · docs/snibbly.md, meshtastic.md, vision.md, stt.md · updated 2026-10-27</text>
+  <text x="1152" y="972" text-anchor="end" class="eyebrow">L / 00</text>
+</svg>
