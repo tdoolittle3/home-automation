@@ -64,6 +64,17 @@ monitors:
     ignore_tls: true               # Frigate self-signs; without this it is always down
     expiry_notification: false     # and the self-signed cert would nag forever
 
+  - name: Frigate guard
+    group: Cameras
+    type: push
+    heartbeat_interval: 360        # guard beats every 2 min; 6 min of silence is down
+    retries: 0
+    push_url_file: /opt/stacks/net/kuma-frigate-push-url.txt
+    # frigate-guard.sh beats this ONLY while every camera is streaming,
+    # detecting AND writing recordings to disk — the checks the HTTP monitors
+    # above cannot see. A dead stream, disabled detection, a broken recording
+    # writer, a hung timer and a dead server all surface the same way: silence.
+
   - name: Jellyfin
     group: Core services
     type: keyword
