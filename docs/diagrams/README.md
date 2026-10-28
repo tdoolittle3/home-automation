@@ -153,7 +153,7 @@ owner-supplied physical details when updating these diagrams.
 | Dashboard integrations | [`Dashboard Compose`](../../stacks/dash/docker-compose.yml) and [`operations guide`](../operations.md#dashboard) |
 | snibbly (view 00) | [`snibbly/` config tree](../../snibbly/) and [snibbly.md](../snibbly.md); LLM door, groups and GPU split per the live config capture of 2026-10-26 |
 | Meshtastic node (views 00, 02) | [meshtastic.md](../meshtastic.md) — node id, IP and firmware captured at provisioning 2026-09-27 |
-| Vision pipeline (view 00) | [vision.md](../vision.md) — phases 0–2 deployed; the web view is not drawn because it is not deployed |
+| Vision pipeline (view 00) | [vision.md](../vision.md) — phases 0–2 merged and deployed; the Phase 3 web view runs on the box but its code is still on an unmerged draft PR, so it is not drawn |
 
 ### Runtime / documentation differences found
 
