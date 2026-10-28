@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1200" viewBox="0 0 1200 1200" role="img" aria-labelledby="title desc">
   <title id="title">Inside Ladybird — hardware, operating system, and services</title>
-  <desc id="desc">A layered view of the Minisforum M1 Plus. Docker runs nine repository stacks on Debian 13: AdGuard Home serving LAN DNS, Frigate, Home Assistant, Mosquitto, Jellyfin with an EPG guide grabber, Immich, Uptime Kuma, n8n, the custom home dashboard, and an ADS-B receiver feeding tar1090. Host services include chrony, Tailscale, Samba, NUT and systemd guard timers. The Intel GPU is exposed to Frigate, Jellyfin and Immich; Immich machine learning uses the CPU. Storage currently shares the root NVMe filesystem.</desc>
+  <desc id="desc">A layered view of the Minisforum M1 Plus. Docker runs eleven repository stacks on Debian 13: AdGuard Home serving LAN DNS, Frigate, Home Assistant, Mosquitto, Jellyfin with an EPG guide grabber, Immich, Uptime Kuma, n8n, the custom home dashboard, an ADS-B receiver feeding tar1090, Whisper speech-to-text for the assistant's microphone, and a profile-gated Meshtastic CLI utility. Host services include chrony, Tailscale, Samba, NUT and systemd guard timers. The Intel GPU is exposed to Frigate, Jellyfin and Immich; Immich machine learning uses the CPU. Storage currently shares the root NVMe filesystem.</desc>
   <defs>
     <linearGradient id="bg" x2="1" y2="1"><stop stop-color="#101e34"/><stop offset="1" stop-color="#080f1d"/></linearGradient>
     <style>
@@ -14,7 +14,7 @@
 
   <rect x="32" y="163" width="1136" height="495" rx="18" fill="#112c34" stroke="#326269"/>
   <text x="52" y="195" class="eyebrow">03 / CONTAINER SERVICES</text>
-  <text x="1144" y="195" text-anchor="end" class="small">Docker 29.7.2 · Compose v5.5.0 · nine stacks</text>
+  <text x="1144" y="195" text-anchor="end" class="small">Docker 29.7.2 · Compose v5.5.0 · eleven stacks</text>
 
   <rect x="52" y="215" width="260" height="117" rx="12" fill="#1d2b3a" stroke="#77603c"/>
   <text x="70" y="244" class="label">AdGuard Home</text><text x="70" y="270" class="body">LAN DNS + ad filtering</text>
@@ -51,11 +51,12 @@
   <rect x="606" y="481" width="260" height="117" rx="12" class="card"/>
   <text x="624" y="510" class="label">EPG grabber</text><text x="624" y="536" class="body">XMLTV guide for Jellyfin</text>
   <text x="624" y="563" class="mono">:3000/guide.xml</text><text x="624" y="585" class="small">media stack</text>
-  <rect x="883" y="481" width="261" height="117" rx="12" fill="#13222f" stroke="#354963" stroke-dasharray="6 5"/>
-  <text x="901" y="510" class="label">One stack per folder</text><text x="901" y="536" class="small">dns · frigate · home · media</text>
-  <text x="901" y="557" class="small">immich · net · n8n · sdr · dash</text><text x="901" y="583" class="small">each is a compose file in stacks/</text>
+  <rect x="883" y="481" width="261" height="117" rx="12" class="card"/>
+  <text x="901" y="510" class="label">Whisper STT</text><text x="901" y="536" class="body">Speech-to-text for the mic</text>
+  <text x="901" y="563" class="mono">:8990</text><text x="901" y="585" class="small">stt stack · whisper.cpp small.en</text>
 
-  <text x="52" y="633" class="small">Ports are host ports. AdGuard answers DNS for every device in the house; the dashboard and the Frigate API have no login of their own.</text>
+  <text x="52" y="624" class="small">Ports are host ports. AdGuard answers DNS for every device in the house; the dashboard and the Frigate API have no login of their own.</text>
+  <text x="52" y="645" class="small">One compose file per folder in stacks/: dash · dns · frigate · home · immich · media · mesh (profile-gated CLI, no daemon) · n8n · net · sdr · stt</text>
 
   <path d="M600 658v24" stroke="#66dfcf" stroke-width="3"/>
   <rect x="32" y="682" width="1136" height="177" rx="18" fill="#15243e" stroke="#405b86"/>
@@ -77,6 +78,6 @@
   <rect x="869" y="937" width="274" height="135" rx="12" fill="#211f20" stroke="#77603c"/>
   <text x="887" y="966" class="label amber">One disk today</text><text x="887" y="994" class="body">Storage shares root ext4.</text><text x="887" y="1020" class="body">A separate data drive is</text><text x="887" y="1046" class="body">a future migration.</text>
   <text x="48" y="1137" class="small">Layer connections indicate hosting, not network traffic. Ports are host ports.</text>
-  <text x="48" y="1164" class="small">Sources: repository Compose + host configuration; read-only SSH observation · updated 2026-09-22</text>
+  <text x="48" y="1164" class="small">Sources: repository Compose + host configuration; read-only SSH observation · updated 2026-10-27 (STT + mesh stacks)</text>
   <text x="1152" y="1164" text-anchor="end" class="eyebrow">L / 01</text>
 </svg>
