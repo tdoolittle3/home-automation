@@ -1,0 +1,6 @@
+---
+- name: restart homeassistant
+  ansible.builtin.command: docker restart homeassistant
+
+- name: restart mosquitto
+  ansible.builtin.command: docker restart mosquitto

@@ -1,0 +1,48 @@
+---
+# rebuild.md step 1 — base system. The sources.list swap must land before the
+# package install: intel-media-va-driver-non-free and firmware-misc-nonfree
+# only exist in non-free, and Frigate detection + Jellyfin transcode gate on
+# them (rebuild.md step 2 verifies the iGPU by hand afterwards).
+
+- name: apt sources including non-free
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/host/etc/apt/sources.list"
+    dest: /etc/apt/sources.list
+  register: base_sources
+
+- name: refresh apt cache after a sources change
+  ansible.builtin.apt:
+    update_cache: true
+  when: base_sources.changed
+
+- name: base packages
+  ansible.builtin.apt:
+    state: present
+    name:
+      - sudo
+      - openssh-server
+      - curl
+      - ca-certificates
+      - gnupg
+      - git
+      - vim
+      - htop
+      - intel-gpu-tools
+      - vainfo
+      - unattended-upgrades
+      - chrony
+      - intel-media-va-driver-non-free
+      - firmware-misc-nonfree
+      - rasdaemon
+
+- name: ssh enabled
+  ansible.builtin.systemd:
+    name: ssh
+    enabled: true
+    state: started
+
+- name: admin user in sudo and render groups
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    groups: sudo,render
+    append: true

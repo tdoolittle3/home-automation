@@ -1,0 +1,23 @@
+---
+# rebuild.md step 3 — Docker via the upstream convenience script, then
+# daemon.json (container DNS; containers cannot resolve on this host without it).
+
+- name: docker engine (get.docker.com)
+  ansible.builtin.shell: curl -fsSL https://get.docker.com | sh
+  args:
+    creates: /usr/bin/docker
+
+- name: admin user in docker group
+  ansible.builtin.user:
+    name: "{{ admin_user }}"
+    groups: docker
+    append: true
+
+# A change here restarts dockerd, which restarts EVERY container — including
+# AdGuard, i.e. the whole house's DNS blips. The handler only fires when the
+# file actually changed; still, prefer a --check --diff pass first.
+- name: daemon.json — container DNS
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/host/etc/docker/daemon.json"
+    dest: /etc/docker/daemon.json
+  notify: restart docker

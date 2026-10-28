@@ -1,0 +1,7 @@
+---
+# Everything ansible manages, both hosts. Run with:
+#   ansible-playbook site.yml -K --check --diff   # drift report, changes nothing
+#   ansible-playbook site.yml -K                  # converge
+# Scope and the manual-steps list: ../docs/ansible.md
+- import_playbook: ladybird.yml
+- import_playbook: snibbly.yml

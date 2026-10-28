@@ -1,0 +1,51 @@
+---
+# operations.md -> "UPS and power". The NUT monitor password is machine-local
+# by design: upsd listens on loopback only, so the secret never leaves the box
+# and is not worth managing. The seed files carry __NUT_MON_PASSWORD__; the
+# shell task below replaces it exactly once, on the host, and ansible never
+# learns the value.
+
+- name: nut package
+  ansible.builtin.apt:
+    name: nut
+    state: present
+
+- name: nut config (no secrets in these three)
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/host/etc/nut/{{ item }}"
+    dest: "/etc/nut/{{ item }}"
+    owner: root
+    group: nut
+    mode: "0640"
+  loop: [nut.conf, ups.conf, upsd.conf]
+  notify: restart nut
+
+# force: false — once the placeholder is replaced, the live files hold the
+# machine-local password and must never be clobbered by the seeds.
+- name: nut credential seeds (first install only)
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/host/etc/nut/{{ item }}"
+    dest: "/etc/nut/{{ item }}"
+    owner: root
+    group: nut
+    mode: "0640"
+    force: false
+  loop: [upsd.users, upsmon.conf]
+  notify: restart nut
+
+- name: generate the machine-local monitor password
+  ansible.builtin.shell: |
+    grep -q __NUT_MON_PASSWORD__ /etc/nut/upsd.users /etc/nut/upsmon.conf || exit 0
+    NUTPASS=$(head -c 16 /dev/urandom | base64 | tr -dc 'a-z0-9')
+    sed -i "s/__NUT_MON_PASSWORD__/$NUTPASS/" /etc/nut/upsd.users /etc/nut/upsmon.conf
+    echo GENERATED
+  register: nut_pass
+  changed_when: "'GENERATED' in nut_pass.stdout"
+  notify: restart nut
+
+- name: nut services enabled
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: [nut-server, nut-monitor]

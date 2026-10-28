@@ -1,0 +1,18 @@
+---
+# Only the camera-island interface lives in interfaces.d, so this cannot drop
+# the management address; still, it only fires when enp45s0's file changed.
+- name: restart networking
+  ansible.builtin.systemd:
+    name: networking
+    state: restarted
+
+- name: restart chrony
+  ansible.builtin.systemd:
+    name: chrony
+    state: restarted
+
+- name: reload sysctl
+  ansible.builtin.command: sysctl --system
+
+- name: update grub
+  ansible.builtin.command: update-grub

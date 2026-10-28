@@ -8,19 +8,22 @@ If you only want to understand how the finished system fits together, read
 [architecture.md](architecture.md) instead. If something is behaving oddly, check
 [gotchas.md](gotchas.md) before changing anything.
 
+**Most of the shell work below is now a playbook** — see [ansible.md](ansible.md) for control-node
+setup. Steps marked *ansible* run as one tagged play; this document keeps the ordering, the
+verifications, and everything that is genuinely manual (secrets, onboarding, the DNS cutover).
+The only hand-work before ansible can take over: install the OS, create your user, get `sshd`
+running and your key on the box.
+
 ---
 
-## 1. Base system
-
-Replace `/etc/apt/sources.list` with [host/etc/apt/sources.list](../host/etc/apt/sources.list) — it
-includes `non-free`, which the Intel media driver requires.
+## 1. Base system — *ansible*
 
 ```bash
-apt update && apt install -y sudo openssh-server curl ca-certificates gnupg git vim htop \
-  intel-gpu-tools vainfo unattended-upgrades chrony intel-media-va-driver-non-free firmware-misc-nonfree
-systemctl enable --now ssh
-usermod -aG sudo,render <user>
+ansible-playbook ladybird.yml -K -t base
 ```
+
+Swaps in [host/etc/apt/sources.list](../host/etc/apt/sources.list) (includes `non-free`, which the
+Intel media driver requires), installs the base packages, and puts the user in `sudo` + `render`.
 
 ## 2. Verify the iGPU — this gates everything
 
@@ -32,40 +35,35 @@ vainfo                   # expect VAProfileH264*/HEVC* with VLD and EncSlice
 If `renderD128` is missing, the non-free firmware did not install. Stop and fix it — Frigate
 detection and Jellyfin transcoding both depend on this.
 
-## 3. Docker
+## 3. Docker — *ansible*
 
 ```bash
-curl -fsSL https://get.docker.com | sh
-usermod -aG docker <user>
+ansible-playbook ladybird.yml -K -t docker
 ```
 
-Copy [host/etc/docker/daemon.json](../host/etc/docker/daemon.json) into place. **This is required**
-— containers cannot resolve DNS on this host without it.
+Installs the engine and [host/etc/docker/daemon.json](../host/etc/docker/daemon.json) (**required**
+— containers cannot resolve DNS on this host without it). Then verify the iGPU reaches containers:
 
 ```bash
-systemctl restart docker
 docker run --rm --device /dev/dri:/dev/dri debian:trixie \
   sh -c "apt update -qq && apt install -y -qq vainfo && vainfo"    # must list profiles
 ```
 
-## 4. Storage layout
+## 4. Storage layout — *ansible*
 
 A single root, so the Phase 2 drive swap is a remount rather than a reconfiguration.
 
 ```bash
-mkdir -p /srv/storage/{frigate,media,photos,files,archive}
-mkdir -p /opt/stacks/{frigate,media,immich,home,net,n8n,sdr,dns,dash,stt}
-chown -R <user>:<user> /srv/storage /opt/stacks
+ansible-playbook ladybird.yml -K -t storage
 ```
 
-## 5. Camera island and NTP
+## 5. Camera island and NTP — *ansible*
 
 ```bash
-cp host/etc/network/interfaces.d/enp45s0 /etc/network/interfaces.d/   # static, NO gateway
-systemctl restart networking
-cat host/snippets/chrony-allow.conf >> /etc/chrony/chrony.conf
-systemctl restart chrony
+ansible-playbook ladybird.yml -K -t host_files
 ```
+
+(Also lays down the sysctl/grub/rasdaemon crash forensics of step 13 — same role.)
 
 Verify isolation with `tcpdump -i enp45s0 -n "ip and not host 10.10.10.50"` — expect near silence.
 Failed ARP for a nonexistent gateway is the healthy state.
@@ -75,26 +73,24 @@ Failed ARP for a nonexistent gateway is the healthy state.
 See [cameras.md](cameras.md). Nearly all of it can be done over the HTTP API; only the initial admin
 password needs a browser.
 
-## 7. Deploy the stacks
+## 7. Deploy the stacks — *secrets by hand, then ansible*
+
+The two `.env` files must exist before anything starts:
 
 ```bash
-cp -r stacks/* /opt/stacks/
 printf 'FRIGATE_RTSP_PASSWORD=<camera admin password>\n' > /opt/stacks/frigate/.env
 chmod 600 /opt/stacks/frigate/.env
 
 # Immich needs a generated database password before its first start
 cd /opt/stacks/immich && cp .env.example .env && chmod 600 .env
 sed -i "s/^DB_PASSWORD=.*/DB_PASSWORD=$(openssl rand -hex 24)/" .env
+```
 
-# n8n runs as UID 1000 inside the container and needs its data dir owned by it
-mkdir -p /opt/stacks/n8n/n8n-data && chown 1000:1000 /opt/stacks/n8n/n8n-data
+Then the sync, the n8n data-dir ownership, the whisper model download, and `compose up` for the
+safe set are one play:
 
-# whisper's model is a plain download, not in git - see docs/stt.md
-mkdir -p /opt/stacks/stt/models
-curl -L -o /opt/stacks/stt/models/ggml-small.en-q5_1.bin \
-  https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en-q5_1.bin
-
-for d in frigate home media immich net n8n stt; do (cd /opt/stacks/$d && docker compose up -d); done
+```bash
+ansible-playbook ladybird.yml -K -t stacks
 ```
 
 Three things only happen on a first start:
@@ -141,46 +137,36 @@ printf 'user = "admin:<camera password>"\ndigest\n' > /opt/stacks/home/homeassis
 chmod 600 /opt/stacks/home/homeassistant/.camcreds
 ```
 
-## 9. Storage guard
+## 9. Guards and timers — *ansible*
 
 ```bash
-cp host/etc/systemd/system/disk-guard.* /etc/systemd/system/
-systemctl daemon-reload && systemctl enable --now disk-guard.timer
-/opt/stacks/net/disk-guard.sh --discovery    # publishes MQTT discovery so HA creates the sensors
+ansible-playbook ladybird.yml -K -t nut,guards
 ```
 
-`disk-guard.sh` has to be owned by root; systemd refuses to run it otherwise.
-
-## 10. Remaining host services
+Installs NUT (generating the machine-local monitor password on the box, once — see
+[operations.md](operations.md) → UPS and power) and enables all five timers: disk-guard,
+ups-guard, frigate-guard, kuma-watchdog, iptv-playlist. Then the one-time pieces by hand:
 
 ```bash
-# Tailscale
-curl -fsSL https://tailscale.com/install.sh | sh
-cp host/etc/sysctl.d/99-tailscale.conf /etc/sysctl.d/ && sysctl --system
-tailscale up --advertise-routes=192.168.0.0/24 --accept-routes
-# then approve the subnet route in the Tailscale admin console
-
-# Samba
-apt install -y samba
-cat host/snippets/samba-files-share.conf >> /etc/samba/smb.conf
-smbpasswd -a <user> && systemctl restart smbd
-
-# IPTV playlist for Jellyfin Live TV - daily rebuild of /srv/storage/media/iptv/fast.m3u8
-# (the .service runs as user thomas; edit it if the username differs)
-cp host/etc/systemd/system/iptv-playlist.* /etc/systemd/system/
-systemctl daemon-reload && systemctl enable --now iptv-playlist.timer
-sudo -u <user> /opt/stacks/net/iptv-playlist.py      # first build now, not tomorrow
-
-# NUT + UPS guard (full walkthrough: operations.md -> UPS and power)
-apt install -y nut
-cp host/etc/nut/{nut.conf,ups.conf,upsd.conf,upsd.users,upsmon.conf} /etc/nut/
-NUTPASS=$(head -c 16 /dev/urandom | base64 | tr -dc 'a-z0-9')
-sed -i "s/__NUT_MON_PASSWORD__/$NUTPASS/" /etc/nut/upsd.users /etc/nut/upsmon.conf
-chown root:nut /etc/nut/*.conf /etc/nut/upsd.users && chmod 640 /etc/nut/*.conf /etc/nut/upsd.users
-systemctl restart nut-server nut-monitor && upsc cyberpower | grep ups.status   # expect OL
-cp host/etc/systemd/system/ups-guard.* /etc/systemd/system/
-systemctl daemon-reload && systemctl enable --now ups-guard.timer
+upsc cyberpower | grep ups.status             # expect OL — proves the USB link and NUT
+/opt/stacks/net/disk-guard.sh --discovery     # publishes MQTT discovery so HA creates the sensors
 /opt/stacks/net/ups-guard.sh --discovery
+sudo -u <user> /opt/stacks/net/iptv-playlist.py   # first playlist build now, not tomorrow
+```
+
+## 10. Remaining host services — *ansible, then the interactive parts*
+
+```bash
+ansible-playbook ladybird.yml -K -t samba,tailscale
+```
+
+Then what ansible can't do:
+
+```bash
+# join the tailnet, then approve the subnet route in the admin console
+tailscale up --advertise-routes=192.168.0.0/24 --accept-routes
+# samba user (interactive password prompt)
+smbpasswd -a <user>
 ```
 
 Jellyfin's Live TV tuner and its XMLTV listing (`http://192.168.0.13:3000/guide.xml`, served by the
@@ -227,15 +213,11 @@ gitignored SQLite database, so there is no import file to hand it. Full walkthro
 The load-bearing part is the push monitor that the storage guard beats only while healthy, so that a
 dead server alerts by silence instead of by nobody noticing.
 
-## 13. Crash resilience
+## 13. Crash resilience — *ansible (already applied in step 5)*
 
 Added after the 2026-09-06 kernel panic (see [operations.md](operations.md) → "After a crash").
-
-```bash
-cp host/etc/sysctl.d/99-panic-reboot.conf /etc/sysctl.d/ && sysctl --system   # reboot 10 s after a panic
-cp host/etc/default/grub.d/pcie-aspm.cfg /etc/default/grub.d/ && update-grub   # pcie_aspm=off, needs a reboot
-apt install -y rasdaemon && systemctl enable --now rasdaemon                  # decode + log machine checks
-```
+The `host_files` role laid down the panic-reboot sysctl, the `pcie_aspm=off` grub drop-in and
+rasdaemon; the grub change **needs a reboot** to take effect.
 
 Also set **"Power on after AC loss"** in the BIOS (not scriptable) and add a router DHCP reservation
 for MAC `38:05:25:35:71:69` so the box comes back at `192.168.0.13` after any outage. That

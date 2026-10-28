@@ -88,6 +88,7 @@ Full notes, the hardware inventory and what is still unconfirmed: [system atlas]
 | know how it all fits together | [architecture.md](docs/architecture.md) |
 | do something day to day | [operations.md](docs/operations.md) — health checks, common tasks, after a crash |
 | rebuild the whole thing | [rebuild.md](docs/rebuild.md) — blank Debian to running, in 14 steps |
+| apply configs / check drift | [ansible.md](docs/ansible.md) — the playbooks behind most of those steps |
 | avoid a trap someone already hit | [gotchas.md](docs/gotchas.md) |
 | know what is *not* done | [known-gaps.md](docs/known-gaps.md) |
 | add or reconfigure a camera | [cameras.md](docs/cameras.md) |

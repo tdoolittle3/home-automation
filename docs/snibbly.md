@@ -132,8 +132,9 @@ together, restart both services. The Langfuse stack keeps its own secrets — se
 1. Ubuntu + NVIDIA driver; verify both cards in `nvidia-smi`.
 2. Build llama.cpp with CUDA into `/opt/llama.cpp/build-cuda`; download a llama-swap release to
    `/opt/llama-swap`.
-3. Create user `llama`; copy the files under [snibbly/etc/](../snibbly/etc/) into `/etc/`,
-   fill in a fresh `LLAMA_API_KEY`.
+3. Create user `llama`; then `ansible-playbook snibbly.yml -K` places everything under
+   [snibbly/etc/](../snibbly/etc/), the agent runner, and the Langfuse compose file
+   ([ansible.md](ansible.md)). Fill in a fresh `LLAMA_API_KEY` by hand (see Secrets above).
 4. Re-download the GGUFs in the table above into `/opt/models/` (names must match
    `config.yaml`).
 5. `systemctl enable --now llama-swap` (loopback `:9292` — nothing answers on the LAN yet).

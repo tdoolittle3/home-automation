@@ -1,0 +1,14 @@
+all:
+  vars:
+    admin_user: thomas
+    ansible_user: "{{ admin_user }}"
+    # Control-node path to the repo root — roles copy host/, stacks/ and
+    # snibbly/ files from here. Derived, so a clone anywhere works.
+    repo_root: "{{ inventory_dir }}/.."
+  hosts:
+    ladybird:
+      ansible_host: 192.168.0.13
+    snibbly:
+      ansible_host: 192.168.0.19
+    # The old Pi-hole at 192.168.0.14 is powered as the DNS rollback but has
+    # no managed configuration. Add it here if that ever changes.

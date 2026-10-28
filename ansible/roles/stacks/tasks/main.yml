@@ -1,0 +1,83 @@
+---
+# rebuild.md step 7 — sync stack configs and bring the safe set up.
+#
+# The copy module never deletes, which is the point: the live /opt/stacks
+# carries gitignored secrets (.env files, kuma-push-url*.txt, n8n-data/,
+# uptime-kuma's database, HA's .storage/) that must survive every sync.
+# It DOES overwrite tracked files, so uncommitted live edits lose — run
+# --check --diff first if the box may have drifted.
+
+- name: sync stack directories
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/stacks/{{ item }}/"
+    dest: "{{ stacks_root }}/{{ item }}/"
+  loop: "{{ stacks_whole_dirs }}"
+
+# frigate: the compose file is ours; config.yml is a SEED that Frigate
+# rewrites at runtime (README "Two configs rewrite themselves"). force: false
+# places it on a fresh box and never touches it again.
+- name: frigate compose
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/stacks/frigate/docker-compose.yml"
+    dest: "{{ stacks_root }}/frigate/docker-compose.yml"
+
+- name: frigate config seed (first install only — live file rewrites itself)
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/stacks/frigate/config/config.yml"
+    dest: "{{ stacks_root }}/frigate/config/config.yml"
+    force: false
+
+# home: split so a config change restarts only the container that reads it —
+# compose up -d can't see changes inside bind-mounted config dirs.
+- name: home compose
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/stacks/home/docker-compose.yml"
+    dest: "{{ stacks_root }}/home/docker-compose.yml"
+
+- name: home assistant config (automations are deployed from this repo)
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/stacks/home/homeassistant/"
+    dest: "{{ stacks_root }}/home/homeassistant/"
+  notify: restart homeassistant
+
+- name: mosquitto config
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/stacks/home/mosquitto/"
+    dest: "{{ stacks_root }}/home/mosquitto/"
+  notify: restart mosquitto
+
+# n8n runs as UID 1000 inside the container. Ownership on the dir only —
+# never recursive, the SQLite db inside holds every credential.
+- name: n8n data dir owned by the container user
+  ansible.builtin.file:
+    path: "{{ stacks_root }}/n8n/n8n-data"
+    state: directory
+    owner: "1000"
+    group: "1000"
+
+# whisper's model is a plain download, not in git (docs/stt.md).
+- name: whisper model dir
+  ansible.builtin.file:
+    path: "{{ stacks_root }}/stt/models"
+    state: directory
+
+- name: whisper model (downloaded once)
+  ansible.builtin.get_url:
+    url: https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en-q5_1.bin
+    dest: "{{ stacks_root }}/stt/models/ggml-small.en-q5_1.bin"
+
+- name: guard scripts owned by root and executable
+  ansible.builtin.file:
+    path: "{{ stacks_root }}/net/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ stacks_root_scripts }}"
+
+- name: compose up (no-op for unchanged services)
+  ansible.builtin.command: docker compose up -d
+  args:
+    chdir: "{{ stacks_root }}/{{ item }}"
+  loop: "{{ stacks_auto_up }}"
+  register: stacks_up
+  changed_when: stacks_up.stderr is search('(Started|Created|Recreated)')

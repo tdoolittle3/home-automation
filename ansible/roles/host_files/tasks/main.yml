@@ -1,0 +1,40 @@
+---
+# rebuild.md steps 5 and 13 — the camera island, NTP for the island, and
+# crash forensics. Verification stays manual and matters:
+#   tcpdump -i enp45s0 -n "ip and not host 10.10.10.50"   # expect near silence
+
+- name: camera island interface (static, no gateway)
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/host/etc/network/interfaces.d/enp45s0"
+    dest: /etc/network/interfaces.d/enp45s0
+  notify: restart networking
+
+# lineinfile, not a snippet append: the live box got this line via cat >> in
+# the old runbook, and lineinfile adopts that state without duplicating it.
+- name: chrony answers the camera island
+  ansible.builtin.lineinfile:
+    path: /etc/chrony/chrony.conf
+    line: allow 10.10.10.0/24
+  notify: restart chrony
+
+- name: sysctl drop-ins (panic reboot, tailscale forwarding)
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/host/etc/sysctl.d/{{ item }}"
+    dest: "/etc/sysctl.d/{{ item }}"
+  loop:
+    - 99-panic-reboot.conf
+    - 99-tailscale.conf
+  notify: reload sysctl
+
+# Takes effect at the NEXT reboot; nothing here reboots the box.
+- name: grub drop-in — pcie_aspm=off
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/host/etc/default/grub.d/pcie-aspm.cfg"
+    dest: /etc/default/grub.d/pcie-aspm.cfg
+  notify: update grub
+
+- name: rasdaemon records machine checks
+  ansible.builtin.systemd:
+    name: rasdaemon
+    enabled: true
+    state: started

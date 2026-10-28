@@ -116,28 +116,20 @@ predicts under 10 minutes of runtime) keeps Kuma up but turns on the HA problem 
 battery is visible without paging. Silence remains the fallback either way: five minutes without a
 beat and the monitor goes down, catching a hung timer or a crashed NUT.
 
-### First-time install (needs sudo)
+### First-time install
+
+NUT and the guard timer are ansible's now ([ansible.md](ansible.md)):
 
 ```bash
-apt install -y nut
-cp host/etc/nut/{nut.conf,ups.conf,upsd.conf,upsd.users,upsmon.conf} /etc/nut/
-NUTPASS=$(head -c 16 /dev/urandom | base64 | tr -dc 'a-z0-9')
-sed -i "s/__NUT_MON_PASSWORD__/$NUTPASS/" /etc/nut/upsd.users /etc/nut/upsmon.conf
-chown root:nut /etc/nut/*.conf /etc/nut/upsd.users && chmod 640 /etc/nut/*.conf /etc/nut/upsd.users
-systemctl restart nut-server nut-monitor
+ansible-playbook ladybird.yml -K -t nut,guards
 upsc cyberpower                               # full variable dump; ups.status should be OL
+/opt/stacks/net/ups-guard.sh --discovery      # one-time: MQTT discovery so HA creates the sensors
 ```
 
-The NUT password is machine-local and generated at install: `upsd` listens on loopback only, so
-nothing else ever needs it — it is not in `.env` and not worth managing.
-
-Then the guard:
-
-```bash
-cp host/etc/systemd/system/ups-guard.* /etc/systemd/system/
-systemctl daemon-reload && systemctl enable --now ups-guard.timer
-/opt/stacks/net/ups-guard.sh --discovery      # publishes MQTT discovery so HA creates the sensors
-```
+The NUT password is machine-local and generated on the box at first install (the playbook's sed
+runs only while the `__NUT_MON_PASSWORD__` placeholder is present): `upsd` listens on loopback
+only, so nothing else ever needs it — it is not in `.env`, not in ansible's vars, and not worth
+managing.
 
 And wire Kuma: create the **UPS power** push monitor (kuma-provision.py or the UI) and put its
 push URL — trailing `?ping=` included — into `/opt/stacks/net/kuma-push-url-ups.txt`, mode 600.

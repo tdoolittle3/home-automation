@@ -1,0 +1,24 @@
+---
+stacks_root: /opt/stacks
+
+# Synced as whole directories. frigate and home are handled by their own
+# tasks (seed config / restart-on-change rules); see tasks/main.yml.
+stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns]
+
+# `docker compose up -d` runs for these every play — idempotent, a no-op for
+# unchanged services. Deliberately absent:
+#   sdr  — needs one-time host prep + a real lat/long .env (docs/sdr.md)
+#   dns  — the one stack that can take the whole house offline (docs/dns.md)
+#   dash — image is built from the home-dashboard clone, not pulled
+#          (docs/operations.md -> Dashboard)
+stacks_auto_up: [frigate, home, media, immich, net, n8n, stt, mesh]
+
+# Executed by systemd units as root; systemd refuses a non-root-owned
+# disk-guard.sh, and the rest follow the same rule for consistency.
+stacks_root_scripts:
+  - disk-guard.sh
+  - ups-guard.sh
+  - frigate-guard.sh
+  - kuma-watchdog.sh
+  - iptv-playlist.py
+  - kuma-provision.py

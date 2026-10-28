@@ -1,0 +1,20 @@
+---
+# rebuild.md step 4 — directory layout. Deliberately NOT recursive ownership:
+# on the live box /opt/stacks/net holds root-owned guard scripts and the data
+# dirs hold container-owned files; a recursive chown here would break them.
+
+- name: /srv/storage layout
+  ansible.builtin.file:
+    path: "/srv/storage/{{ item }}"
+    state: directory
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+  loop: [frigate, media, photos, files, archive]
+
+- name: /opt/stacks layout
+  ansible.builtin.file:
+    path: "/opt/stacks/{{ item }}"
+    state: directory
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+  loop: [frigate, media, immich, home, net, n8n, sdr, dns, dash, stt, mesh]
