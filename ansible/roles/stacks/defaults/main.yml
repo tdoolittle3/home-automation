@@ -11,7 +11,9 @@ stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns]
 #   dns  — the one stack that can take the whole house offline (docs/dns.md)
 #   dash — image is built from the home-dashboard clone, not pulled
 #          (docs/operations.md -> Dashboard)
-stacks_auto_up: [frigate, home, media, immich, net, n8n, stt, mesh]
+#   mesh — its only service sits behind profiles: ["cli"]; `up` has nothing
+#          to start and exits "no service selected"
+stacks_auto_up: [frigate, home, media, immich, net, n8n, stt]
 
 # Executed by systemd units as root; systemd refuses a non-root-owned
 # disk-guard.sh, and the other root-run guards follow the same rule.
