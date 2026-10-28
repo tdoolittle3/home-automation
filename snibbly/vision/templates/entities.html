@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}entities — vision{% endblock %}
+{% block body %}
+<p class="muted">Recurring things, clustered by appearance. Unnamed entities are
+auto-founded; open one to name it, merge duplicates into it, or delete junk.</p>
+{% for label, ents in groups.items() %}
+<h2>{{label}} <span class="muted">({{ents|length}})</span></h2>
+<div class="grid">
+  {% for e in ents %}
+  <div class="card">
+    <a href="/entity/{{e.id}}">
+      {% if e.thumb %}<img src="{{e.thumb|media}}" loading="lazy" alt="">{% else %}<img alt="">{% endif %}
+    </a>
+    <div><strong>{{e.name or "unnamed #%d"|format(e.id)}}</strong></div>
+    <div class="muted">{{e.n}} sightings · {{e.first_seen|dt}} → {{e.last_seen|dt}}</div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="muted">No entities yet.</p>
+{% endfor %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ent.name or "entity #%d"|format(ent.id)}} — vision{% endblock %}
+{% block body %}
+<h2>{{ent.label}}: {{ent.name or "unnamed #%d"|format(ent.id)}}</h2>
+<p class="muted">{{ent.n}} sightings · {{ent.first_seen|dt}} → {{ent.last_seen|dt}}
+  · <a href="/?entity={{ent.id}}">events with this entity</a></p>
+
+<p>
+  <form class="inline" method="post" action="/entity/{{ent.id}}/rename">
+    <input name="name" value="{{ent.name or ''}}" placeholder="name it">
+    <button>rename</button>
+  </form>
+  <form class="inline" method="post" action="/entity/{{ent.id}}/merge"
+        onsubmit="return confirm('Merge this entity into the selected one?')">
+    <select name="into">
+      {% for o in others %}<option value="{{o.id}}">{{o.label}}: {{o.name or "unnamed #%d"|format(o.id)}} ({{o.n}})</option>{% endfor %}
+    </select>
+    <button>merge into</button>
+  </form>
+  <form class="inline" method="post" action="/entity/{{ent.id}}/delete"
+        onsubmit="return confirm('Delete entity? Its detections stay, unassigned.')">
+    <button>delete</button>
+  </form>
+</p>
+
+<h2>Sightings</h2>
+<div class="thumbs">
+  {% for d in dets %}
+    {% if d.crop_path %}
+    <a href="/event/{{d.event_id}}" title="{{d.ts|dt}} · conf {{d.c2}}">
+      <img src="{{d.crop_path|media}}" loading="lazy" alt=""></a>
+    {% endif %}
+  {% endfor %}
+</div>
+<p>
+  {% if page > 0 %}<a href="?page={{page-1}}">« newer</a>{% endif %}
+  {% if dets|length == 96 %}<a href="?page={{page+1}}">older »</a>{% endif %}
+</p>
+{% endblock %}
