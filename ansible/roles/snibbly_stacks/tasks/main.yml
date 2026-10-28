@@ -1,0 +1,22 @@
+---
+# Langfuse (docs/langfuse.md). Secrets live in the gitignored live .env; on a
+# fresh box compose up fails loudly until it is created per langfuse.md.
+
+- name: /opt/stacks/langfuse
+  ansible.builtin.file:
+    path: /opt/stacks/langfuse
+    state: directory
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+
+- name: langfuse compose
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/snibbly/stacks/langfuse/docker-compose.yml"
+    dest: /opt/stacks/langfuse/docker-compose.yml
+
+- name: langfuse up (no-op for unchanged services)
+  ansible.builtin.command: docker compose up -d
+  args:
+    chdir: /opt/stacks/langfuse
+  register: langfuse_up
+  changed_when: langfuse_up.stderr is search('(Started|Created|Recreated)')

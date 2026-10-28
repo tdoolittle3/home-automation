@@ -1,0 +1,17 @@
+---
+- name: systemd daemon-reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: restart litellm
+  ansible.builtin.systemd:
+    name: litellm
+    state: restarted
+
+- name: restart vision-worker
+  ansible.builtin.systemd:
+    name: vision-worker
+    state: restarted
+
+- name: reload sysctl
+  ansible.builtin.command: sysctl --system

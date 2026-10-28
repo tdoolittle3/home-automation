@@ -1,0 +1,71 @@
+---
+# snibbly's /etc, mirroring the snibbly/etc/ tree (docs/snibbly.md). The env
+# files (/etc/llama/llama.env, /etc/litellm/litellm.env) hold the API key and
+# are machine-local — ansible ships only the directories, never the secrets.
+
+- name: config directories
+  ansible.builtin.file:
+    path: "/etc/{{ item }}"
+    state: directory
+  loop: [llama, llama-swap, litellm, vision]
+
+# Restarting litellm drops the LLM door (:8080) for a few seconds; the
+# handler only fires when the config actually changed.
+- name: litellm config
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/snibbly/etc/litellm/config.yaml"
+    dest: /etc/litellm/config.yaml
+  notify: restart litellm
+
+# No handler: llama-swap runs with -watch-config and applies edits on the
+# next model load.
+- name: llama-swap config
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/snibbly/etc/llama-swap/config.yaml"
+    dest: /etc/llama-swap/config.yaml
+
+- name: vision worker config
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/snibbly/etc/vision/config.toml"
+    dest: /etc/vision/config.toml
+  notify: restart vision-worker
+
+- name: lockup forensics sysctl
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/snibbly/etc/sysctl.d/90-lockup-forensics.conf"
+    dest: /etc/sysctl.d/90-lockup-forensics.conf
+  notify: reload sysctl
+
+- name: service units
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/snibbly/etc/systemd/system/{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+  loop:
+    - litellm.service
+    - llama-swap.service
+    - vision-worker.service
+  notify: systemd daemon-reload
+
+- name: networkd wait-online override
+  ansible.builtin.file:
+    path: /etc/systemd/system/systemd-networkd-wait-online.service.d
+    state: directory
+
+- name: networkd wait-online override file
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/snibbly/etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf"
+    dest: /etc/systemd/system/systemd-networkd-wait-online.service.d/override.conf
+  notify: systemd daemon-reload
+
+- name: apply any pending daemon-reload before touching service state
+  ansible.builtin.meta: flush_handlers
+
+# vision-worker is deliberately not state-managed here: whether it runs is an
+# operator call while the pipeline is under investigation (docs/vision.md),
+# not a convergence target. Its config still syncs above.
+- name: llm services enabled and running
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop: [llama-swap, litellm]

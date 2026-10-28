@@ -1,0 +1,36 @@
+---
+# rebuild.md steps 9/10 — the guard timers. Runs after the stacks role because
+# every .service here executes a script in /opt/stacks/net. The push monitors
+# they beat (kuma-push-url*.txt) are recreated by hand per operations.md.
+
+- name: guard and playlist units
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/host/etc/systemd/system/{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+  loop:
+    - disk-guard.service
+    - disk-guard.timer
+    - ups-guard.service
+    - ups-guard.timer
+    - frigate-guard.service
+    - frigate-guard.timer
+    - kuma-watchdog.service
+    - kuma-watchdog.timer
+    - iptv-playlist.service
+    - iptv-playlist.timer
+  notify: systemd daemon-reload
+
+- name: apply any pending daemon-reload before enabling timers
+  ansible.builtin.meta: flush_handlers
+
+- name: timers enabled and running
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - disk-guard.timer
+    - ups-guard.timer
+    - frigate-guard.timer
+    - kuma-watchdog.timer
+    - iptv-playlist.timer

@@ -1,0 +1,14 @@
+---
+# The two-tier agent runner (docs/snibbly.md -> "The agent runner").
+# Stdlib-only, so a copy is the whole deploy.
+
+- name: /opt/agent-runner
+  ansible.builtin.file:
+    path: /opt/agent-runner
+    state: directory
+
+- name: runner
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/snibbly/agent-runner/runner.py"
+    dest: /opt/agent-runner/runner.py
+    mode: "0755"

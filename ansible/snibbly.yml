@@ -1,0 +1,12 @@
+---
+# Snibbly: the LLM box. Config files under /etc, the agent runner, and the
+# Langfuse stack. The base OS, NVIDIA driver, llama.cpp build, llama-swap
+# binary, model downloads and the vision pipeline stay manual — see
+# docs/snibbly.md and docs/ansible.md.
+- name: snibbly
+  hosts: snibbly
+  become: true
+  roles:
+    - { role: snibbly_etc, tags: [etc] }
+    - { role: snibbly_agent_runner, tags: [agent_runner] }
+    - { role: snibbly_stacks, tags: [stacks] }

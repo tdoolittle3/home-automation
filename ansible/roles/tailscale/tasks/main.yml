@@ -1,0 +1,17 @@
+---
+# rebuild.md step 10 — install only. The forwarding sysctl ships with the
+# host_files role. Joining the tailnet stays manual (interactive auth):
+#   tailscale up --advertise-routes=192.168.0.0/24 --accept-routes
+# then approve the subnet route in the admin console, and re-apply
+# `tailscale serve` for the dashboard's https front per docs/stt.md.
+
+- name: tailscale (install script)
+  ansible.builtin.shell: curl -fsSL https://tailscale.com/install.sh | sh
+  args:
+    creates: /usr/bin/tailscale
+
+- name: tailscaled enabled
+  ansible.builtin.systemd:
+    name: tailscaled
+    enabled: true
+    state: started

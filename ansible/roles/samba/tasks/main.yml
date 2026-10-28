@@ -1,0 +1,29 @@
+---
+# rebuild.md step 10 — the files share. The section is appended once, guarded
+# by a grep for the share header: the live box got it via cat >> with no
+# markers, and this adopts that state without duplicating the section.
+# Content drift inside an existing [files] section is NOT reconciled — this
+# share hasn't changed since install, and reconciling it isn't worth markers.
+# smbpasswd -a stays manual (interactive).
+
+- name: samba package
+  ansible.builtin.apt:
+    name: samba
+    state: present
+
+- name: files share section (appended once)
+  ansible.builtin.shell: |
+    grep -q '^\[files\]' /etc/samba/smb.conf && exit 0
+    cat >> /etc/samba/smb.conf <<'EOF'
+    {{ lookup('file', repo_root + '/host/snippets/samba-files-share.conf') }}
+    EOF
+    echo APPENDED
+  register: samba_share
+  changed_when: "'APPENDED' in samba_share.stdout"
+  notify: restart smbd
+
+- name: smbd enabled
+  ansible.builtin.systemd:
+    name: smbd
+    enabled: true
+    state: started

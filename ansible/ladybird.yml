@@ -1,0 +1,19 @@
+---
+# Ladybird: Debian host services and the container stacks.
+# Role order mirrors docs/rebuild.md — stacks before guards, because the
+# guard timers execute scripts that the stacks role puts in /opt/stacks/net.
+# SDR host prep (host/scripts/sdr-host-prep.sh) and the DNS cutover are
+# deliberately NOT here — see docs/ansible.md for everything that stays manual.
+- name: ladybird
+  hosts: ladybird
+  become: true
+  roles:
+    - { role: base, tags: [base] }
+    - { role: docker, tags: [docker] }
+    - { role: storage, tags: [storage] }
+    - { role: host_files, tags: [host_files] }
+    - { role: stacks, tags: [stacks] }
+    - { role: nut, tags: [nut] }
+    - { role: guards, tags: [guards] }
+    - { role: samba, tags: [samba] }
+    - { role: tailscale, tags: [tailscale] }
