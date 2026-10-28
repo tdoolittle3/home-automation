@@ -33,7 +33,10 @@ services:
       MESH_MQTT_URL: mqtt://192.168.0.13:1883
       MESH_ROOT_TOPIC: msh/US
       MESH_CHANNEL: homemesh
-      MESH_CHANNEL_INDEX: "0"
+      # 2026-10-27: homemesh moved to index 2 when LongFast became the primary
+      # (docs/meshtastic.md §channel layout). Index 0 is now the PUBLIC channel -
+      # a stale "0" here broadcasts dashboard sends to the whole regional mesh.
+      MESH_CHANNEL_INDEX: "2"
       MESH_GATEWAY_NODE: "465497948"
       # Whisper STT for the assistant's mic button (stacks/stt, docs/stt.md)
       STT_BASE_URL: http://192.168.0.13:8990
