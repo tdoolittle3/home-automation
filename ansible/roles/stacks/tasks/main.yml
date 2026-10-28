@@ -61,11 +61,15 @@
     path: "{{ stacks_root }}/stt/models"
     state: directory
 
+# Checksum pinned so --check can verify instead of always reporting changed.
 - name: whisper model (downloaded once)
   ansible.builtin.get_url:
     url: https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.en-q5_1.bin
     dest: "{{ stacks_root }}/stt/models/ggml-small.en-q5_1.bin"
+    checksum: sha256:bfdff4894dcb76bbf647d56263ea2a96645423f1669176f4844a1bf8e478ad30
 
+# ignore_errors in check mode only: on a box that hasn't converged yet, the
+# scripts don't exist until the sync task above really runs.
 - name: guard scripts owned by root and executable
   ansible.builtin.file:
     path: "{{ stacks_root }}/net/{{ item }}"
@@ -73,6 +77,16 @@
     group: root
     mode: "0755"
   loop: "{{ stacks_root_scripts }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: operator scripts executable
+  ansible.builtin.file:
+    path: "{{ stacks_root }}/net/{{ item }}"
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+    mode: "0755"
+  loop: "{{ stacks_admin_scripts }}"
+  ignore_errors: "{{ ansible_check_mode }}"
 
 - name: compose up (no-op for unchanged services)
   ansible.builtin.command: docker compose up -d

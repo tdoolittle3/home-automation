@@ -48,4 +48,5 @@
     name: "{{ item }}"
     enabled: true
     state: started
+  ignore_errors: "{{ ansible_check_mode }}"
   loop: [nut-server, nut-monitor]

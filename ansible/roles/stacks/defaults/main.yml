@@ -14,11 +14,15 @@ stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns]
 stacks_auto_up: [frigate, home, media, immich, net, n8n, stt, mesh]
 
 # Executed by systemd units as root; systemd refuses a non-root-owned
-# disk-guard.sh, and the rest follow the same rule for consistency.
+# disk-guard.sh, and the other root-run guards follow the same rule.
 stacks_root_scripts:
   - disk-guard.sh
   - ups-guard.sh
   - frigate-guard.sh
   - kuma-watchdog.sh
+
+# Run as the admin user (iptv-playlist.service has User=thomas;
+# kuma-provision.py is invoked by hand), so they keep that ownership.
+stacks_admin_scripts:
   - iptv-playlist.py
   - kuma-provision.py
