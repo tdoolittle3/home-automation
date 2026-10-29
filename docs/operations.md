@@ -272,14 +272,17 @@ ssh -L 8082:10.10.10.201:80 -N thomas@192.168.0.13
 # then browse http://localhost:8082
 ```
 
-**Commit config changes** — `/opt/stacks` is a git repo; commit after every working change:
+**Change a config** — edit it in *this* repo, merge, then deploy with ansible ([ansible.md](ansible.md)).
+`/opt/stacks` is no longer its own git repo (retired 2026-10-28): the GitHub repo is the single
+source of truth, and drift detection replaced the server-side history:
 
 ```bash
-cd /opt/stacks && git add -A && git commit -m "what changed"
+ansible-playbook ladybird.yml -K --check --diff   # does the box still match git?
 ```
 
-**Pull configs back into this repo** — use an allowlist, never a blanket copy, so credential files
-cannot ride along. See the export approach in the repo history.
+A live edit made directly on the server is legitimate in an emergency — but it will show up in the
+next check run, and the next converge will overwrite it. Backport anything worth keeping into this
+repo (an allowlist copy, never blanket — credential files must not ride along).
 
 ---
 
@@ -434,7 +437,7 @@ Worth capturing periodically, none of it in git:
 
 | What | Where |
 |---|---|
-| Stack configs | `/opt/stacks` (already a git repo) |
+| Stack configs | this repo — the live `/opt/stacks` is reproducible via [ansible.md](ansible.md) |
 | HA configuration + state | `/opt/stacks/home/homeassistant/` including `.storage/` |
 | Frigate event database | `/opt/stacks/frigate/config/*.db` |
 | Immich database + library | see the Immich section above — **a copy of `postgres/` is not a valid backup** |
