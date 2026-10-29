@@ -44,6 +44,28 @@ loses silently. The check run is also the answer to "does what's running match g
 Tags mirror the role names: `base`, `docker`, `storage`, `host_files`, `stacks`, `nut`,
 `guards`, `samba`, `tailscale` on ladybird; `etc`, `agent_runner`, `stacks` on snibbly.
 
+## CI/CD
+
+Two workflows, deliberately split by trust level (this repo is public):
+
+- **[ci.yml](../.github/workflows/ci.yml)** — every PR, GitHub-hosted runners, no secrets:
+  `--syntax-check`, `ansible-lint`, YAML parse of the stack configs, `docker compose config`.
+- **[deploy.yml](../.github/workflows/deploy.yml)** — merges to master that touch config.
+  Everything sits behind the `prod` environment (required reviewer, deployments from master
+  only): approval click #1 runs the **plan** (`--check --diff`, written to the job summary),
+  click #2 runs the **apply**. `workflow_dispatch` gives an on-demand plan.
+
+The runner reaches the LAN by joining the tailnet as an **ephemeral `tag:ci` node** using a
+pre-signed auth key (tailnet lock is enabled, so unsigned nodes cannot join). The ACL jails
+`tag:ci` to `tcp/22` on 192.168.0.13 and .19 — a leaked key yields a node that can only knock
+on SSH, which still requires the deploy key. That key is a dedicated one, installed on both
+hosts with `no-agent-forwarding,no-X11-forwarding,no-port-forwarding`; revoke CI entirely by
+deleting its line from `~/.ssh/authorized_keys`.
+
+**Renewals:** the auth key expires every 90 days — generate + sign a new one (`tailscale lock
+sign` on ladybird) and update the `TS_AUTHKEY` secret in the `prod` environment. An expired
+key fails the tailnet join loudly; nothing deploys.
+
 ## What it covers, what it doesn't
 
 | Managed by ansible | Still manual (and why) |
