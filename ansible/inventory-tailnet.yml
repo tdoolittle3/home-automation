@@ -1,0 +1,15 @@
+# Overlay inventory for CI: same hosts, addressed by their Tailscale IPs.
+# The deploy workflow passes `-i inventory.yml -i inventory-tailnet.yml`, and
+# the later file wins — the tag:ci ACL grants node-to-node SSH to exactly
+# these addresses (subnet routes are not distributed to tagged nodes, which
+# is why CI cannot use the LAN IPs the primary inventory carries).
+#
+# These IPs are stable unless a node is deleted and re-registered with
+# Tailscale — if that happens, update this file and the tag:ci grant in the
+# tailnet policy together.
+all:
+  hosts:
+    ladybird:
+      ansible_host: 100.69.144.83
+    snibbly:
+      ansible_host: 100.81.70.49
