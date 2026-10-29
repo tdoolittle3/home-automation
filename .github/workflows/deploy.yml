@@ -1,0 +1,109 @@
+name: Deploy
+
+# Phase 2: converge the live hosts from CI, everything behind the gated
+# `prod` environment (required reviewer + master-only deployments).
+#
+# Flow on every merge to master touching config: approval click #1 runs the
+# PLAN (--check --diff, read-only) and writes the diff to the job summary;
+# approval click #2 runs the APPLY. workflow_dispatch runs a plan on demand
+# (apply only if its input says so).
+#
+# Network path: the runner joins the tailnet as an ephemeral, tag:ci node
+# using a pre-signed auth key (tailnet lock), and the ACL jails tag:ci to
+# tcp/22 on the two managed hosts. See docs/ansible.md.
+on:
+  push:
+    branches: [master]
+    paths:
+      - ansible/**
+      - stacks/**
+      - snibbly/**
+      - host/**
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Also apply (default: plan only)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+# One deploy at a time, never cancel a running apply.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    name: plan (--check --diff)
+    runs-on: ubuntu-latest
+    environment: prod
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ansible-core
+        run: pip install ansible-core
+
+      - name: Join tailnet (ephemeral tag:ci node)
+        uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Plan
+        working-directory: ansible
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          BECOME_PASS: ${{ secrets.BECOME_PASS }}
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/ci_deploy && chmod 600 ~/.ssh/ci_deploy
+          BP=$(mktemp) && chmod 600 "$BP" && printf '%s\n' "$BECOME_PASS" > "$BP"
+          set -o pipefail
+          ansible-playbook -i inventory.yml site.yml --check --diff \
+            --private-key ~/.ssh/ci_deploy --become-password-file "$BP" | tee plan.txt
+          { echo '## Plan'; echo '```diff'; tail -c 60000 plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+  apply:
+    name: apply
+    needs: plan
+    if: github.event_name == 'push' || inputs.apply
+    runs-on: ubuntu-latest
+    environment: prod
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ansible-core
+        run: pip install ansible-core
+
+      - name: Join tailnet (ephemeral tag:ci node)
+        uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
+        with:
+          authkey: ${{ secrets.TS_AUTHKEY }}
+
+      - name: Apply
+        working-directory: ansible
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          BECOME_PASS: ${{ secrets.BECOME_PASS }}
+          ANSIBLE_HOST_KEY_CHECKING: "False"
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/ci_deploy && chmod 600 ~/.ssh/ci_deploy
+          BP=$(mktemp) && chmod 600 "$BP" && printf '%s\n' "$BECOME_PASS" > "$BP"
+          set -o pipefail
+          ansible-playbook -i inventory.yml site.yml --diff \
+            --private-key ~/.ssh/ci_deploy --become-password-file "$BP" | tee apply.txt
+          { echo '## Apply'; echo '```diff'; tail -c 60000 apply.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
