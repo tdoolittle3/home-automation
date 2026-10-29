@@ -10,7 +10,9 @@ name: Deploy
 #
 # Network path: the runner joins the tailnet as an ephemeral, tag:ci node
 # using a pre-signed auth key (tailnet lock), and the ACL jails tag:ci to
-# tcp/22 on the two managed hosts. See docs/ansible.md.
+# tcp/22 on the two managed hosts — node-to-node at their Tailscale IPs
+# (inventory-tailnet.yml overlay; subnet routes are not distributed to
+# tagged nodes). See docs/ansible.md.
 on:
   push:
     branches: [master]
@@ -55,9 +57,6 @@ jobs:
         uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
-          # The hosts are addressed by LAN IP through ladybird's subnet route,
-          # and Linux tailscaled ignores advertised routes unless told not to.
-          args: --accept-routes
 
       - name: Plan
         working-directory: ansible
@@ -70,7 +69,7 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/ci_deploy && chmod 600 ~/.ssh/ci_deploy
           BP=$(mktemp) && chmod 600 "$BP" && printf '%s\n' "$BECOME_PASS" > "$BP"
           set -o pipefail
-          ansible-playbook -i inventory.yml site.yml --check --diff \
+          ansible-playbook -i inventory.yml -i inventory-tailnet.yml site.yml --check --diff \
             --private-key ~/.ssh/ci_deploy --become-password-file "$BP" | tee plan.txt
           { echo '## Plan'; echo '```diff'; tail -c 60000 plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 
@@ -95,9 +94,6 @@ jobs:
         uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
-          # The hosts are addressed by LAN IP through ladybird's subnet route,
-          # and Linux tailscaled ignores advertised routes unless told not to.
-          args: --accept-routes
 
       - name: Apply
         working-directory: ansible
@@ -110,6 +106,6 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/ci_deploy && chmod 600 ~/.ssh/ci_deploy
           BP=$(mktemp) && chmod 600 "$BP" && printf '%s\n' "$BECOME_PASS" > "$BP"
           set -o pipefail
-          ansible-playbook -i inventory.yml site.yml --diff \
+          ansible-playbook -i inventory.yml -i inventory-tailnet.yml site.yml --diff \
             --private-key ~/.ssh/ci_deploy --become-password-file "$BP" | tee apply.txt
           { echo '## Apply'; echo '```diff'; tail -c 60000 apply.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"

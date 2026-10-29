@@ -55,9 +55,12 @@ Two workflows, deliberately split by trust level (this repo is public):
   only): approval click #1 runs the **plan** (`--check --diff`, written to the job summary),
   click #2 runs the **apply**. `workflow_dispatch` gives an on-demand plan.
 
-The runner reaches the LAN by joining the tailnet as an **ephemeral `tag:ci` node** using a
-pre-signed auth key (tailnet lock is enabled, so unsigned nodes cannot join). The ACL jails
-`tag:ci` to `tcp/22` on 192.168.0.13 and .19 — a leaked key yields a node that can only knock
+The runner reaches the hosts by joining the tailnet as an **ephemeral `tag:ci` node** using a
+pre-signed auth key (tailnet lock is enabled, so unsigned nodes cannot join). It talks
+**node-to-node at the hosts' Tailscale IPs** via the `inventory-tailnet.yml` overlay — not
+through ladybird's subnet route, which Tailscale does not distribute to tagged nodes (found
+the hard way: the node joins, then every LAN-address connection times out). The ACL jails
+`tag:ci` to `tcp/22` on those two node IPs — a leaked key yields a node that can only knock
 on SSH, which still requires the deploy key. That key is a dedicated one, installed on both
 hosts with `no-agent-forwarding,no-X11-forwarding,no-port-forwarding`; revoke CI entirely by
 deleting its line from `~/.ssh/authorized_keys`.
