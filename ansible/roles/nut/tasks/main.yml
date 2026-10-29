@@ -35,10 +35,13 @@
 
 - name: generate the machine-local monitor password
   ansible.builtin.shell: |
+    set -o pipefail
     grep -q __NUT_MON_PASSWORD__ /etc/nut/upsd.users /etc/nut/upsmon.conf || exit 0
     NUTPASS=$(head -c 16 /dev/urandom | base64 | tr -dc 'a-z0-9')
     sed -i "s/__NUT_MON_PASSWORD__/$NUTPASS/" /etc/nut/upsd.users /etc/nut/upsmon.conf
     echo GENERATED
+  args:
+    executable: /bin/bash
   register: nut_pass
   changed_when: "'GENERATED' in nut_pass.stdout"
   notify: restart nut

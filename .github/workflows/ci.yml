@@ -1,0 +1,58 @@
+name: CI
+
+# Phase 1: validation only — everything here runs from repo contents alone on
+# GitHub-hosted runners. No LAN access, no secrets, nothing a fork PR could
+# abuse. The deploy leg (--check --diff against the live hosts over Tailscale)
+# is a separate, later workflow. See docs/ansible.md.
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  ansible:
+    name: ansible syntax + lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install ansible-core and ansible-lint
+        run: pip install ansible-core ansible-lint
+
+      - name: Syntax check
+        working-directory: ansible
+        run: ansible-playbook -i inventory.yml --syntax-check site.yml
+
+      - name: Lint
+        working-directory: ansible
+        run: ansible-lint
+
+  configs:
+    name: stack configs parse
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pyyaml
+        run: pip install pyyaml
+
+      - name: Validate YAML (stacks, snibbly, host)
+        run: python .github/scripts/validate-yaml.py
+
+      - name: Validate docker compose files
+        run: |
+          set -e
+          for f in $(git ls-files '*docker-compose.yml'); do
+            # config --quiet parses and resolves the file; missing .env values
+            # are fine (compose treats them as empty), syntax errors are not.
+            (cd "$(dirname "$f")" && docker compose -f docker-compose.yml config --quiet) \
+              && echo "ok   $f"
+          done

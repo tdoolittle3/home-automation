@@ -2,10 +2,12 @@
 # rebuild.md step 3 — Docker via the upstream convenience script, then
 # daemon.json (container DNS; containers cannot resolve on this host without it).
 
-- name: docker engine (get.docker.com)
-  ansible.builtin.shell: curl -fsSL https://get.docker.com | sh
+# Upstream's documented install path is the pipe-to-sh script, kept as-is.
+- name: docker engine (get.docker.com)  # noqa: command-instead-of-module
+  ansible.builtin.shell: set -o pipefail && curl -fsSL https://get.docker.com | sh
   args:
     creates: /usr/bin/docker
+    executable: /bin/bash
 
 - name: admin user in docker group
   ansible.builtin.user:

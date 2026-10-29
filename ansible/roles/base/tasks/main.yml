@@ -10,7 +10,9 @@
     dest: /etc/apt/sources.list
   register: base_sources
 
-- name: refresh apt cache after a sources change
+# Not a handler on purpose: handlers run at the end of the play, and this
+# must happen before the package install below.
+- name: refresh apt cache after a sources change  # noqa: no-handler
   ansible.builtin.apt:
     update_cache: true
   when: base_sources.changed
