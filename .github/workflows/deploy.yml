@@ -55,6 +55,9 @@ jobs:
         uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
+          # The hosts are addressed by LAN IP through ladybird's subnet route,
+          # and Linux tailscaled ignores advertised routes unless told not to.
+          args: --accept-routes
 
       - name: Plan
         working-directory: ansible
@@ -92,6 +95,9 @@ jobs:
         uses: tailscale/github-action@6cae46e2d796f265265cfcf628b72a32b4d7cade # v3
         with:
           authkey: ${{ secrets.TS_AUTHKEY }}
+          # The hosts are addressed by LAN IP through ladybird's subnet route,
+          # and Linux tailscaled ignores advertised routes unless told not to.
+          args: --accept-routes
 
       - name: Apply
         working-directory: ansible
