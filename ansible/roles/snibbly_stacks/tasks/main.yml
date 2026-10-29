@@ -18,5 +18,5 @@
   ansible.builtin.command: docker compose up -d
   args:
     chdir: /opt/stacks/langfuse
-  register: langfuse_up
-  changed_when: langfuse_up.stderr is search('(Started|Created|Recreated)')
+  register: snibbly_stacks_up
+  changed_when: snibbly_stacks_up.stderr is search('(Started|Created|Recreated)')

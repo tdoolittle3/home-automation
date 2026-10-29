@@ -1,0 +1,10 @@
+# Lint policy for the playbooks. Everything not listed here is enforced in CI.
+skip_list:
+  # Lowercase task names are this repo's house style — terse, sentence-case
+  # names reading as documentation ("apt sources including non-free").
+  - name[casing]
+
+  # Modes are set explicitly exactly where they matter: secrets 0600/0640,
+  # executables 0755. Plain config copies deliberately take the umask default
+  # rather than clobbering live ownership/mode state on an adopted box.
+  - risky-file-permissions
