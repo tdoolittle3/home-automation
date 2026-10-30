@@ -3,7 +3,7 @@ stacks_root: /opt/stacks
 
 # Synced as whole directories. frigate and home are handled by their own
 # tasks (seed config / restart-on-change rules); see tasks/main.yml.
-stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns]
+stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns, vaultwarden]
 
 # `docker compose up -d` runs for these every play — idempotent, a no-op for
 # unchanged services. Deliberately absent:
@@ -13,7 +13,7 @@ stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns]
 #          (docs/operations.md -> Dashboard)
 #   mesh — its only service sits behind profiles: ["cli"]; `up` has nothing
 #          to start and exits "no service selected"
-stacks_auto_up: [frigate, home, media, immich, net, n8n, stt]
+stacks_auto_up: [frigate, home, media, immich, net, n8n, stt, vaultwarden]
 
 # Executed by systemd units as root; systemd refuses a non-root-owned
 # disk-guard.sh, and the other root-run guards follow the same rule.
@@ -22,6 +22,7 @@ stacks_root_scripts:
   - ups-guard.sh
   - frigate-guard.sh
   - kuma-watchdog.sh
+  - vaultwarden-backup.sh
 
 # Run as the admin user (iptv-playlist.service has User=thomas;
 # kuma-provision.py is invoked by hand), so they keep that ownership.

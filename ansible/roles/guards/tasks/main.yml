@@ -18,6 +18,8 @@
     - kuma-watchdog.timer
     - iptv-playlist.service
     - iptv-playlist.timer
+    - vaultwarden-backup.service
+    - vaultwarden-backup.timer
   notify: systemd daemon-reload
 
 - name: apply any pending daemon-reload before enabling timers
@@ -37,3 +39,4 @@
     - frigate-guard.timer
     - kuma-watchdog.timer
     - iptv-playlist.timer
+    - vaultwarden-backup.timer

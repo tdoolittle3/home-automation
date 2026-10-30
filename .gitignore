@@ -9,8 +9,11 @@
 *.key
 **/kuma-push-url.txt
 **/kuma-push-url-ups.txt
+**/kuma-vw-backup-push-url.txt
 # n8n's data dir holds the encryption key and every credential
 **/n8n-data/
+# vaultwarden's data dir IS the vault - db, attachments, JWT signing keys
+**/vw-data/
 
 # ---- Runtime state pulled from the server by mistake ----
 **/*.db

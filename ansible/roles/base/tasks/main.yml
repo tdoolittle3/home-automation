@@ -36,6 +36,7 @@
       - intel-media-va-driver-non-free
       - firmware-misc-nonfree
       - rasdaemon
+      - sqlite3    # vaultwarden-backup.sh takes online .backup snapshots
 
 - name: ssh enabled
   ansible.builtin.systemd:

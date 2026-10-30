@@ -445,6 +445,7 @@ Worth capturing periodically, none of it in git:
 | Immich database password | `/opt/stacks/immich/.env` |
 | n8n database + encryption key | `/opt/stacks/n8n/n8n-data/` — SQLite holds every credential; the workflow JSON alone does not restore them |
 | Uptime Kuma | *not* backed up — `net/uptime-kuma/` is recreated from [uptime-kuma.md](uptime-kuma.md) |
+| Vaultwarden vault | **automated** — `vaultwarden-backup.timer` snapshots nightly to `/srv/storage/backups/vaultwarden/`, optional off-box rsync; see [vaultwarden.md](vaultwarden.md) |
 
 Recordings in `/srv/storage/frigate` are intentionally *not* backed up — they age out by design.
 

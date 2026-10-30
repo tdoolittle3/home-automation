@@ -1,0 +1,11 @@
+[Unit]
+Description=Run the Vaultwarden backup nightly
+
+[Timer]
+OnCalendar=*-*-* 03:30
+RandomizedDelaySec=10min
+# Catch up after downtime - a box that was off at 03:30 still backs up.
+Persistent=true
+
+[Install]
+WantedBy=timers.target
