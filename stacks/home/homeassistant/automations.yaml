@@ -291,6 +291,10 @@
 - id: water_leak_ntfy
   alias: Water leak alert
   description: ntfy alert the moment the sink moisture detector reports water.
+    DISABLED 2026-10-29 by request - initial_state keeps it off across restarts;
+    revert that line to re-arm. The sensor stays paired and stays in the Zigbee
+    offline/network-down watchdogs below.
+  initial_state: false
   triggers:
   - trigger: state
     entity_id:
