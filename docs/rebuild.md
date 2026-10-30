@@ -262,5 +262,9 @@ Recreate these by hand on a fresh deploy. Nothing here is recoverable from this 
 | `/opt/stacks/dns/conf/AdGuardHome.yaml` | the AdGuard admin password hash — the live file is gitignored; the tracked seed carries a placeholder |
 | HA `.storage/`, `secrets.yaml` | integration configs and tokens — recreated by re-adding integrations |
 | Frigate `.jwt_secret`, `*.db` | regenerated automatically on first start |
+| Vaultwarden master password | in your head and on paper only — there is **no reset**; see [vaultwarden.md](vaultwarden.md) |
+| `/opt/stacks/vaultwarden/vw-data/` | the vault itself — restored from a `vaultwarden-*.tar.gz` snapshot, not recreated |
+| `/opt/stacks/vaultwarden/.env` | optional: `SIGNUPS_ALLOWED` toggle, `ADMIN_TOKEN` — see [.env.example](../stacks/vaultwarden/.env.example) |
+| `/opt/stacks/net/kuma-vw-backup-push-url.txt` | the backup job's Kuma push URL, mode 600 — regenerated per Kuma rebuild |
 
 Camera admin passwords exist only on the cameras themselves and in `.env`.

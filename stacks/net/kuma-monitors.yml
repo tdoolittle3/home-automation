@@ -123,6 +123,22 @@ monitors:
     # a bad upgrade or a chown slip on n8n-data. Plain /healthz answers ok with
     # an unusable database.
 
+  - name: Vaultwarden
+    group: Core services
+    type: http
+    url: http://192.168.0.13:8222/alive
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    accepted_status: [200]
+    # /alive on the plain-http port. Clients come in through tailscale serve
+    # on :8443, which proxies to this same container port, so this proves the
+    # thing serve fronts is answering. Kuma checks :8222 directly because the
+    # ts.net name resolves only through MagicDNS, which the Kuma container
+    # (Docker bridge, AdGuard DNS) does not use. A dead serve front with a
+    # live container stays green here - that failure shows up as every
+    # Bitwarden client failing to sync at once, see docs/vaultwarden.md.
+
   - name: Mosquitto
     group: Core services
     type: port
@@ -311,6 +327,17 @@ monitors:
     push_url_file: /opt/stacks/net/kuma-push-url.txt
     # disk-guard.sh beats this ONLY while healthy, so a warning, a critical, a
     # hung timer, and a dead server all surface the same way: silence.
+
+  - name: Vaultwarden backup
+    group: Host and network
+    type: push
+    heartbeat_interval: 100800     # backup runs nightly at 03:30; 28h of silence is down
+    retries: 0
+    push_url_file: /opt/stacks/net/kuma-vw-backup-push-url.txt
+    # vaultwarden-backup.sh beats this ONLY after a fully successful snapshot
+    # (including the off-box rsync when REMOTE_DEST is set), so a failing
+    # sqlite3 .backup, a full disk, a broken rsync and a hung timer all
+    # surface the same way: silence. Same pattern as Storage guard.
 
   - name: UPS power
     group: Host and network

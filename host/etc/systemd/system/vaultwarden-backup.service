@@ -1,0 +1,6 @@
+[Unit]
+Description=Vaultwarden vault snapshot (local, plus optional off-box rsync)
+
+[Service]
+Type=oneshot
+ExecStart=/opt/stacks/net/vaultwarden-backup.sh

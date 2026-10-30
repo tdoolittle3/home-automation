@@ -20,6 +20,11 @@ something here bites, it bit on purpose.
   [kuma-provision.py](../stacks/net/kuma-provision.py), but Kuma 1.x keeps the live set in a
   gitignored SQLite database. A wipe means re-running the script *and* reissuing the guards' push
   tokens, which do not survive. See [uptime-kuma.md](uptime-kuma.md).
+- **Vaultwarden's off-box leg is not wired.** The nightly snapshot runs, but until `REMOTE_DEST` in
+  [stacks/net/vaultwarden-backup.conf](../stacks/net/vaultwarden-backup.conf) points somewhere off
+  ladybird, the vault backup dies with the disk — same failure class as the Immich gap above.
+  Interim cover: every Bitwarden client keeps an offline encrypted cache, and
+  [vaultwarden.md](vaultwarden.md) recommends periodic encrypted exports from the desktop app.
 - **The Kuma push monitors need a file that is not in this repo.** The storage guard beats its push
   monitor only if `/opt/stacks/net/kuma-push-url.txt` exists (same for the UPS guard). Those files
   hold push tokens, so they are gitignored and must be recreated on a rebuild — until then those

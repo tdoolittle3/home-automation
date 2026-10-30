@@ -22,7 +22,10 @@ stt/models/
 # Push/heartbeat URLs are secrets - they authenticate the beat
 net/kuma-push-url.txt
 net/kuma-frigate-push-url.txt
+net/kuma-vw-backup-push-url.txt
 net/healthchecks-url.txt
+# Vaultwarden runtime state - the vault itself (db, attachments, RSA keys)
+vaultwarden/vw-data/
 # AdGuard Home runtime state. conf/ holds the LIVE config, which AdGuard
 # rewrites on every UI change and which carries the admin password hash -
 # the tracked seed is dns/AdGuardHome.yaml. work/ is the query log, the

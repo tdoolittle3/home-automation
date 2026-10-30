@@ -48,6 +48,7 @@ in over Tailscale.
 | **Media** (Jellyfin) | `http://192.168.0.13:8096` | |
 | **Ad filtering** (AdGuard) | `http://192.168.0.13:8053` | also answers DNS on port 53 for the LAN |
 | **Monitoring** (Uptime Kuma) | `http://192.168.0.13:3001` | [setup notes](docs/uptime-kuma.md) |
+| **Passwords** (Vaultwarden) | `https://ladybird.tail0e6756.ts.net:8443` | tailnet only, via `tailscale serve` — never log in over the plain-http `:8222` ([vaultwarden.md](docs/vaultwarden.md)) |
 | **Automations** (n8n) | `http://192.168.0.13:5678` | |
 | **Aircraft map** (tar1090) | `http://192.168.0.13:8080` | [setup notes](docs/sdr.md) |
 | **File share** (Samba) | `//192.168.0.13/files` | serves `/srv/storage/files` |
@@ -119,6 +120,7 @@ Full notes, the hardware inventory and what is still unconfirmed: [system atlas]
 | touch DNS | [dns.md](docs/dns.md) |
 | touch the radio | [sdr.md](docs/sdr.md) |
 | change what is monitored | [uptime-kuma.md](docs/uptime-kuma.md) |
+| store, back up or rotate a secret | [vaultwarden.md](docs/vaultwarden.md) — the password vault |
 | touch the LLM box | [snibbly.md](docs/snibbly.md) — models, groups, the agent runner |
 | see what the LLMs are being asked | [langfuse.md](docs/langfuse.md) — trace capture on snibbly |
 | the camera vision pipeline on snibbly | [vision.md](docs/vision.md) |

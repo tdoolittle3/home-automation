@@ -1,0 +1,31 @@
+# Vaultwarden — self-hosted Bitwarden-compatible password vault
+# (docs/vaultwarden.md). Holds the home lab's secrets; the Bitwarden apps on
+# every tailnet device are the clients.
+#
+# The real door is HTTPS via `tailscale serve` at
+# https://ladybird.tail0e6756.ts.net:8443 — Bitwarden clients require a
+# secure context. Port 8222 below stays plain http and exists as the serve
+# proxy target and for Uptime Kuma's /alive check. Never log in through it:
+# a login over http sends the master-password hash in the clear.
+services:
+  vaultwarden:
+    container_name: vaultwarden
+    image: vaultwarden/server:latest
+    restart: unless-stopped
+    environment:
+      # Clients derive and validate against this URL - it must match the
+      # tailscale serve front exactly, port included.
+      DOMAIN: https://ladybird.tail0e6756.ts.net:8443
+      # Closed by default. First account only: set true in .env, sign up,
+      # set back to false, `docker compose up -d` - docs/vaultwarden.md.
+      SIGNUPS_ALLOWED: ${SIGNUPS_ALLOWED:-false}
+      # Empty disables the /admin panel, which is the safe steady state -
+      # the panel can reset 2FA and read every account's email. Enable via
+      # .env only while actually using it (see .env.example).
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+    volumes:
+      # The vault itself: SQLite db, attachments, the JWT signing keys.
+      # Gitignored; vaultwarden-backup.timer snapshots it nightly.
+      - ./vw-data:/data
+    ports:
+      - "8222:80"
