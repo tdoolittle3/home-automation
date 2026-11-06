@@ -88,6 +88,8 @@
   loop: "{{ stacks_admin_scripts }}"
   ignore_errors: "{{ ansible_check_mode }}"
 
+# ignore_errors in check mode only: a stack new to the repo (first: vaultwarden)
+# has no directory to chdir into until the sync task above really runs.
 - name: compose up (no-op for unchanged services)
   ansible.builtin.command: docker compose up -d
   args:
@@ -95,3 +97,4 @@
   loop: "{{ stacks_auto_up }}"
   register: stacks_up
   changed_when: stacks_up.stderr is search('(Started|Created|Recreated)')
+  ignore_errors: "{{ ansible_check_mode }}"
