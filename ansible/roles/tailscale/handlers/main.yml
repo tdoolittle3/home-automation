@@ -1,0 +1,7 @@
+---
+# daemon-reload only. Never restart tailscaled here: the CI deploy reaches the
+# box over the tailnet, so a restart would cut the running playbook's own
+# connection. The drop-in takes effect at the next tailscaled start.
+- name: systemd daemon-reload
+  ansible.builtin.systemd:
+    daemon_reload: true
