@@ -24,11 +24,16 @@ command -v bw >/dev/null \
 
 bw sync >/dev/null
 
-bw list items --search "$HOST:" | HOST="$HOST" python3 - "$@" <<'PY'
+# Captured to a variable, not piped: the heredoc below owns python's stdin
+# (piping bw into `python3 -` would be silently discarded), and a failed bw
+# call dies here under set -e instead of surfacing as a JSON traceback.
+items_json=$(bw list items --search "$HOST:")
+
+HOST="$HOST" ITEMS_JSON="$items_json" python3 - "$@" <<'PY'
 import json, os, sys
 
 host = os.environ["HOST"]
-items = json.load(sys.stdin)
+items = json.loads(os.environ["ITEMS_JSON"])
 only = {os.path.abspath(a) for a in sys.argv[1:]}
 changed, seen = [], set()
 
@@ -67,9 +72,9 @@ missing = only - seen
 for path in sorted(missing):
     print(f"no vault note named {host}:{path}", file=sys.stderr)
 
-if changed:
-    stacks = sorted({p.split("/")[3] for p in changed
-                     if p.startswith("/opt/stacks/")})
+stacks = sorted({p.split("/")[3] for p in changed
+                 if p.startswith("/opt/stacks/")})
+if stacks:
     print("\nchanged files load on restart:")
     for s in stacks:
         print(f"  cd /opt/stacks/{s} && docker compose up -d")
