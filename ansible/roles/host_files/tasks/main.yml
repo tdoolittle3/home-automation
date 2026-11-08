@@ -38,3 +38,13 @@
     name: rasdaemon
     enabled: true
     state: started
+
+# dhcpcd rewrote /etc/resolv.conf every ~20s (router RAs) and tailscaled put
+# it back each time: ~250 resolv-conf-overwritten health errors per boot.
+# /etc/resolv.conf is Tailscale-managed on this box (docs/dns.md), so dhcpcd
+# keeps its hands off it. Effective when dhcpcd next starts (reboot, or
+# `dhcpcd -n enp44s0`); deliberately no handler on the DNS server's only NIC.
+- name: dhcpcd leaves resolv.conf to tailscale
+  ansible.builtin.lineinfile:
+    path: /etc/dhcpcd.conf
+    line: nohook resolv.conf

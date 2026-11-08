@@ -17,3 +17,19 @@
     name: tailscaled
     enabled: true
     state: started
+
+# Boot race: enp44s0 is allow-hotplug DHCP, so network-online.target fires
+# ~9s before the lease and tailscaled starts routeless ("logged out" until it
+# retries ~17s in). Self-heals; this just waits for the default route first.
+- name: tailscaled drop-in directory
+  ansible.builtin.file:
+    path: /etc/systemd/system/tailscaled.service.d
+    state: directory
+    mode: "0755"
+
+- name: tailscaled waits for a default route
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/host/etc/systemd/system/tailscaled.service.d/10-wait-default-route.conf"
+    dest: /etc/systemd/system/tailscaled.service.d/10-wait-default-route.conf
+    mode: "0644"
+  notify: systemd daemon-reload

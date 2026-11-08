@@ -98,19 +98,25 @@ task, then disable it again.
 Settings live in [vaultwarden-backup.conf](../stacks/net/vaultwarden-backup.conf); the
 timer re-reads it every run.
 
-**The off-box leg** is a conf value away and starts unwired
-([known-gaps.md](known-gaps.md#backups)). To send snapshots to another machine (snibbly,
-say), set up a key as root on ladybird once:
+**The off-box leg** sends every snapshot to snibbly —
+`REMOTE_DEST=thomas@192.168.0.19:backups/vaultwarden/` in the conf, landing under
+`~thomas/backups/vaultwarden/` (wired and verified 2026-11-07). The rsync uses
+`--ignore-existing` and never deletes: local pruning does not propagate, and a
+compromised ladybird cannot rewrite or empty the remote copies. Nothing prunes the
+snibbly side; at ~10 KB a night that is years of headroom before it matters.
+
+The key setup behind it is one-time, done as root on ladybird, and must be repeated on a
+rebuild of either box (the private key and the target's `authorized_keys` are not in this
+repo):
 
 ```bash
 sudo ssh-keygen -t ed25519 -f /root/.ssh/id_ed25519 -N ''
-sudo cat /root/.ssh/id_ed25519.pub   # append to ~/.ssh/authorized_keys on the target
+sudo cat /root/.ssh/id_ed25519.pub   # append to thomas@snibbly's ~/.ssh/authorized_keys
 sudo ssh thomas@192.168.0.19 true    # accept the host key once
 ```
 
-then set `REMOTE_DEST=thomas@192.168.0.19:backups/vaultwarden/` in the conf. The rsync
-uses `--ignore-existing` and never deletes: local pruning does not propagate, and a
-compromised ladybird cannot rewrite or empty the remote copies.
+`rsync` must exist on both ends — the base role installs it on ladybird (it is not in
+Debian's default install, which is how the first wired run failed).
 
 **Belt and suspenders:** every month or so, desktop app → Export vault →
 **.json (encrypted)**, stored anywhere. It is useless without the master password and
@@ -134,27 +140,68 @@ there. Do this once *before* it matters — an untested backup is a hope, not a 
 
 ## Seeding the vault
 
-Move in everything [rebuild.md](rebuild.md#secrets--not-in-this-repo) lists as
-hand-recreated, plus the other scattered credentials:
+The convention that makes everything below mechanical: **each secret-bearing file is one
+Secure Note whose name is `<host>:<absolute path>`** — `ladybird:/opt/stacks/dash/.env`,
+`snibbly:/etc/llama/llama.env` — and the note body *is* the file. Human-facing
+credentials (Kuma admin, AdGuard, camera, router) are additionally proper login items.
+Things that are not files on a box — GitHub PATs, router admin, the Tailscale CI key's
+renewal note (~2027-01-26), the vault's own 2FA recovery code — are ordinary entries,
+added by hand.
 
-- the repo `.env` values: `SSH_PW`, `CAMERA_PW`, `NTFY_TOPIC`
-- camera admin password (lives only on the cameras and in `.env` today)
-- Uptime Kuma admin login; AdGuard admin login; Langfuse login (snibbly)
-- HA long-lived token + Jellyfin API key (`/opt/stacks/dash/.env`)
-- Immich `DB_PASSWORD`; snibbly's llama/LiteLLM API key
-- Kuma push URLs and the healthchecks URL (they authenticate the beat)
-- GitHub PATs, the Tailscale CI auth key's renewal note (~2027-01-26)
-- this box's sudo passwords, router admin, and the vault's own 2FA recovery code — on
-  paper too
+**One-time harvest:** [vault-seed-build.py](../stacks/net/vault-seed-build.py), run as
+root on ladybird, gathers every known secret file (this box, snibbly's two over the
+backup leg's ssh key, and the control node's repo `.env` if staged at
+`/root/repo-dotenv`) into `/root/vault-seed.json` — an *unencrypted* Bitwarden import
+file, mode 600. From a tailnet device: web vault → Tools → **Import data** → Bitwarden
+(.json). Then destroy it:
 
-**Rotate as you migrate.** Each of these has been sitting in a plaintext file; adding it
-to the vault is the natural moment to mint a new value and update the consumer. The vault
-entry's *name* can be the path it feeds (e.g. `/opt/stacks/dash/.env HA_TOKEN`), so the
-`.env` files on disk become plumbing that the vault can always regenerate.
+```bash
+sudo shred -u /root/vault-seed.json /root/repo-dotenv
+```
 
-The `.env` files themselves stay — services read environment files, not vaults, and that
-is deliberate: no running service depends on Vaultwarden being up. The vault is the
-durable source of truth; the files are disposable copies, mode 600.
+**Rotate as you migrate.** Every one of these values has been sitting in plaintext;
+entering the vault is the natural moment to mint a new value, update the vault entry,
+and re-render (below). After rotation, the harvested originals are dead values and the
+window where the seed file existed stops mattering.
+
+## Rendering files from the vault
+
+[vault-render.sh](../stacks/net/vault-render.sh) is the other direction: it rewrites this
+host's secret files from their vault notes, which makes the on-disk files disposable
+copies the vault can always regenerate. It needs the `bw` CLI once per box:
+
+```bash
+curl -fsSL -o /tmp/bw.zip 'https://vault.bitwarden.com/download/?app=cli&platform=linux'
+sudo unzip -o /tmp/bw.zip -d /usr/local/bin && sudo chmod 755 /usr/local/bin/bw
+sudo -i bw config server https://ladybird.tail0e6756.ts.net:8443
+sudo -i bw login            # once; email + master password + TOTP
+```
+
+then per session:
+
+```bash
+sudo -i
+export BW_SESSION=$(bw unlock --raw)
+/opt/stacks/net/vault-render.sh              # or a specific path
+```
+
+**Rotation drill:** edit the note in any Bitwarden client → `vault-render.sh` → restart
+the stacks it lists (compose reads `.env` only at `up`). **Restore drill, worth running
+once:** delete a low-stakes file (`/opt/stacks/sdr/.env`, say), render, `docker compose
+up -d`, watch the service come back healthy. A regeneration path that has never run is a
+hope, not a path.
+
+## Why the files stay
+
+Removing the `.env` files entirely — "no plaintext on the box" — is a **non-goal**, for
+two structural reasons. Vaultwarden does not implement Bitwarden's machine accounts
+(`bws`), so any automated fetch authenticates with a `bw` credential that would itself
+sit in plaintext on the same disk: the secret does not disappear, it just changes name.
+And the vault runs *on* ladybird — making every container's startup depend on it
+recreates exactly the boot-order fragility this design avoids (services must come up
+after a power cut with no human and no vault). The endpoint is instead: vault as the
+durable source of truth, every value rotated, and the files as mode-600 machine-written
+artifacts that `vault-render.sh` recreates in seconds.
 
 ## Gotchas
 
