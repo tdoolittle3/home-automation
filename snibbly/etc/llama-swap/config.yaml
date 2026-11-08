@@ -35,6 +35,17 @@ models:
       -m /opt/models/qwen3-8b-abliterated.Q4_K_M.gguf -ngl 99 -t 4 -c 8192 -np 2 --jinja
     env: ["CUDA_VISIBLE_DEVICES=0"]
     ttl: 0
+  # The agent engine for the Hermes harness. All experts offloaded to RAM
+  # (--n-cpu-moe 48 = every layer) so the 2070S's 8 GB is free to hold a 64k KV
+  # cache at q8 — the context floor Hermes needs for multi-step tool loops.
+  # Stays on GPU 0 only (no tensor-split); experts live in system RAM, not GPU 1.
+  "coder-30b":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/Qwen3-Coder-30B-A3B-Instruct-Q4_K_M.gguf -ngl 99 --n-cpu-moe 48
+      -t 4 -c 65536 -ctk q8_0 -ctv q8_0 -fa on -np 1 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=0"]
+    ttl: 0
 
 routing:
   router:
@@ -48,7 +59,7 @@ routing:
         "big":
           swap: true
           exclusive: true
-          members: ["big-30b-thinking", "big-14b"]
+          members: ["coder-30b", "big-30b-thinking", "big-14b"]
         "ablit":
           swap: false
           exclusive: true

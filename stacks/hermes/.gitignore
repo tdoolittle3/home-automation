@@ -1,0 +1,3 @@
+# Runtime data: config.yaml, .env, persistent memory/skills/logs. Never commit —
+# holds the litellm key, HA token, Telegram token. docs/hermes.md.
+data/
