@@ -37,6 +37,7 @@
       - firmware-misc-nonfree
       - rasdaemon
       - sqlite3    # vaultwarden-backup.sh takes online .backup snapshots
+      - rsync      # vaultwarden-backup.sh's off-box leg (found missing 2026-11-07)
 
 - name: ssh enabled
   ansible.builtin.systemd:

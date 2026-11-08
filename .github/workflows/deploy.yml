@@ -3,10 +3,15 @@ name: Deploy
 # Phase 2: converge the live hosts from CI, everything behind the gated
 # `prod` environment (required reviewer + master-only deployments).
 #
-# Flow on every merge to master touching config: approval click #1 runs the
-# PLAN (--check --diff, read-only) and writes the diff to the job summary;
-# approval click #2 runs the APPLY. workflow_dispatch runs a plan on demand
+# Flow on every merge to master touching config: one prod approval releases
+# the run — PLAN (--check --diff, read-only) writes the diff to the job
+# summary, then APPLY converges. workflow_dispatch runs a plan on demand
 # (apply only if its input says so).
+#
+# Runs queue one at a time and wait for approval, so an old run can be
+# approved after a newer merge already applied — which would converge the
+# hosts BACK to the older tree. The staleness guard in both jobs makes that
+# a fast failure instead: only the current tip of master ever deploys.
 #
 # Network path: the runner joins the tailnet as an ephemeral, tag:ci node
 # using a pre-signed auth key (tailnet lock), and the ACL jails tag:ci to
@@ -46,6 +51,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Staleness guard — only the tip of master deploys
+        run: |
+          git fetch --quiet origin master
+          tip=$(git rev-parse origin/master)
+          if [ "$tip" != "$GITHUB_SHA" ]; then
+            echo "::error::This run is for $GITHUB_SHA but master is now at $tip — superseded by a newer merge. Approve the newest Deploy run instead."
+            exit 1
+          fi
+
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -82,6 +96,17 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+
+      # Re-checked at apply time: master can move while a plan sits waiting
+      # for approval.
+      - name: Staleness guard — only the tip of master deploys
+        run: |
+          git fetch --quiet origin master
+          tip=$(git rev-parse origin/master)
+          if [ "$tip" != "$GITHUB_SHA" ]; then
+            echo "::error::This run is for $GITHUB_SHA but master is now at $tip — superseded by a newer merge. Approve the newest Deploy run instead."
+            exit 1
+          fi
 
       - uses: actions/setup-python@v5
         with:

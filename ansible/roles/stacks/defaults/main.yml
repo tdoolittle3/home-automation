@@ -23,9 +23,11 @@ stacks_root_scripts:
   - frigate-guard.sh
   - kuma-watchdog.sh
   - vaultwarden-backup.sh
+  - vault-render.sh
 
 # Run as the admin user (iptv-playlist.service has User=thomas;
 # kuma-provision.py is invoked by hand), so they keep that ownership.
 stacks_admin_scripts:
   - iptv-playlist.py
   - kuma-provision.py
+  - vault-seed-build.py
