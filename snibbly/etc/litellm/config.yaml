@@ -8,6 +8,16 @@
 # rules in llama-swap/config.yaml behave exactly as before.
 
 model_list:
+  # Hermes Agent sends the openai/ provider-prefixed name (its router needs the
+  # prefix). The wildcard below would double-prefix it ("openai/openai/..."), so
+  # map it explicitly: litellm parses provider=openai + model=coder-30b and
+  # forwards the bare "coder-30b" to llama-swap. Add one of these per model the
+  # agent uses via the openai/ prefix.
+  - model_name: "openai/coder-30b"
+    litellm_params:
+      model: "openai/coder-30b"
+      api_base: http://127.0.0.1:9292/v1
+      api_key: os.environ/LLAMA_API_KEY
   # Wildcard passthrough: whatever model the client names is forwarded to
   # llama-swap under the same name, so new models in llama-swap/config.yaml
   # need no edit here.
@@ -22,6 +32,10 @@ litellm_settings:
   # responses from a burned thinking budget) are half the reason to capture.
   success_callback: ["langfuse"]
   failure_callback: ["langfuse"]
+  # Local llama.cpp models don't advertise support for every OpenAI param
+  # (e.g. reasoning.effort from agent clients like Hermes). Drop unsupported
+  # params instead of 400-ing the request.
+  drop_params: true
 
 general_settings:
   # Clients authenticate to LiteLLM with this; it is set to the same VALUE as

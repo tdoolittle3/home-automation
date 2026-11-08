@@ -1,37 +1,28 @@
 # Hermes Agent config — the homelab "Operator" profile.
-# Copy to data/config.yaml on ladybird (or let `hermes setup` write it).
+# Copy to data/config.yaml on ladybird (or run `hermes setup`).
 # Secrets (keys, tokens) go in data/.env, NEVER here — see .env.example.
 # docs/hermes.md.
 
-# The model lives on snibbly: litellm (:8080) -> llama-swap -> coder-30b, the
-# clean (non-abliterated) coder deployed 2026-11-08 at 64k context. Only clean
-# models ever drive the agent; heretic/DeepHat models never get tool access.
-providers:
-  snibbly:
-    type: openai
-    base_url: "${SNIBBLY_LLM_BASE_URL}"   # .env, e.g. http://192.168.0.19:8080/v1
-    # api_key resolves from .env (the litellm master key == LLAMA_API_KEY).
-    # Confirm the exact var name Hermes expects for this provider with
-    # `hermes setup` — it writes the provider block authoritatively.
-    models:
-      coder-30b:
-        id: "coder-30b"            # the llama-swap model name
-        context_length: 65536      # matches the -c 65536 KV cache sized on snibbly
-
+# Model = snibbly litellm (OPENAI_BASE_URL in .env) -> llama-swap -> coder-30b,
+# the clean coder. Hermes uses its generic OpenAI provider; the "openai/" prefix
+# is REQUIRED for its routing and is sent verbatim to litellm, so litellm needs
+# a matching alias (see snibbly/etc/litellm/config.yaml). Only clean models
+# drive the agent; heretic/DeepHat models never get tool access.
 model:
-  default: snibbly/coder-30b
+  default: openai/coder-30b
 
-# The agent's general shell. CHOOSE AT DEPLOY (docs/hermes.md "Sandbox"):
-#   docker — ephemeral containers on ladybird; requires the docker.sock mount in
-#            docker-compose.yml (root-equivalent — weigh carefully).
-#   ssh    — run commands on a dedicated low-priv sandbox user; upstream's
-#            recommended isolation (agent can't read this box's .env or edit its
-#            own code). Set TERMINAL_SSH_* in .env.
-terminal:
-  backend: docker
+# Agent shell / code-execution backend. Pick a SANDBOX before enabling the shell
+# tools (docs/hermes.md "Sandbox"):
+#   terminal: {backend: docker}  # ephemeral containers; needs the docker.sock
+#                                #   mount in docker-compose.yml (root-equivalent)
+#   terminal: {backend: ssh}     # low-priv sandbox user; set TERMINAL_SSH_* in .env
+# For a no-shell phase (Home Assistant control only, no code execution), don't
+# set a backend — instead disable the shell toolsets once:
+#   hermes tools disable terminal code_execution computer_use
+# NOTE: backend "none" is NOT valid and logs errors; use the disable above.
 
-# Auto-summarize old turns as the 64k window fills, so long multi-step agent
-# sessions don't fall off the context cliff mid-task.
+# Auto-summarize old turns as the 64k window fills so long agent sessions don't
+# fall off the context cliff mid-task.
 compression:
   enabled: true
   threshold: 0.85
