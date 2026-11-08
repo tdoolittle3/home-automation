@@ -1,0 +1,54 @@
+# Hermes Agent — the "Operator" homelab agent harness (docs/hermes.md).
+#
+# The agent LOOP and tool execution run HERE on ladybird; model inference runs
+# on snibbly (litellm :8080 -> llama-swap -> coder-30b). This container is
+# CPU/RAM-light — no GPU, no model weights, just the orchestration loop.
+#
+# NOT auto-deployed: "hermes" is deliberately absent from the ansible
+# stacks_whole_dirs / stacks_auto_up lists, so `converge` ignores it until the
+# limited Home Assistant token exists and we opt it in. First run is manual —
+# see docs/hermes.md.
+#
+# Image is BUILT from upstream (NousResearch/hermes-agent), not a registry pull.
+# Build once on ladybird:
+#   git clone https://github.com/NousResearch/hermes-agent ~/src/hermes-agent
+#   (cd ~/src/hermes-agent && docker build -t hermes-agent:latest .)
+#
+# Secrets (litellm key, HA token, Telegram token) live in ./data/.env
+# (gitignored), NEVER in this file.
+services:
+  gateway:
+    image: hermes-agent:latest
+    container_name: hermes
+    restart: unless-stopped
+    # Host networking so the agent can reach HA (192.168.0.13:8123), snibbly
+    # litellm (192.168.0.19:8080), and the Telegram gateway can poll out.
+    # No `ports:` — incompatible with host mode.
+    network_mode: host
+    volumes:
+      # config.yaml + .env + persistent memory/skills/logs. Gitignored.
+      - ./data:/opt/data
+      # Uncomment ONLY if config.yaml sets terminal.backend: docker — the agent
+      # then spins ephemeral build containers (e.g. preview dashboards). NOTE:
+      # mounting the socket is root-equivalent on this host; the safer option is
+      # terminal.backend: ssh to a low-priv sandbox user (docs/hermes.md).
+      # - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - HERMES_UID=${HERMES_UID:-1000}
+      - HERMES_GID=${HERMES_GID:-1000}
+    command: ["gateway", "run"]
+
+  dashboard:
+    image: hermes-agent:latest
+    container_name: hermes-dashboard
+    restart: unless-stopped
+    network_mode: host
+    depends_on:
+      - gateway
+    volumes:
+      - ./data:/opt/data
+    environment:
+      - HERMES_UID=${HERMES_UID:-1000}
+      - HERMES_GID=${HERMES_GID:-1000}
+    # Localhost-only — it stores API keys. Reach it via `ssh -L 9119:localhost:9119`.
+    command: ["dashboard", "--host", "127.0.0.1", "--no-open"]
