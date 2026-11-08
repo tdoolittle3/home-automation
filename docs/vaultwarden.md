@@ -98,19 +98,25 @@ task, then disable it again.
 Settings live in [vaultwarden-backup.conf](../stacks/net/vaultwarden-backup.conf); the
 timer re-reads it every run.
 
-**The off-box leg** is a conf value away and starts unwired
-([known-gaps.md](known-gaps.md#backups)). To send snapshots to another machine (snibbly,
-say), set up a key as root on ladybird once:
+**The off-box leg** sends every snapshot to snibbly —
+`REMOTE_DEST=thomas@192.168.0.19:backups/vaultwarden/` in the conf, landing under
+`~thomas/backups/vaultwarden/` (wired and verified 2026-11-07). The rsync uses
+`--ignore-existing` and never deletes: local pruning does not propagate, and a
+compromised ladybird cannot rewrite or empty the remote copies. Nothing prunes the
+snibbly side; at ~10 KB a night that is years of headroom before it matters.
+
+The key setup behind it is one-time, done as root on ladybird, and must be repeated on a
+rebuild of either box (the private key and the target's `authorized_keys` are not in this
+repo):
 
 ```bash
 sudo ssh-keygen -t ed25519 -f /root/.ssh/id_ed25519 -N ''
-sudo cat /root/.ssh/id_ed25519.pub   # append to ~/.ssh/authorized_keys on the target
+sudo cat /root/.ssh/id_ed25519.pub   # append to thomas@snibbly's ~/.ssh/authorized_keys
 sudo ssh thomas@192.168.0.19 true    # accept the host key once
 ```
 
-then set `REMOTE_DEST=thomas@192.168.0.19:backups/vaultwarden/` in the conf. The rsync
-uses `--ignore-existing` and never deletes: local pruning does not propagate, and a
-compromised ladybird cannot rewrite or empty the remote copies.
+`rsync` must exist on both ends — the base role installs it on ladybird (it is not in
+Debian's default install, which is how the first wired run failed).
 
 **Belt and suspenders:** every month or so, desktop app → Export vault →
 **.json (encrypted)**, stored anywhere. It is useless without the master password and
