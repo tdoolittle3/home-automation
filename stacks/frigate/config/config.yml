@@ -82,6 +82,25 @@ cameras:
       width: 1280
       height: 720
       fps: 5
+    # The camera's burned-in timestamp ticks every second and reads as
+    # perpetual motion, keeping the detector busy on an otherwise idle scene.
+    motion:
+      mask:
+        - 0.66,0,1,0,1,0.09,0.66,0.09
+    # Everything from the sidewalk down to the house. The street runs across
+    # the top of the frame: ~105 passing cars/day were each becoming an
+    # "alert" (measured 2026-11-01..07: 732 of 933 weekly events were
+    # driveway cars, half under 3s). Zone membership is judged by the
+    # bottom-center of the box, so street traffic stays out while anything
+    # pulling into or walking up the driveway enters.
+    zones:
+      front_yard:
+        coordinates: 0,0.45,0.35,0.36,0.75,0.36,1,0.44,1,1,0,1
+    # Street passes still record under the detections tier (7d); only
+    # activity on the property is an alert (10d tier + review UI).
+    review:
+      alerts:
+        required_zones: [front_yard]
     live:
       streams:
         Main 4MP: driveway
@@ -99,6 +118,12 @@ cameras:
       width: 704
       height: 480
       fps: 5
+    # Masks: burned-in timestamp (top right) and "IPC" logo (bottom left) —
+    # both register as constant motion on a scene that is otherwise still.
+    motion:
+      mask:
+        - 0.62,0,1,0,1,0.11,0.62,0.11
+        - 0,0.87,0.1,0.87,0.1,1,0,1
     live:
       streams:
         Main 2MP: backyard
