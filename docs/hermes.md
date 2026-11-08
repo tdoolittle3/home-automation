@@ -55,53 +55,70 @@ cd ~/src/hermes-agent && docker build -t hermes-agent:latest .
 
 ### 2. Create the limited Home Assistant user + token  ← the safety boundary
 
-In HA: **Settings → People → Users → Add**, a *non-admin* user (e.g.
-`hermes-agent`). Log in as that user, then **Profile → Long-lived access tokens
-→ Create**. Whatever that user can see and control is the ceiling on what the
-agent can do, regardless of what the model asks for. Put the token in `data/.env`
-as `HASS_TOKEN`.
+In HA: **Settings → People → Users → Add**, a *non-admin* user (e.g. `Snibbly`).
+Then **log in as that user** — the token UI only appears on your own profile, not
+the admin user-management screen — and go to **Profile → Security → Long-Lived
+Access Tokens → Create** (direct link: `http://192.168.0.13:8123/profile/security`;
+use a desktop browser, not the phone app). Whatever that user can see and control
+is the ceiling on what the agent can do. Put the token in `data/.env` as
+`HASS_TOKEN`. (Optionally tighten with `HASS_ENTITY_ALLOWLIST`/`DENYLIST` — see
+.env.example.)
 
 ### 3. Configure
 
 ```
-cd /opt/stacks/hermes            # after the stack dir is synced here
+cd /opt/stacks/hermes            # stack dir (created manually; not ansible-synced)
 mkdir -p data
 cp .env.example data/.env && chmod 600 data/.env   # fill in keys/tokens
-cp config.yaml.example data/config.yaml            # or run `hermes setup`
+cp config.yaml.example data/config.yaml
 ```
 
-`data/.env` holds the litellm key, HA token, Telegram token.
-`data/config.yaml` points the `snibbly` provider at litellm and selects
-`coder-30b`. Running `docker compose run --rm gateway hermes setup` interactively
-is the authoritative way to write the provider block (it confirms the api_key var
-name).
+`data/config.yaml` sets `model.default: openai/coder-30b`; `data/.env` sets
+`OPENAI_BASE_URL` (snibbly litellm) + `OPENAI_API_KEY` (the litellm key) plus the
+HA and Telegram secrets. Hermes's schema is `model.default` + OpenAI env vars —
+**not** a `providers:` block.
 
-### 4. Sandbox — choose the agent's shell backend
+**litellm alias (required once):** Hermes sends the model as `openai/coder-30b`,
+prefix and all. litellm's wildcard would double-prefix that, so add an explicit
+alias mapping `openai/coder-30b` → the bare `coder-30b`, plus `drop_params: true`
+(the coder rejects Hermes's `reasoning.effort` param otherwise). Both live in
+`snibbly/etc/litellm/config.yaml`; deploy and restart litellm.
 
-The agent's general shell should not run with the gateway's credentials. Two
-supported options (set `terminal.backend` in `config.yaml`):
+### 4. Enable Home Assistant + pick the shell posture
 
-- **`ssh`** (recommended): a dedicated low-priv user on snibbly. The agent can't
-  read ladybird's `.env` or edit its own code; the remote user is the blast
-  radius. Set `TERMINAL_SSH_*` in `.env`.
-- **`docker`**: ephemeral containers on ladybird. Faster to set up but needs the
-  `/var/run/docker.sock` mount in `docker-compose.yml`, which is
-  **root-equivalent** on ladybird. Only enable if you accept that.
+The HA plugin ships **installed but disabled** — enabling it is the step that
+registers the `ha_*` tools (this is easy to miss):
 
-Privileged actions (HA calls, service restarts) are **separate scoped tools**,
-not the general shell — so the shell stays sandboxed while narrow, allowlisted
-tools do the risky work.
+```
+docker compose run --rm gateway hermes plugins enable homeassistant
+```
 
-### 5. First run + gateway
+Then choose the agent's code-execution posture:
+
+- **No-shell** (HA/chat only — safe first phase): disable the shell toolsets —
+  `docker compose run --rm gateway hermes tools disable terminal code_execution computer_use`
+- **Sandboxed shell** (for dashboard/code work): set `terminal.backend` to
+  `docker` (uncomment the `docker.sock` mount in docker-compose.yml —
+  root-equivalent on ladybird) or `ssh` (a low-priv sandbox user; set
+  `TERMINAL_SSH_*`). Backend `none` is invalid and just logs errors.
+
+Privileged homelab actions (HA calls, service restarts) are **separate scoped
+tools**, not the general shell — so the shell stays sandboxed while narrow,
+allowlisted tools do the risky work.
+
+### 5. First run + validate
 
 ```
 HERMES_UID=$(id -u) HERMES_GID=$(id -g) docker compose up -d
-docker compose logs -f gateway
-docker compose run --rm gateway hermes gateway setup   # Telegram: checks the bot token, allowlists you
+# one-shot headless validation (no messaging gateway needed):
+docker compose run --rm gateway hermes -z "Reply with one word: pong"
+docker compose run --rm gateway hermes -z "Using Home Assistant, is the garage door open? Read-only."
+# messaging gateway (Telegram), when ready:
+docker compose run --rm gateway hermes gateway setup
 ```
 
-Message your bot: "is the garage door open?" should trigger a tool call and a
-real answer. Watch the trace land in Langfuse on snibbly.
+Each `docker compose run` re-runs the container init (~20s, noisy — filter the
+s6/cont-init lines). Model calls trace into Langfuse on snibbly.
 
 ### 6. Make it permanent (optional)
 
@@ -110,9 +127,10 @@ To have `converge` manage it, add `hermes` to `stacks_whole_dirs` and
 
 ## Scoped tools — the build-out
 
-- **Home Assistant plugin**: `hermes plugins install homeassistant` → the four
-  HA tools (list entities, get state, list services, call service). The limited
-  user is the ceiling.
+- **Home Assistant plugin** (VALIDATED 2026-11-08): `hermes plugins enable
+  homeassistant` registers ha_list_entities / ha_get_state / ha_list_services /
+  ha_call_service. The non-admin user + optional HASS_ENTITY_ALLOWLIST/DENYLIST
+  are the ceiling.
 - **Service restart**: a narrow tool/skill with a fixed allowlist of unit names,
   not raw shell. Services on ladybird restart locally; snibbly services
   (llama-swap, vision) restart over SSH — the tool must know which host owns each.

@@ -33,6 +33,11 @@ services:
       # mounting the socket is root-equivalent on this host; the safer option is
       # terminal.backend: ssh to a low-priv sandbox user (docs/hermes.md).
       # - /var/run/docker.sock:/var/run/docker.sock
+    # Load the whole .env into the container environment so plugins that read
+    # os.environ (e.g. the Home Assistant plugin's HASS_TOKEN/HASS_URL) see it,
+    # not just the core model client that parses .env itself.
+    env_file:
+      - ./data/.env
     environment:
       - HERMES_UID=${HERMES_UID:-1000}
       - HERMES_GID=${HERMES_GID:-1000}
