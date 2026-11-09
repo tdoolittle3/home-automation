@@ -131,6 +131,12 @@ To have `converge` manage it, add `hermes` to `stacks_whole_dirs` and
   homeassistant` registers ha_list_entities / ha_get_state / ha_list_services /
   ha_call_service. The non-admin user + optional HASS_ENTITY_ALLOWLIST/DENYLIST
   are the ceiling.
+- **Radio logs** (read-only data, not a tool): `/opt/stacks/radiolog/data`
+  (Meshtastic chat, ISM sensor decodes, ADS-B sightings — docs/radiolog.md) is
+  mounted at `workspace/radiolog/` in the gateway, and the `radio-logs` skill
+  (`stacks/hermes/skills/homelab/radio-logs/`, copied into `data/skills/homelab/`)
+  teaches the agent the file layout and schemas. The `:ro` mount is the
+  guarantee that a confused agent can't rewrite history.
 - **Service restart**: a narrow tool/skill with a fixed allowlist of unit names,
   not raw shell. Services on ladybird restart locally; snibbly services
   (llama-swap, vision) restart over SSH — the tool must know which host owns each.

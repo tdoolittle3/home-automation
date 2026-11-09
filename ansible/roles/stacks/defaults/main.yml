@@ -3,7 +3,7 @@ stacks_root: /opt/stacks
 
 # Synced as whole directories. frigate and home are handled by their own
 # tasks (seed config / restart-on-change rules); see tasks/main.yml.
-stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns, vaultwarden]
+stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns, vaultwarden, radiolog]
 
 # `docker compose up -d` runs for these every play — idempotent, a no-op for
 # unchanged services. Deliberately absent:
@@ -13,6 +13,9 @@ stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns, vaultwar
 #          (docs/operations.md -> Dashboard)
 #   mesh — its only service sits behind profiles: ["cli"]; `up` has nothing
 #          to start and exits "no service selected"
+#   radiolog — image is built in-place from the synced dir; `up` without
+#          `--build` would run a stale image after source changes
+#          (docs/radiolog.md)
 stacks_auto_up: [frigate, home, media, immich, net, n8n, stt, vaultwarden]
 
 # Executed by systemd units as root; systemd refuses a non-root-owned

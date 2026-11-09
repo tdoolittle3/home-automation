@@ -29,6 +29,7 @@ plan for what runs.
 | 🛡️ **Filters the ads** | AdGuard Home answers DNS for the whole house, so ads are gone on every device without installing anything on them. |
 | ✈️ **Tracks the planes** | An RTL-SDR radio decodes ADS-B and draws a live aircraft map; a second dongle decodes 433/315 MHz sensors ([sdr.md](docs/sdr.md)). |
 | 📟 **Meshes off-grid** | A Heltec LoRa node bridges a private Meshtastic channel onto MQTT and the dashboard ([meshtastic.md](docs/meshtastic.md)). |
+| 📼 **Keeps the tapes** | Every mesh chat message, ISM sensor decode and aircraft sighting is logged to daily JSONL files the Hermes agent can query ([radiolog.md](docs/radiolog.md)). |
 | 🩺 **Watches itself** | Uptime Kuma, a UPS that shuts ladybird down cleanly, and small guards that shout if the disk fills or the power fails. |
 
 ## Where to click

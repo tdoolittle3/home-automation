@@ -210,6 +210,23 @@ until its key is loaded onto the gateway node.
 
 ---
 
+## Message log — the serial side-channel
+
+Since the MQTT uplink died (fw 2.7.26 gotcha below), mesh traffic was
+ephemeral: nothing on the broker, nothing on disk. The **radiolog** stack
+([radiolog.md](radiolog.md)) now logs every text message and a one-line
+summary of every other packet by speaking the PhoneAPI over the node's USB
+serial port — a separate transport from both the broken MQTT uplink and the
+phone's TCP slot, so it coexists with the phone app and works regardless of
+broker state. Two consequences:
+
+- `docker compose run cli --port /dev/ttyACM0` (this stack) conflicts with
+  the running `mesh-logger` — stop it first, or admin over the network
+  (`--host 192.168.0.16`, current practice anyway).
+- The dashboard's channel tabs are still MQTT-fed and still dormant. If the
+  firmware bridge stays dead, the natural fix is teaching `mesh-logger` to
+  republish to `msh/US/2/json/…` (the "python bridge" option) — not done yet.
+
 ## Gotchas
 
 - **The primary channel's NAME picks the radio frequency.** Renaming the

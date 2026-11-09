@@ -28,6 +28,11 @@ services:
     volumes:
       # config.yaml + .env + persistent memory/skills/logs. Gitignored.
       - ./data:/opt/data
+      # Radio logs (Meshtastic chat, ISM sensor decodes, ADS-B sightings) —
+      # written by stacks/radiolog, read-only here so the agent's file tools
+      # can query them but never alter them. The radio-logs skill
+      # (./skills/homelab/radio-logs) documents the schemas.
+      - /opt/stacks/radiolog/data:/opt/data/workspace/radiolog:ro
       # Uncomment ONLY if config.yaml sets terminal.backend: docker — the agent
       # then spins ephemeral build containers (e.g. preview dashboards). NOTE:
       # mounting the socket is root-equivalent on this host; the safer option is

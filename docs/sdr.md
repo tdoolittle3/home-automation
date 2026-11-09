@@ -157,8 +157,11 @@ ssh -L 30005:127.0.0.1:30005 -N thomas@192.168.0.13
 The `rtl_433` service in `stacks/sdr/docker-compose.yml` runs on a **second
 dongle** (serial `00000002`, dipole antenna) and band-hops with `-H 60`:
 433.92 MHz (temp/humidity, some TPMS) → 315 MHz (US TPMS) → 912.6 MHz (ERT
-water meter). Decodes publish as JSON to the Mosquitto on the `home` stack
-(`192.168.0.13:1883`, anonymous) under `rtl_433/<model>/<id>`.
+water meter). Decodes publish to the Mosquitto on the `home` stack
+(`192.168.0.13:1883`, anonymous) in two shapes: per-field topics under
+`rtl_433/<model>/<id>/…` (what the HA sensors read) and the whole decode as
+one JSON message on `rtl_433/events` (what the radiolog stack persists to
+disk and the Hermes agent queries — [radiolog.md](radiolog.md)).
 
 Expectations per band: temp/humidity beacons every ~30-60 s (reliable);
 TPMS only transmits while wheels turn (opportunistic); the ERT meter hops
