@@ -81,6 +81,8 @@ cp config.yaml.example data/config.yaml
 # homelab skills ship in the synced skills/ dir; hermes loads them from data/
 mkdir -p data/skills/homelab
 cp -r skills/homelab/* data/skills/homelab/
+# the always-in-context identity + homelab map (see "Tool routing" below)
+cp SOUL.md.example data/SOUL.md
 ```
 
 `data/config.yaml` sets `model.default: openai/coder-30b`; `data/.env` sets
@@ -165,6 +167,27 @@ live edits on the box, same as ever. Upstream agent updates = re-pull the
   (llama-swap, vision) restart over SSH — the tool must know which host owns each.
 - **Preview deploys**: the agent writes a site to a previews dir that a small web
   server (Caddy) serves, and hands back the URL. (Separate stack, TBD.)
+
+## Tool routing — the homelab map
+
+Skills only load when a request matches their description, and the model
+describes itself from its *loaded tool list* — which is mostly the ~66 Home
+Assistant service domains. Left alone, Hermes calls itself a Home Assistant
+assistant and routes everything there (2026-11-09: "who flew over the house?"
+went to the vision archive; "what can you access?" listed only HA).
+
+`SOUL.md.example` is the fix: a short identity + routing table (question →
+source, with "not this" columns, and an explicit "cannot reach" list) that is
+in the system prompt on every turn. It lives at `data/SOUL.md` (HERMES_HOME), a
+live edit like config.yaml: `cp SOUL.md.example data/SOUL.md` after the
+converge syncs it, then `docker compose restart gateway` if it doesn't pick up
+on the next message. **Keep the table in step with reality** — add a row when a
+new data source or MCP server lands (and its skill's description), drop rows
+for things that are removed.
+
+If routing regresses, in order: fix the table row, sharpen the skill
+description (user-phrased triggers + a "not this tool" line), sharpen the MCP
+server's tool descriptions. Don't grow the prompt.
 
 ## Related
 
