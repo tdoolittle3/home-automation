@@ -186,6 +186,12 @@ services:
   # Mosquitto is on the `home` stack, listener 1883, allow_anonymous true,
   # so no username/password is needed. Bridge networking means we address it
   # by LAN IP, not container name — it is a separate compose project.
+  #
+  # Two MQTT shapes on purpose: `devices=` per-field topics feed the HA
+  # sensors (don't rename — entity ids hang off them), `events=` is the
+  # whole decode as one JSON message, which is what the radiolog stack
+  # subscribes to (docs/radiolog.md). Naming any key suppresses the unnamed
+  # defaults, so both must be listed explicitly.
   rtl_433:
     container_name: rtl_433
     image: ghcr.io/hertzg/rtl_433_docker:master
@@ -215,7 +221,7 @@ services:
       -M protocol
       -M level
       -F json
-      -F mqtt://192.168.0.13:1883,retain=0,devices=rtl_433[/model][/id]
+      -F mqtt://192.168.0.13:1883,retain=0,events=rtl_433/events,devices=rtl_433[/model][/id]
       -F http://0.0.0.0:8433
     deploy:
       resources:

@@ -1,0 +1,85 @@
+# radiolog -- JSONL logs of what the house radios hear (docs/radiolog.md).
+#
+# Three containers, one tiny local image (radiolog.py picks the role):
+#   mesh-logger    Meshtastic chat + packet summaries, over the node's USB serial
+#   rtl433-logger  ISM decodes (outdoor temp, TPMS, water meter) via MQTT
+#   adsb-logger    aircraft sightings condensed from readsb's aircraft.json
+#
+# Everything writes to ./data/{mesh,rtl433,adsb}/ (gitignored). The Hermes
+# agent reads that dir through a read-only mount (stacks/hermes).
+#
+# Image is BUILT here, not pulled -- so like dash, this stack is file-synced
+# by ansible (stacks_whole_dirs) but NOT auto-up'd. Deploy / update:
+#   cd /opt/stacks/radiolog && docker compose up -d --build
+#
+# ttyACM0 GOTCHA: mesh-logger holds the node's serial port for as long as it
+# runs, and the serial PhoneAPI is single-client:
+#   - `docker compose run cli --port /dev/ttyACM0` in stacks/mesh now fails
+#     until mesh-logger is stopped. Admin over the network instead
+#     (`--host 192.168.0.16`), which is the current practice anyway.
+#   - When the node reboots, the host recreates /dev/ttyACM0 but this
+#     container keeps the stale bind. radiolog.py exits on a lost
+#     connection on purpose: restart re-resolves the device mapping.
+services:
+  mesh-logger:
+    build: .
+    image: radiolog:local
+    container_name: mesh-logger
+    restart: unless-stopped
+    command: ["mesh"]
+    devices:
+      - /dev/ttyACM0:/dev/ttyACM0
+    volumes:
+      - ./data:/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      TZ: America/Denver
+      MESH_DEV: /dev/ttyACM0
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 128M
+
+  rtl433-logger:
+    build: .
+    image: radiolog:local
+    container_name: rtl433-logger
+    restart: unless-stopped
+    command: ["rtl433"]
+    volumes:
+      - ./data:/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      TZ: America/Denver
+      # Mosquitto lives on the `home` stack; bridge networking means LAN IP,
+      # not container name -- same as rtl_433's own MQTT output (stacks/sdr).
+      MQTT_HOST: 192.168.0.13
+      RTL433_TOPIC: rtl_433/events
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M
+
+  adsb-logger:
+    build: .
+    image: radiolog:local
+    container_name: adsb-logger
+    restart: unless-stopped
+    command: ["adsb"]
+    volumes:
+      - ./data:/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      TZ: America/Denver
+      # tar1090/readsb on the sdr stack; aircraft.json sits on tmpfs there,
+      # so a 30s poll costs no disk writes on either side.
+      AIRCRAFT_URL: http://192.168.0.13:8080/data/aircraft.json
+      POLL_SECS: "30"
+      GONE_SECS: "300"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 64M

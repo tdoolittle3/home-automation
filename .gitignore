@@ -16,6 +16,8 @@
 **/vw-data/
 
 # ---- Runtime state pulled from the server by mistake ----
+# radiolog's JSONL logs live on the server only
+stacks/radiolog/data/
 **/*.db
 **/*.db-*
 **/model_cache/
