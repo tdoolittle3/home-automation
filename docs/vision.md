@@ -112,6 +112,46 @@ fetches them (they park as `error`; the sweep covers those spans anyway), and Op
 weights must load as `ViT-B-16-quickgelu` — the plain variant silently uses the wrong
 activation.
 
+## Agent search (vision-mcp)
+
+The archive is queryable by the Hermes agent ([docs/hermes.md](hermes.md)): `vision-mcp`
+([server](../snibbly/vision/mcp_server.py),
+[unit](../snibbly/etc/systemd/system/vision-mcp.service)) serves read-only MCP tools over
+streamable HTTP on `:8097`, same venv and config as the worker. Hermes's native MCP client
+registers them at startup as `mcp_vision_*`, so from Telegram you can ask "did anyone walk a
+dog past the driveway today?" and get event links back.
+
+Four tools, each matched to what the data actually supports:
+
+* **`search(query, …)`** — semantic: the query goes through the same CLIP text tower (CPU —
+  the GPU belongs to the worker) and ranks the stored per-crop embeddings by cosine, grouped
+  into events. Good for attributes ("white delivery van", "person carrying a box"); the
+  0.22-default threshold is the same ~0.22–0.30 useful range as zero-shot tags.
+* **`frames_with(labels, …)`** — compositional: crop embeddings can't see what's *next to* a
+  crop, so "person with a dog" is SQL instead — frames where all the labels co-occur.
+* **`recent_events(…)`** — plain metadata: time window, camera, label, `source` (frigate vs
+  sweep), and `night_only` (21:00–07:00 local by default; snibbly runs UTC, so the `[mcp]`
+  timezone config does the translation).
+* **`entities(…)`** — the re-ID clusters, named and unnamed, with sighting counts.
+
+Deploy (one-time, after the Phase 1–3 install):
+
+```bash
+# the venv is uv-managed (no pip binary in it):
+uv pip install --python /opt/vision/venv/bin/python "mcp>=2"
+# install mcp_server.py + unit + the [mcp] config block (tracked copies), then:
+sudo systemctl daemon-reload && sudo systemctl enable --now vision-mcp
+sudo ufw allow from 192.168.0.13 to any port 8097 proto tcp comment "hermes vision-mcp"
+```
+
+Hermes side: the `mcp_servers:` block in
+[stacks/hermes/config.yaml.example](../stacks/hermes/config.yaml.example), then restart the
+gateway. Validate end-to-end with
+`docker compose run --rm gateway hermes -z "Using the vision tools, list camera events from the last 6 hours."`
+
+No auth, LAN-only, read-only — the same trust posture as Frigate `:5000` and vision-web
+`:8099`, and a strictly weaker tool than the HA control Hermes already holds.
+
 ## Phase 0 results — what runs on a Pascal card in 2026
 
 Everything below was measured on snibbly 2026-10-20

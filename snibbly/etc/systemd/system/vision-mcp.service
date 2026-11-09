@@ -1,0 +1,23 @@
+[Unit]
+Description=Vision pipeline MCP server (semantic search tools for Hermes)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=vision
+Group=vision
+WorkingDirectory=/opt/vision
+ExecStart=/opt/vision/venv/bin/python /opt/vision/mcp_server.py
+Restart=always
+RestartSec=5
+# CPU only: hiding every GPU keeps the CLIP text tower off the worker's card
+Environment=CUDA_VISIBLE_DEVICES=
+Environment=HF_HOME=/opt/vision/models/hf
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+# read-only tools — the DB is opened mode=ro, no write paths needed
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
