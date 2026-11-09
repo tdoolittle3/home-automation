@@ -42,9 +42,16 @@ limited HA user**, not the prompt.
 
 ## Deploy
 
-Nothing here auto-deploys — `hermes` is intentionally left out of the ansible
-`stacks_whole_dirs` / `stacks_auto_up` lists, so `converge` ignores it until you
-opt in. First run is manual.
+Since 2026-11-08 the stack dir **is ansible-managed**: `hermes` is in
+`stacks_whole_dirs`, so every converge syncs `docker-compose.yml`, the
+`*.example` files and `skills/` to `/opt/stacks/hermes/` (the gitignored
+`data/` dir survives — copy never deletes). It is deliberately **not** in
+`stacks_auto_up`: the image is built locally and the gateway can't start
+before `data/.env` exists, so after a synced compose change you still run
+`docker compose up -d` there yourself ([ansible.md](ansible.md)).
+
+The steps below are the one-time bring-up on a fresh box (they were first run
+manually 2026-11-08; converge now keeps step-3's tracked inputs in sync).
 
 ### 1. Build the image (no registry pull)
 
@@ -67,10 +74,13 @@ is the ceiling on what the agent can do. Put the token in `data/.env` as
 ### 3. Configure
 
 ```
-cd /opt/stacks/hermes            # stack dir (created manually; not ansible-synced)
+cd /opt/stacks/hermes            # stack dir (ansible-synced; data/ is yours)
 mkdir -p data
 cp .env.example data/.env && chmod 600 data/.env   # fill in keys/tokens
 cp config.yaml.example data/config.yaml
+# homelab skills ship in the synced skills/ dir; hermes loads them from data/
+mkdir -p data/skills/homelab
+cp -r skills/homelab/* data/skills/homelab/
 ```
 
 `data/config.yaml` sets `model.default: openai/coder-30b`; `data/.env` sets
@@ -120,10 +130,13 @@ docker compose run --rm gateway hermes gateway setup
 Each `docker compose run` re-runs the container init (~20s, noisy — filter the
 s6/cont-init lines). Model calls trace into Langfuse on snibbly.
 
-### 6. Make it permanent (optional)
+### 6. Day-two changes
 
-To have `converge` manage it, add `hermes` to `stacks_whole_dirs` and
-`stacks_auto_up` in the ansible vars. Until then it's a manual stack.
+Tracked-file changes (compose, examples, skills) land via PR → converge, then
+`docker compose up -d` in `/opt/stacks/hermes` to apply (not auto-up'd — see
+the Deploy intro). `data/` changes (config.yaml, .env, enabling plugins) are
+live edits on the box, same as ever. Upstream agent updates = re-pull the
+`~/src/hermes-agent` clone, rebuild the image, `up -d`.
 
 ## Scoped tools — the build-out
 

@@ -77,6 +77,7 @@ key fails the tailnet join loudly; nothing deploys.
 | snibbly: /etc configs (litellm, llama-swap, vision, sysctl), service units, litellm/llama-swap enabled, agent runner, langfuse stack | **DNS stack cutover** — can take the whole house offline; [dns.md](dns.md) is the runbook |
 | | **SDR host prep** — one-time hardware setup, stays [host/scripts/sdr-host-prep.sh](../host/scripts/sdr-host-prep.sh) + a real lat/long `.env` ([sdr.md](sdr.md)) |
 | | **dash image build** — built from the home-dashboard clone ([operations.md](operations.md#dashboard)); compose file syncs, build doesn't |
+| | **hermes + radiolog image builds and restarts** — hermes builds from the hermes-agent clone and needs `data/.env` before it can start, radiolog builds in-place from the synced dir; both sync files via converge but stay out of `stacks_auto_up`, so applying a change is `docker compose up -d` (`--build` for radiolog) in the stack dir ([hermes.md](hermes.md), [radiolog.md](radiolog.md)) |
 | | **Interactive onboarding** — HA, Immich first account, Frigate first-boot password, n8n owner + credential re-entry, Kuma admin + [kuma-provision.py](../stacks/net/kuma-provision.py), `tailscale up`, `smbpasswd -a`, camera provisioning, BIOS |
 | | **snibbly base** — NVIDIA driver, llama.cpp CUDA build, llama-swap binary, GGUF downloads, vision pipeline ([snibbly.md](snibbly.md), [vision.md](vision.md)) |
 
