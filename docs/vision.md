@@ -137,7 +137,8 @@ Four tools, each matched to what the data actually supports:
 Deploy (one-time, after the Phase 1–3 install):
 
 ```bash
-sudo /opt/vision/venv/bin/pip install "mcp>=1.9"      # the MCP Python SDK
+# the venv is uv-managed (no pip binary in it):
+uv pip install --python /opt/vision/venv/bin/python "mcp>=2"
 # install mcp_server.py + unit + the [mcp] config block (tracked copies), then:
 sudo systemctl daemon-reload && sudo systemctl enable --now vision-mcp
 sudo ufw allow from 192.168.0.13 to any port 8097 proto tcp comment "hermes vision-mcp"

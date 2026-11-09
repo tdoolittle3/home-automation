@@ -17,7 +17,8 @@ does that as SQL: frames where all the labels co-occur.
 Read-only by design: the DB is opened mode=ro and there are no mutation tools.
 No auth — LAN-only by the same policy as Frigate :5000 and vision-web :8099.
 
-Deps: mcp >= 1.9 (pip name `mcp`) plus the worker venv's torch + open_clip.
+Deps: mcp >= 2 (pip name `mcp`; the 2.x SDK — FastMCP became MCPServer) plus
+the worker venv's torch + open_clip.
 """
 
 import logging
@@ -28,7 +29,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import numpy as np
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from analyzer import CLIP_MODEL, CLIP_PRETRAINED
 from vision_worker import load_config
@@ -42,10 +43,7 @@ EMB_CHUNK = 20_000  # detections per scoring batch; bounds memory as the DB grow
 
 log = logging.getLogger("vision-mcp")
 
-# stateless: every request stands alone, so a restart here never strands the
-# session Hermes opened at its own startup
-server = FastMCP("vision", host=MCP_CFG["bind"], port=MCP_CFG["port"],
-                 stateless_http=True)
+server = MCPServer("vision")
 
 _clip_lock = threading.Lock()
 _clip = {}  # model/tokenizer, lazy — only semantic search pays the load cost
@@ -300,4 +298,7 @@ def entities(label: str = "") -> dict:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s")
-    server.run(transport="streamable-http")
+    # stateless: every request stands alone, so a restart here never strands
+    # the session Hermes opened at its own startup
+    server.run(transport="streamable-http", host=MCP_CFG["bind"],
+               port=MCP_CFG["port"], stateless_http=True)
