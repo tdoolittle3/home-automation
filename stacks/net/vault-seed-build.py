@@ -13,6 +13,7 @@ Human-facing credentials additionally become proper login items.
 
 No secret is printed to stdout.
 """
+import glob
 import json
 import os
 import subprocess
@@ -95,7 +96,14 @@ LADYBIRD_FILES = [
     "/opt/stacks/net/kuma-push-url-ups.txt",
     "/opt/stacks/net/kuma-frigate-push-url.txt",
     "/opt/stacks/net/kuma-vw-backup-push-url.txt",
+    "/opt/stacks/n8n/n8n-data/config",      # n8n encryption key
+    "/home/thomas/portfolio-advisor/.env",  # outside the /opt/stacks tree
 ]
+# Sweep per-stack data/.env files (e.g. hermes/data/.env) so a NEW stack's
+# secrets are harvested automatically instead of being forgotten here. The
+# vaultwarden stack's own .env is intentionally never captured (it holds no
+# secret, and the vault must not bootstrap from itself).
+LADYBIRD_FILES += sorted(set(glob.glob("/opt/stacks/*/data/.env")) - set(LADYBIRD_FILES))
 
 texts = {}
 for path in LADYBIRD_FILES:

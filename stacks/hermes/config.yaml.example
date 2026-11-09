@@ -1,7 +1,9 @@
 # Hermes Agent config — the homelab "Operator" profile.
-# Copy to data/config.yaml on ladybird (or run `hermes setup`).
+# Copy to data/config.yaml on ladybird (or run `hermes setup`), then adjust.
 # Secrets (keys, tokens) go in data/.env, NEVER here — see .env.example.
-# docs/hermes.md.
+# This mirrors the deployed config; docs/hermes.md.
+# (Runtime-managed keys — enabled plugins, per-platform tool toggles — are
+# written by `hermes plugins enable` / `hermes tools` and are not shown here.)
 
 # Model = snibbly litellm (OPENAI_BASE_URL in .env) -> llama-swap -> coder-30b,
 # the clean coder. Hermes uses its generic OpenAI provider; the "openai/" prefix
@@ -11,15 +13,30 @@
 model:
   default: openai/coder-30b
 
-# Agent shell / code-execution backend. Pick a SANDBOX before enabling the shell
-# tools (docs/hermes.md "Sandbox"):
-#   terminal: {backend: docker}  # ephemeral containers; needs the docker.sock
-#                                #   mount in docker-compose.yml (root-equivalent)
-#   terminal: {backend: ssh}     # low-priv sandbox user; set TERMINAL_SSH_* in .env
-# For a no-shell phase (Home Assistant control only, no code execution), don't
-# set a backend — instead disable the shell toolsets once:
-#   hermes tools disable terminal code_execution computer_use
-# NOTE: backend "none" is NOT valid and logs errors; use the disable above.
+# Fallback: if coder-30b is overloaded/unreachable, retry on the fast 8B.
+# Needs the openai/fast-8b alias in snibbly/etc/litellm/config.yaml.
+fallback_providers:
+  - provider: openai
+    model: openai/fast-8b
+    base_url: http://192.168.0.19:8080/v1
+    key_env: OPENAI_API_KEY
+
+# Agent shell / code-execution. The deployed Operator profile uses the DOCKER
+# sandbox — the agent's code runs in an ephemeral child container (requires the
+# /var/run/docker.sock mount + group_add in docker-compose.yml, root-equivalent
+# on ladybird). docker_volumes bind-mounts the served reports dir into the
+# sandbox; docker_forward_env hands the sandbox the ntfy topic for the daily
+# report script.
+#   Alternatives: terminal.backend: ssh (low-priv sandbox user; TERMINAL_SSH_*
+#   in .env). For a no-shell phase omit a backend and
+#   `hermes tools disable terminal code_execution computer_use`.
+#   ("none" is NOT a valid backend — it logs errors.)
+terminal:
+  backend: docker
+  docker_volumes:
+    - "/opt/stacks/hermes/reports:/reports"
+  docker_forward_env:
+    - NTFY_URL
 
 # Auto-summarize old turns as the 64k window fills so long agent sessions don't
 # fall off the context cliff mid-task.
@@ -27,11 +44,17 @@ compression:
   enabled: true
   threshold: 0.85
 
-# Camera-archive search on snibbly (vision-mcp service, docs/vision.md "Agent
-# search"). Hermes's native MCP client connects at startup and registers the
-# tools as mcp_vision_* (search / recent_events / frames_with / entities) —
-# all read-only, so they fit the Operator profile. Restart the gateway after
-# adding this block.
+# MCP servers Hermes connects to at startup (tools exposed as mcp_<server>_*).
+# Restart the gateway after changing this block.
 mcp_servers:
+  # Camera-archive search on snibbly (vision-mcp service, docs/vision.md "Agent
+  # search") — mcp_vision_* (search / recent_events / frames_with / entities),
+  # all read-only, fit the Operator profile.
   vision:
     url: "http://192.168.0.19:8097/mcp"
+  # Portfolio research tools (portfolio-advisor MCP on ladybird). No trading
+  # tools exist and update_strategy is dry-run, so it suits the Operator profile.
+  # Use the LAN host (192.168.0.13), NOT 127.0.0.1 — the server's DNS-rebinding
+  # guard 421s a host:port that isn't in its MCP_ALLOWED_HOSTS.
+  portfolio-advisor:
+    url: "http://192.168.0.13:8765/mcp"
