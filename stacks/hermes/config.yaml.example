@@ -35,6 +35,12 @@ terminal:
   backend: docker
   docker_volumes:
     - "/opt/stacks/hermes/reports:/reports"
+    # The agent's shell/file reads run INSIDE the sandbox, which only sees what
+    # is listed here — NOT the gateway container's own mounts. The read-only
+    # data the skills point at must be bound in too (host paths), or the
+    # radio-logs / frigate-incidents skills find nothing (2026-11-09).
+    - "/opt/stacks/radiolog/data:/opt/data/workspace/radiolog:ro"
+    - "/var/lib/frigate-incidents:/opt/data/workspace/frigate-incidents:ro"
   docker_forward_env:
     - NTFY_URL
 

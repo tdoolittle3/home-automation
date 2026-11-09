@@ -83,10 +83,36 @@ so very recent and currently-overhead traffic is NOT in the file yet; fetch
 for many GA/military), altitudes in ft, `min_dist_nm` = closest approach to
 the house in nautical miles, `max_gs` = ground speed in knots.
 
+## Aircraft summary — run this, don't eyeball it
+
+For ANY "how many / lowest / closest / fastest / which planes" question, run
+the snippet below in the terminal (sandbox has python3) and report ITS output.
+Scanning dozens of JSON lines by eye gets the min/max wrong. Optional first
+argument = a date (`YYYY-MM-DD`); default = newest file. Records with a null
+`min_alt`/`min_dist_nm` (no position fix) are skipped for those rankings.
+
+```bash
+python3 - [YYYY-MM-DD] <<'EOF'
+import glob, json, sys
+d = "/opt/data/workspace/radiolog/adsb/"
+f = d + sys.argv[1] + ".jsonl" if len(sys.argv) > 1 else sorted(glob.glob(d + "*.jsonl"))[-1]
+r = [json.loads(l) for l in open(f) if l.strip()]
+def show(x):
+    return (f'{x.get("flight") or x["hex"]} hex={x["hex"]} alt={x["min_alt"]}ft '
+            f'dist={x["min_dist_nm"]}nm gs={x["max_gs"]}kt {x["first_seen"][11:16]}-{x["last_seen"][11:16]}')
+def top(key, rev=False):
+    return sorted((x for x in r if x.get(key) is not None), key=lambda x: x[key], reverse=rev)[:5]
+print(f, "-", len(r), "aircraft,", sum(1 for x in r if x.get("flight")), "with callsign")
+print("LOWEST:");  [print(" ", show(x)) for x in top("min_alt")]
+print("CLOSEST:"); [print(" ", show(x)) for x in top("min_dist_nm")]
+print("FASTEST:"); [print(" ", show(x)) for x in top("max_gs", True)]
+EOF
+```
+
 ## Tips
 
-- "Lowest/closest plane today": scan today's adsb file for the smallest
-  `min_alt` / `min_dist_nm`.
+- "Lowest/closest plane today": use the snippet above (smallest `min_alt` /
+  `min_dist_nm`).
 - Mesh may legitimately be silent for hours; an empty messages file for today
   is normal, not an error. The file for a day is only created on first write.
 - These mounts are read-only — never try to write, rotate, or clean them.

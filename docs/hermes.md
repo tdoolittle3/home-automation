@@ -151,7 +151,16 @@ live edits on the box, same as ever. Upstream agent updates = re-pull the
   mounted at `workspace/radiolog/` in the gateway, and the `radio-logs` skill
   (`stacks/hermes/skills/homelab/radio-logs/`, copied into `data/skills/homelab/`)
   teaches the agent the file layout and schemas. The `:ro` mount is the
-  guarantee that a confused agent can't rewrite history.
+  guarantee that a confused agent can't rewrite history. **The compose mount
+  alone is not enough:** with `terminal.backend: docker` the agent's commands run
+  in a sandbox child container that only gets `terminal.docker_volumes`, so the
+  same host path must be listed there too (config.yaml.example). Same for the
+  Frigate incident bundles. Symptom when missing: the skill is chosen correctly
+  but the agent reports the directory doesn't exist.
+  Known limit: the 30B model mis-scans dozens of JSONL records by eye (asked
+  for lowest/closest plane it named the wrong aircraft) — aggregation wants a
+  helper script, not eyeballing — the radio-logs skill now carries a ready-to-run
+  summary snippet (lowest/closest/fastest), verified to give correct answers.
 - **Vision search** (MCP, LIVE 2026-11-09): the camera archive on snibbly answers
   natural-language queries — `vision-mcp` on `:8097` exposes `mcp_vision_search` /
   `recent_events` / `frames_with` / `entities` via Hermes's native MCP client
