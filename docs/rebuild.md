@@ -258,6 +258,7 @@ Recreate these by hand on a fresh deploy. Nothing here is recoverable from this 
 | `/opt/stacks/frigate/.env` | `FRIGATE_RTSP_PASSWORD=` the camera admin password, mode 600 |
 | `/opt/stacks/home/homeassistant/.camcreds` | curl digest config for camera control, mode 600 |
 | `/opt/stacks/dash/.env` | `HA_TOKEN` (a long-lived access token) and `JELLYFIN_API_KEY`, mode 600 |
+| `/opt/stacks/hermes/data/.env` | litellm key, the limited HA user's token, Telegram bot token + allowed user id, mode 600 — see [.env.example](../stacks/hermes/.env.example) and [hermes.md](hermes.md) |
 | `/opt/stacks/immich/.env` | `DB_PASSWORD=` a generated random string, mode 600 — see [.env.example](../stacks/immich/.env.example) |
 | `/opt/stacks/dns/conf/AdGuardHome.yaml` | the AdGuard admin password hash — the live file is gitignored; the tracked seed carries a placeholder |
 | HA `.storage/`, `secrets.yaml` | integration configs and tokens — recreated by re-adding integrations |

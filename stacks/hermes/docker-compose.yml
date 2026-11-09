@@ -4,10 +4,12 @@
 # on snibbly (litellm :8080 -> llama-swap -> coder-30b). This container is
 # CPU/RAM-light — no GPU, no model weights, just the orchestration loop.
 #
-# NOT auto-deployed: "hermes" is deliberately absent from the ansible
-# stacks_whole_dirs / stacks_auto_up lists, so `converge` ignores it until the
-# limited Home Assistant token exists and we opt it in. First run is manual —
-# see docs/hermes.md.
+# Ansible-synced since 2026-11-08 (stacks_whole_dirs — compose, examples and
+# skills/ flow with every converge; the gitignored data/ dir survives, copy
+# never deletes). Deliberately NOT in stacks_auto_up: the image is built
+# locally (below) and the gateway can't start before data/.env exists, so
+# restarts after a compose change stay manual — `docker compose up -d` here.
+# First-ever run has extra steps: docs/hermes.md.
 #
 # Image is BUILT from upstream (NousResearch/hermes-agent), not a registry pull.
 # Build once on ladybird:
