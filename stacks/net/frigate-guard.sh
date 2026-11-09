@@ -11,7 +11,10 @@
 #   3. a recording segment was written in the last MAX_AGE_MIN minutes
 #
 # Check 3 is the one that catches a broken writer: fps can look perfect while
-# nothing reaches disk. This script ALERTS ONLY - it never deletes or restarts.
+# nothing reaches disk. It never deletes anything. Its one remedial action: if the
+# Frigate API stays unreachable (container "running" but wedged - Docker's
+# restart policy and healthcheck do NOT act on that) for RESTART_AFTER
+# consecutive runs, it restarts the container, at most once per RESTART_COOLDOWN_MIN.
 set -uo pipefail
 
 CONF=/opt/stacks/net/frigate-guard.conf
@@ -21,6 +24,13 @@ CONF=/opt/stacks/net/frigate-guard.conf
 : "${REC_ROOT:=/srv/storage/frigate/recordings}"
 : "${MAX_AGE_MIN:=5}"
 : "${REQUIRE_DETECTION:=1}"
+: "${AUTO_RESTART:=1}"
+: "${RESTART_AFTER:=3}"
+: "${RESTART_COOLDOWN_MIN:=30}"
+: "${CONTAINER:=frigate}"
+STATE_DIR=/run/frigate-guard
+# Persistent, world-readable incident bundles; mounted read-only into Hermes.
+: "${INCIDENT_ROOT:=/var/lib/frigate-incidents}"
 KUMA_URL_FILE=/opt/stacks/net/kuma-frigate-push-url.txt
 
 STATUS=ok
@@ -65,6 +75,44 @@ for n,c in sorted(s.get('cameras',{}).items()):
     fail "API returned no cameras"
   elif [ "$STATUS" = ok ]; then
     REASON="$NCAM cameras streaming, detecting and recording"
+  fi
+fi
+
+# Auto-restart a wedged container (API unreachable N runs in a row).
+# Camera-level failures are NOT restarted: they are usually the camera/network,
+# and a restart would not fix them.
+if [ "$AUTO_RESTART" = "1" ]; then
+  mkdir -p "$STATE_DIR"
+  if [ -z "$STATS" ]; then
+    N=$(( $(cat "$STATE_DIR/api_fails" 2>/dev/null || echo 0) + 1 ))
+    echo "$N" > "$STATE_DIR/api_fails"
+    LAST=$(cat "$STATE_DIR/last_restart" 2>/dev/null || echo 0)
+    NOW=$(date +%s)
+    if [ "$N" -ge "$RESTART_AFTER" ] && [ $((NOW-LAST)) -ge $((RESTART_COOLDOWN_MIN*60)) ]; then
+      # Evidence first: Frigate's real logs live in /dev/shm inside the container.
+      # Camera credentials are redacted. Hermes reads these (read-only) to diagnose.
+      INC="$INCIDENT_ROOT/$(date +%Y%m%dT%H%M%S)"
+      mkdir -p "$INC" && chmod 755 "$INCIDENT_ROOT" "$INC"
+      red() { sed -E 's#://[^/@[:space:]]+:[^/@[:space:]]+@#://***:***@#g'; }
+      docker inspect "$CONTAINER" --format '{{json .State}}' 2>&1 | red > "$INC/container-state.json"
+      docker stats --no-stream "$CONTAINER" > "$INC/docker-stats.txt" 2>&1
+      for svc in frigate nginx go2rtc; do
+        docker exec "$CONTAINER" tail -n 300 "/dev/shm/logs/$svc/current" 2>&1 | red > "$INC/$svc.log"
+      done
+      { uptime; free -m; df -h / /dev/shm; } > "$INC/host.txt" 2>&1
+      chmod 644 "$INC"/*
+      # Keep the 30 newest bundles.
+      ls -1d "$INCIDENT_ROOT"/*/ 2>/dev/null | head -n -30 | xargs -r rm -rf
+      if docker restart "$CONTAINER" >/dev/null 2>&1; then
+        echo "$NOW" > "$STATE_DIR/last_restart"
+        echo 0 > "$STATE_DIR/api_fails"
+        add "auto-restarted $CONTAINER after $N consecutive API failures (evidence in $INC)"
+      else
+        add "auto-restart of $CONTAINER FAILED"
+      fi
+    fi
+  else
+    echo 0 > "$STATE_DIR/api_fails"
   fi
 fi
 

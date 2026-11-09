@@ -3,6 +3,14 @@
 # every .service here executes a script in /opt/stacks/net. The push monitors
 # they beat (kuma-push-url*.txt) are recreated by hand per operations.md.
 
+- name: frigate incident bundle dir (written by frigate-guard, read-only mount in hermes)
+  ansible.builtin.file:
+    path: /var/lib/frigate-incidents
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: guard and playlist units
   ansible.builtin.copy:
     src: "{{ repo_root }}/host/etc/systemd/system/{{ item }}"

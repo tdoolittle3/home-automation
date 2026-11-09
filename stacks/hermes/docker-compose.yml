@@ -35,6 +35,11 @@ services:
       # can query them but never alter them. The radio-logs skill
       # (./skills/homelab/radio-logs) documents the schemas.
       - /opt/stacks/radiolog/data:/opt/data/workspace/radiolog:ro
+      # Frigate incident bundles (container state + redacted frigate/nginx/go2rtc
+      # log tails) written by net/frigate-guard.sh when it auto-restarts a wedged
+      # Frigate. Read-only: Hermes diagnoses, the guard (not the agent) restarts.
+      # See skills/homelab/frigate-incidents.
+      - /var/lib/frigate-incidents:/opt/data/workspace/frigate-incidents:ro
       # Generated reports/dashboards land here (agent's file tool writes to
       # /opt/data/reports); the `reports` nginx service below serves this same
       # dir. Kept OUT of ./data so the web server never exposes .env/config.yaml.
