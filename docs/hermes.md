@@ -150,11 +150,16 @@ live edits on the box, same as ever. Upstream agent updates = re-pull the
   (`stacks/hermes/skills/homelab/radio-logs/`, copied into `data/skills/homelab/`)
   teaches the agent the file layout and schemas. The `:ro` mount is the
   guarantee that a confused agent can't rewrite history.
-- **Vision search** (MCP): the camera archive on snibbly answers natural-language
-  queries — `vision-mcp` on `:8097` exposes `mcp_vision_search` /
+- **Vision search** (MCP, LIVE 2026-11-09): the camera archive on snibbly answers
+  natural-language queries — `vision-mcp` on `:8097` exposes `mcp_vision_search` /
   `recent_events` / `frames_with` / `entities` via Hermes's native MCP client
   (the `mcp_servers:` block in config.yaml.example). Read-only by construction;
   see [docs/vision.md](vision.md) "Agent search" for deploy + validation.
+  Tool routing: the model's first instinct for "who was by the driveway?" was
+  HA's coarse frigate sensors — countered twice, in the server's tool
+  descriptions/instructions and in the `camera-archive` skill
+  (`skills/homelab/camera-archive/`, copied to `data/skills/homelab/` like
+  radio-logs). If routing regresses, sharpen those, not the prompt.
 - **Service restart**: a narrow tool/skill with a fixed allowlist of unit names,
   not raw shell. Services on ladybird restart locally; snibbly services
   (llama-swap, vision) restart over SSH — the tool must know which host owns each.

@@ -43,7 +43,17 @@ EMB_CHUNK = 20_000  # detections per scoring batch; bounds memory as the DB grow
 
 log = logging.getLogger("vision-mcp")
 
-server = MCPServer("vision")
+# the instructions + tool docstrings below are agent-facing routing text: the
+# live problem they solve is the model answering camera questions from Home
+# Assistant's coarse frigate occupancy sensors instead of coming here
+server = MCPServer("vision", instructions=(
+    "Security-camera archive for the house (driveway + backyard cameras). "
+    "Use these tools for ANY question about what or who the cameras saw — "
+    "'who was by the driveway?', 'any people last night?', 'when did the "
+    "mail truck come?'. Do NOT answer camera questions from Home Assistant: "
+    "its frigate sensors only expose coarse occupancy counts, while this "
+    "archive holds every detection with timestamps, re-identified "
+    "individuals, and links to the footage."))
 
 _clip_lock = threading.Lock()
 _clip = {}  # model/tokenizer, lazy — only semantic search pays the load cost
@@ -125,13 +135,15 @@ def _event_summary(c, event_id):
 @server.tool()
 def search(query: str, since: str = "24h", until: str = "", camera: str = "",
            top_k: int = 8, min_score: float = 0.22) -> dict:
-    """Semantic search over everything the cameras detected: describe what to
-    look for in plain language ("white delivery van", "person carrying a box")
-    and get back matching events ranked by CLIP similarity, with links.
+    """Search the security-camera archive (driveway, backyard) by plain-text
+    description — "white delivery van", "person carrying a box" — and get
+    matching events ranked by visual similarity, each with a footage link.
+    Prefer this over Home Assistant for anything about what the cameras saw.
 
     Matches single concepts within one detection crop. For "X together with Y"
     (e.g. a person AND a dog) use frames_with instead. For plain time/label
-    listings ("what happened last night") use recent_events — it's cheaper.
+    listings ("who was by the driveway today" = label 'person') use
+    recent_events — it's cheaper and complete.
 
     since/until: '6h'/'2d'/'90m' ago, 'YYYY-MM-DD HH:MM' local, or epoch.
     camera: '' = all. min_score: CLIP cosine cutoff — 0.2 loose, 0.3 strict.
@@ -189,9 +201,11 @@ def search(query: str, since: str = "24h", until: str = "", camera: str = "",
 def recent_events(since: str = "24h", until: str = "", camera: str = "",
                   label: str = "", source: str = "", night_only: bool = False,
                   limit: int = 40) -> dict:
-    """List camera events by time and metadata — no ML, just the record.
-    This answers "any motion last night?", "what did the backyard camera see
-    today?", "all car events this week".
+    """List security-camera events — who/what was seen, when, on which camera,
+    with a footage link each. The first tool for "who was by the driveway
+    today?" (label='person', camera='driveway'), "any motion last night?"
+    (night_only=true), "what did the backyard camera see?". Far more specific
+    than Home Assistant's frigate occupancy sensors — prefer this.
 
     label: a YOLO/Frigate class like person, car, truck, dog, cat.
     source: 'frigate' (Frigate's own detections) or 'sweep' (our recordings
@@ -227,9 +241,9 @@ def recent_events(since: str = "24h", until: str = "", camera: str = "",
 @server.tool()
 def frames_with(labels: list[str], since: str = "7d", until: str = "",
                 camera: str = "", limit: int = 20) -> dict:
-    """Find moments where ALL the given object labels appear in the SAME frame
-    — the right tool for compositional queries like a person walking a dog
-    (labels=["person","dog"]) or a person next to a truck.
+    """Find camera moments where ALL the given object labels appear in the
+    SAME frame — the right tool for compositional queries like a person
+    walking a dog (labels=["person","dog"]) or a person next to a truck.
 
     Returns the matching events with how many frames co-occurred. Labels are
     YOLO classes: person, dog, cat, car, truck, bicycle, backpack, ...
@@ -271,11 +285,11 @@ def frames_with(labels: list[str], since: str = "7d", until: str = "",
 
 @server.tool()
 def entities(label: str = "") -> dict:
-    """List recurring entities — the same individual person/vehicle/animal
-    re-identified across events by embedding similarity. Named ones ("mail
-    truck") were labeled by the owner; unnamed ones are clusters awaiting a
-    name. Use this for "when did the mail truck last come?" — find the entity
-    here, then its recent events via its url.
+    """List recurring individuals the cameras re-identified across days — the
+    same specific person/vehicle/animal clustered by appearance. Named ones
+    ("mail truck") were labeled by the owner; unnamed ones await a name. Use
+    for "when did the mail truck last come?", "who are the regulars by the
+    driveway?", "have we seen that person before?".
 
     label: filter by YOLO class (person, car, truck, dog...); '' = all.
     """
