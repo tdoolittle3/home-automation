@@ -18,6 +18,12 @@ model_list:
       model: "openai/coder-30b"
       api_base: http://127.0.0.1:9292/v1
       api_key: os.environ/LLAMA_API_KEY
+  # Hermes fallback model (fast-8b) — same explicit-alias trick as coder-30b.
+  - model_name: "openai/fast-8b"
+    litellm_params:
+      model: "openai/fast-8b"
+      api_base: http://127.0.0.1:9292/v1
+      api_key: os.environ/LLAMA_API_KEY
   # Wildcard passthrough: whatever model the client names is forwarded to
   # llama-swap under the same name, so new models in llama-swap/config.yaml
   # need no edit here.

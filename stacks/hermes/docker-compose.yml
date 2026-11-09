@@ -35,11 +35,20 @@ services:
       # can query them but never alter them. The radio-logs skill
       # (./skills/homelab/radio-logs) documents the schemas.
       - /opt/stacks/radiolog/data:/opt/data/workspace/radiolog:ro
-      # Uncomment ONLY if config.yaml sets terminal.backend: docker — the agent
-      # then spins ephemeral build containers (e.g. preview dashboards). NOTE:
-      # mounting the socket is root-equivalent on this host; the safer option is
-      # terminal.backend: ssh to a low-priv sandbox user (docs/hermes.md).
-      # - /var/run/docker.sock:/var/run/docker.sock
+      # Generated reports/dashboards land here (agent's file tool writes to
+      # /opt/data/reports); the `reports` nginx service below serves this same
+      # dir. Kept OUT of ./data so the web server never exposes .env/config.yaml.
+      - ./reports:/opt/data/reports
+      # terminal.backend: docker — Hermes uses this socket to spawn the ephemeral
+      # sandbox container that the agent's code runs INSIDE. The agent's own code
+      # does not get the socket; only the Hermes orchestrator does. This is
+      # root-equivalent on ladybird — accepted for this trusted, reprovisionable
+      # homelab. (Safer alternative: terminal.backend: ssh — docs/hermes.md.)
+      - /var/run/docker.sock:/var/run/docker.sock
+    # docker.sock is root:docker (gid 989 on ladybird); add that gid so the
+    # in-container hermes user can reach the socket to spawn sandboxes.
+    group_add:
+      - "989"
     # Load the whole .env into the container environment so plugins that read
     # os.environ (e.g. the Home Assistant plugin's HASS_TOKEN/HASS_URL) see it,
     # not just the core model client that parses .env itself.
@@ -59,8 +68,29 @@ services:
       - gateway
     volumes:
       - ./data:/opt/data
+    # Same .env as the gateway — the dashboard reads HERMES_DASHBOARD_PUBLIC_URL
+    # (so it trusts the tailscale-serve hostname) and HERMES_DASHBOARD_BASIC_AUTH_*
+    # (the login a public URL requires) from here.
+    env_file:
+      - ./data/.env
     environment:
       - HERMES_UID=${HERMES_UID:-1000}
       - HERMES_GID=${HERMES_GID:-1000}
-    # Localhost-only — it stores API keys. Reach it via `ssh -L 9119:localhost:9119`.
+    # Binds 127.0.0.1; reached over the tailnet via `tailscale serve` (:9119).
+    # A non-loopback public_url engages the basic-auth gate — see .env.
     command: ["dashboard", "--host", "127.0.0.1", "--no-open"]
+
+  reports:
+    # Permanent static-file server for agent-generated reports/dashboards. The
+    # agent writes HTML into ./reports (mounted at /opt/data/reports in the
+    # gateway via its file tool); this serves that same dir, read-only. Fronted
+    # on the tailnet by `tailscale serve --https=9123` (tailnet-only — the ntfy
+    # link it sends is useless to anyone not on the tailnet). Static files only,
+    # no secrets, no GPU.
+    image: nginx:alpine
+    container_name: hermes-reports
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:9123:80"
+    volumes:
+      - ./reports:/usr/share/nginx/html:ro
