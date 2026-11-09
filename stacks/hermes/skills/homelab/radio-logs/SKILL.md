@@ -1,6 +1,6 @@
 ---
 name: radio-logs
-description: Query the house radio logs — Meshtastic mesh chat messages, ISM-band sensor decodes (outdoor temperature, tire sensors, water meter), and ADS-B aircraft sightings — from JSONL files mounted read-only in the workspace.
+description: Answer questions about aircraft/planes/flights that flew over or near the house (ADS-B from our own SDR receiver — lowest plane, closest approach, callsigns, what's overhead), Meshtastic mesh chat messages and nodes, and outdoor temperature/tire/utility-meter history (rtl_433), from JSONL files mounted read-only in the workspace. Use this for planes — NOT the camera/vision tools and NOT Home Assistant.
 version: 1.0.0
 author: homelab
 license: MIT
@@ -23,8 +23,13 @@ whole files.
 ## When to use
 
 Questions like: "any mesh messages today?", "what did the outdoor sensor read
-overnight?", "what planes flew over this morning?", "when was the lowest
-plane?", "has node X been heard from?".
+overnight?", "what planes flew over this morning?", "who flew over the house?",
+"when was the lowest plane?", "what's that plane overhead?", "has node X been
+heard from?".
+
+**Routing:** aircraft are detected by the radio receiver (SDR), never by the
+cameras — do not search the vision archive for planes, and Home Assistant has
+no aircraft data. Start here, then (for right-now traffic) the live feed below.
 
 ## Layout
 

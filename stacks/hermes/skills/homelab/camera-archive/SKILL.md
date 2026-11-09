@@ -1,6 +1,6 @@
 ---
 name: camera-archive
-description: Answer questions about what or who the security cameras saw — people, vehicles, animals, by time or description — using the mcp_vision_* tools, which hold the full detection archive. Home Assistant's frigate sensors are the wrong source for these questions.
+description: Answer questions about what or who the security cameras saw — people, vehicles, animals, by time or description — using the mcp_vision_* tools, which hold the full detection archive. Home Assistant's frigate sensors are the wrong source for these questions, and so is this archive for aircraft (planes come from the radio-logs skill, not the cameras).
 version: 1.0.0
 author: homelab
 license: MIT
