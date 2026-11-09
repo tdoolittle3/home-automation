@@ -57,6 +57,9 @@ DEFAULTS = {
     "analyze": {"conf_threshold": 0.40, "sweep_keep_threshold": 0.50,
                 "entity_match_threshold": 0.85, "sweep_event_gap_secs": 90,
                 "batch_size": 16, "static_presence": 0.5},
+    "mcp": {"bind": "0.0.0.0", "port": 8097, "timezone": "America/Denver",
+            "night_start_hour": 21, "night_end_hour": 7,
+            "web_base_url": "http://192.168.0.19:8099"},
 }
 
 SCHEMA = """
