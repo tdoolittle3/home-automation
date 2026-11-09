@@ -26,3 +26,12 @@ model:
 compression:
   enabled: true
   threshold: 0.85
+
+# Camera-archive search on snibbly (vision-mcp service, docs/vision.md "Agent
+# search"). Hermes's native MCP client connects at startup and registers the
+# tools as mcp_vision_* (search / recent_events / frames_with / entities) —
+# all read-only, so they fit the Operator profile. Restart the gateway after
+# adding this block.
+mcp_servers:
+  vision:
+    url: "http://192.168.0.19:8097/mcp"

@@ -20,6 +20,14 @@ port = 8098
 bind = "0.0.0.0"                        # the browsing UI (vision-web service)
 port = 8099
 
+[mcp]
+bind = "0.0.0.0"                        # search tools for Hermes (vision-mcp service)
+port = 8097
+timezone = "America/Denver"             # snibbly runs UTC; queries and "night" are local
+night_start_hour = 21                   # night_only window for recent_events
+night_end_hour = 7
+web_base_url = "http://192.168.0.19:8099"   # event links handed to the agent
+
 [storage]
 data_dir = "/opt/vision/data"
 event_frames_retain_days = 30

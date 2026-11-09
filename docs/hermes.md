@@ -137,6 +137,11 @@ To have `converge` manage it, add `hermes` to `stacks_whole_dirs` and
   (`stacks/hermes/skills/homelab/radio-logs/`, copied into `data/skills/homelab/`)
   teaches the agent the file layout and schemas. The `:ro` mount is the
   guarantee that a confused agent can't rewrite history.
+- **Vision search** (MCP): the camera archive on snibbly answers natural-language
+  queries — `vision-mcp` on `:8097` exposes `mcp_vision_search` /
+  `recent_events` / `frames_with` / `entities` via Hermes's native MCP client
+  (the `mcp_servers:` block in config.yaml.example). Read-only by construction;
+  see [docs/vision.md](vision.md) "Agent search" for deploy + validation.
 - **Service restart**: a narrow tool/skill with a fixed allowlist of unit names,
   not raw shell. Services on ladybird restart locally; snibbly services
   (llama-swap, vision) restart over SSH — the tool must know which host owns each.
