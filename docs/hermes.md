@@ -44,8 +44,9 @@ limited HA user**, not the prompt.
 
 Since 2026-11-08 the stack dir **is ansible-managed**: `hermes` is in
 `stacks_whole_dirs`, so every converge syncs `docker-compose.yml`, the
-`*.example` files and `skills/` to `/opt/stacks/hermes/` (the gitignored
-`data/` dir survives — copy never deletes). It is deliberately **not** in
+`*.example` files, `SOUL.md` and `skills/` to `/opt/stacks/hermes/`, and
+installs `SOUL.md` + `skills/homelab/` into `data/` (the rest of the
+gitignored `data/` dir survives — copy never deletes). It is deliberately **not** in
 `stacks_auto_up`: the image is built locally and the gateway can't start
 before `data/.env` exists, so after a synced compose change you still run
 `docker compose up -d` there yourself ([ansible.md](ansible.md)).
@@ -78,12 +79,11 @@ cd /opt/stacks/hermes            # stack dir (ansible-synced; data/ is yours)
 mkdir -p data
 cp .env.example data/.env && chmod 600 data/.env   # fill in keys/tokens
 cp config.yaml.example data/config.yaml
-# homelab skills ship in the synced skills/ dir; hermes loads them from data/
-mkdir -p data/skills/homelab
-cp -r skills/homelab/* data/skills/homelab/
-# the always-in-context identity + homelab map (see "Tool routing" below)
-cp SOUL.md.example data/SOUL.md
 ```
+
+`data/SOUL.md` and `data/skills/homelab/` are **not** copied by hand: the
+converge installs them from `stacks/hermes/SOUL.md` and
+`stacks/hermes/skills/homelab/` (see "Tool routing" below).
 
 `data/config.yaml` sets `model.default: openai/coder-30b`; `data/.env` sets
 `OPENAI_BASE_URL` (snibbly litellm) + `OPENAI_API_KEY` (the litellm key) plus the
@@ -110,8 +110,8 @@ Then choose the agent's code-execution posture:
 - **No-shell** (HA/chat only — safe first phase): disable the shell toolsets —
   `docker compose run --rm gateway hermes tools disable terminal code_execution computer_use`
 - **Sandboxed shell** (for dashboard/code work): set `terminal.backend` to
-  `docker` (uncomment the `docker.sock` mount in docker-compose.yml —
-  root-equivalent on ladybird) or `ssh` (a low-priv sandbox user; set
+  `docker` (the deployed posture; needs the `docker.sock` mount in
+  docker-compose.yml — root-equivalent on ladybird) or `ssh` (a low-priv sandbox user; set
   `TERMINAL_SSH_*`). Backend `none` is invalid and just logs errors.
 
 Privileged homelab actions (HA calls, service restarts) are **separate scoped
@@ -134,10 +134,10 @@ s6/cont-init lines). Model calls trace into Langfuse on snibbly.
 
 ### 6. Day-two changes
 
-Tracked-file changes (compose, examples, skills) land via PR → converge, then
-`docker compose up -d` in `/opt/stacks/hermes` to apply (not auto-up'd — see
-the Deploy intro). `data/` changes (config.yaml, .env, enabling plugins) are
-live edits on the box, same as ever. Upstream agent updates = re-pull the
+Tracked-file changes (compose, examples, SOUL.md, skills) land via PR →
+converge, then `docker compose up -d` in `/opt/stacks/hermes` to apply a
+compose change (not auto-up'd — see the Deploy intro). Other `data/` changes
+(config.yaml, .env, enabling plugins) are live edits on the box, same as ever. Upstream agent updates = re-pull the
 `~/src/hermes-agent` clone, rebuild the image, `up -d`.
 
 ## Scoped tools — the build-out
@@ -149,7 +149,7 @@ live edits on the box, same as ever. Upstream agent updates = re-pull the
 - **Radio logs** (read-only data, not a tool): `/opt/stacks/radiolog/data`
   (Meshtastic chat, ISM sensor decodes, ADS-B sightings — docs/radiolog.md) is
   mounted at `workspace/radiolog/` in the gateway, and the `radio-logs` skill
-  (`stacks/hermes/skills/homelab/radio-logs/`, copied into `data/skills/homelab/`)
+  (`stacks/hermes/skills/homelab/radio-logs/`, installed into `data/skills/homelab/` by the converge)
   teaches the agent the file layout and schemas. The `:ro` mount is the
   guarantee that a confused agent can't rewrite history. **The compose mount
   alone is not enough:** with `terminal.backend: docker` the agent's commands run
@@ -169,7 +169,7 @@ live edits on the box, same as ever. Upstream agent updates = re-pull the
   Tool routing: the model's first instinct for "who was by the driveway?" was
   HA's coarse frigate sensors — countered twice, in the server's tool
   descriptions/instructions and in the `camera-archive` skill
-  (`skills/homelab/camera-archive/`, copied to `data/skills/homelab/` like
+  (`skills/homelab/camera-archive/`, installed to `data/skills/homelab/` like
   radio-logs). If routing regresses, sharpen those, not the prompt.
 - **Service restart**: a narrow tool/skill with a fixed allowlist of unit names,
   not raw shell. Services on ladybird restart locally; snibbly services
@@ -185,14 +185,27 @@ Assistant service domains. Left alone, Hermes calls itself a Home Assistant
 assistant and routes everything there (2026-11-09: "who flew over the house?"
 went to the vision archive; "what can you access?" listed only HA).
 
-`SOUL.md.example` is the fix: a short identity + routing table (question →
+`stacks/hermes/SOUL.md` is the fix: a short identity + routing table (question →
 source, with "not this" columns, and an explicit "cannot reach" list) that is
-in the system prompt on every turn. It lives at `data/SOUL.md` (HERMES_HOME), a
-live edit like config.yaml: `cp SOUL.md.example data/SOUL.md` after the
-converge syncs it, then `docker compose restart gateway` if it doesn't pick up
-on the next message. **Keep the table in step with reality** — add a row when a
-new data source or MCP server lands (and its skill's description), drop rows
-for things that are removed.
+in the system prompt on every turn. The whole file is the prompt — no header
+comments, every line costs context on every turn. **Keep the table in step
+with reality** — add a row when a new data source or MCP server lands (and its
+skill's description), drop rows for things that are removed.
+
+**Git is the source of truth, and the owner is the only author.** The converge
+copies `stacks/hermes/SOUL.md` → `data/SOUL.md` and `skills/homelab/` →
+`data/skills/homelab/` (stacks role), so a change is PR → converge, then
+`docker compose restart gateway` if it doesn't pick up on the next message.
+A live edit on the box — by hand or by the agent — is overwritten on the next
+converge and shows up in the `--check --diff` plan first, which doubles as the
+"did the agent touch its own prompt?" check.
+
+The agent does not get to change SOUL.md, in git or live, on purpose: it is
+the text that tells the agent what it may not do, and the agent reads
+untrusted input (mesh chat from strangers, camera captions, news). A
+self-editable prompt turns one injected message into a permanent one. What the
+agent learns belongs in its own memory under `data/`; if it thinks the map is
+wrong it should say so in chat and the owner makes the PR.
 
 If routing regresses, in order: fix the table row, sharpen the skill
 description (user-phrased triggers + a "not this tool" line), sharpen the MCP

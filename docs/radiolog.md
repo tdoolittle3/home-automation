@@ -40,16 +40,11 @@ Design notes:
 `/opt/stacks/radiolog/data` is mounted **read-only** at
 `workspace/radiolog/` in the Hermes gateway (stacks/hermes/docker-compose.yml),
 and the `radio-logs` skill (stacks/hermes/skills/homelab/radio-logs/SKILL.md)
-tells the agent the layout and schemas. Deploy the skill by copying it into the
-gitignored data dir:
+tells the agent the layout and schemas. The converge installs the skill into
+the gitignored `data/skills/homelab/` (stacks role — no hand copy).
 
-```
-mkdir -p /opt/stacks/hermes/data/skills/homelab
-cp -r /opt/stacks/hermes/skills/homelab/radio-logs /opt/stacks/hermes/data/skills/homelab/
-```
-
-Then recreate the gateway (`docker compose up -d` in /opt/stacks/hermes) so the
-new mount appears.
+After a compose change, recreate the gateway (`docker compose up -d` in
+/opt/stacks/hermes) so the new mount appears.
 
 ## Deploy / update
 

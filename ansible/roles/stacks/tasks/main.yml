@@ -46,6 +46,39 @@
     dest: "{{ stacks_root }}/home/mosquitto/"
   notify: restart mosquitto
 
+# hermes: data/ is the agent's HERMES_HOME — gitignored, mostly runtime state
+# and secrets that converge must never touch. Two things in it are ours and
+# human-owned, so git is the source of truth and a live (or agent-made) edit
+# loses on the next converge — it shows up in the --check --diff plan first:
+#   SOUL.md          the always-in-context identity + routing table
+#   skills/homelab/  the skills that describe this homelab's data sources
+# Owned by the admin user (= HERMES_UID), not root, so the agent can still
+# read them. config.yaml is NOT synced: hermes rewrites it at runtime
+# (`plugins enable`, `tools disable`). docs/hermes.md "Tool routing".
+- name: hermes data dir
+  ansible.builtin.file:
+    path: "{{ stacks_root }}/hermes/data"
+    state: directory
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+
+- name: hermes SOUL.md (git is the source of truth)
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/stacks/hermes/SOUL.md"
+    dest: "{{ stacks_root }}/hermes/data/SOUL.md"
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+    mode: "0644"
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: hermes homelab skills (git is the source of truth)
+  ansible.builtin.copy:
+    src: "{{ repo_root }}/stacks/hermes/skills/homelab/"
+    dest: "{{ stacks_root }}/hermes/data/skills/homelab/"
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+  ignore_errors: "{{ ansible_check_mode }}"
+
 # n8n runs as UID 1000 inside the container. Ownership on the dir only —
 # never recursive, the SQLite db inside holds every credential.
 - name: n8n data dir owned by the container user
