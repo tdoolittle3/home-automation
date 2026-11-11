@@ -19,6 +19,8 @@ question, using the map below, before you reach for a tool.
 
 If a question names none of these, say what you looked at and what you could
 not reach. Do not guess and do not fall back to Home Assistant by default.
+A skill is an instruction file, not a tool: apply it by reading the workspace
+files it names with your file tools — never pass a skill name to `tool_call`.
 
 ## What you can reach
 

@@ -30,10 +30,12 @@ litellm, so every step is captured in Langfuse.
 
 Two profiles, **never mixed**:
 
-- **Operator** (this stack): the *clean* `coder-30b` (and later the clean 35B).
-  Gets real tools — HA control, scoped service-restart, preview deploys.
-- **Lab** (not this stack): DeepHat / heretic / abliterated models. Chat-only or
-  an isolated sandbox with **no** prod/HA/file-write access.
+- **Operator** (the default profile): the *clean* `coder-30b` (and later the
+  clean 35B). Gets real tools — HA control, scoped service-restart, preview
+  deploys.
+- **Lab** (`profiles/lab/` in this stack): DeepHat / heretic / abliterated
+  models. **Chat-only** — no terminal backend, no plugins, no MCP servers, and
+  the shell toolsets disabled inside the profile. See "The Lab profile" below.
 
 Abliterated models are kept away from tools on purpose: stripping refusals also
 degrades tool-calling discipline and removes the safety margin that matters when
@@ -177,6 +179,77 @@ compose change (not auto-up'd — see the Deploy intro). Other `data/` changes
 - **Preview deploys**: the agent writes a site to a previews dir that a small web
   server (Caddy) serves, and hands back the URL. (Separate stack, TBD.)
 
+## Telegram layout
+
+Three places to talk to the one bot, each with a job:
+
+- **DM** — interactive Operator chat. Topics are enabled (Bot API 9.4
+  "Threaded Mode" turned on in BotFather, then `/topic` in the DM): each topic
+  is an isolated session, which is the standing fix for long-session anchoring
+  (a chat full of camera answers steering a 30B toward camera tools for every
+  question). Start a topic per theme; `/new` still resets within one.
+- **"Ladybird tasks" group** — the home channel (`/sethome` was sent there):
+  cron output, gateway announcements and background-task updates land here.
+- **"Ladybird Lab" group** — routed to the Lab profile (next section). Clean
+  chats never see it; it never sees tools.
+
+## The Lab profile — one gateway, two brains
+
+One bot token, one gateway process; `gateway.multiplex_profiles` +
+`gateway.profile_routes` (in the **Operator's** `data/config.yaml`) route the
+Lab group's `chat_id` to the `lab` profile. Every unrouted chat falls through
+to the Operator. Each profile has its own config, SOUL, skills, sessions and
+memory — the isolation is structural, not prompt-level. (Feature shipped
+upstream Jul 2026 as `profile_routes`; if the gateway logs an unknown-key
+error on restart, the image predates it — rebuild from upstream.)
+
+Bring-up (owner, on ladybird, in `/opt/stacks/hermes`):
+
+```
+# 1. create the Lab group in Telegram, add the bot, send one message in it,
+#    then read the group's chat id:
+cat data/channel_directory.json
+# 2. create the profile and install its config + soul (examples are synced
+#    into this dir by the converge):
+docker compose run --rm gateway hermes profiles create lab
+cp profiles/lab/config.yaml.example data/profiles/lab/config.yaml
+cp profiles/lab/SOUL.md.example    data/profiles/lab/SOUL.md
+docker compose run --rm gateway hermes -p lab tools disable terminal code_execution computer_use
+# 3. in data/config.yaml: add the cron:/gateway: blocks from
+#    config.yaml.example, with the real chat_id; then
+docker compose restart gateway
+# 4. verify: message the Lab group (expect the abliterated voice, and a
+#    refusal-by-design if asked to touch HA); message the DM (Operator
+#    unchanged). `hermes -p lab tools list` should show no shell toolsets.
+```
+
+The Lab model (`8b-abliterated`) lives in llama-swap's `ablit` group, so a Lab
+conversation evicts whatever the `big` group had loaded — Operator replies
+stall for one model-load (~tens of seconds) after Lab use, and vice versa. The
+two brains time-share the GPU; that's the accepted cost.
+
+## Scheduled jobs — the thinking engine
+
+The long-term value here is standing scans, not ad-hoc chat: cron jobs the
+agent sets up itself (`/cron add "every morning at 7" "…"`, or just ask it)
+that read the radio logs, camera archive and HA history and report to the home
+channel. Jobs run unattended, so they get the smarter-but-slower model:
+`cron.model: openai/big-30b-thinking` in `data/config.yaml` points every job
+that doesn't pin its own model at the Thinking tune (same 30B weights as
+coder, extended reasoning — and now 64k context in llama-swap, same full-MoE-
+offload recipe as coder-30b, since an agent loop doesn't fit in 16k).
+
+Mechanics worth knowing:
+
+- Model resolution per job: per-job pin (`--model`/`--pin`) → `cron.model` →
+  the profile default. Delivery default is the chat that created the job;
+  `deliver: telegram` sends to the home channel ("Ladybird tasks").
+- llama-swap group-swaps `big` members: a firing job evicts `coder-30b`, the
+  next DM message swaps it back. Each swap costs a model load, so point heavy
+  scans at quiet hours and batch them rather than scattering hourly one-liners.
+- Jobs live in `data/cron/jobs.json`; `hermes cron list` / `/cron list` to
+  audit what the agent has scheduled for itself.
+
 ## Tool routing — the homelab map
 
 Skills only load when a request matches their description, and the model
@@ -213,8 +286,9 @@ server's tool descriptions. Don't grow the prompt.
 
 ## Related
 
-- `snibbly/etc/llama-swap/config.yaml` — the `coder-30b` entry (64k, full MoE
-  offload, `--jinja`).
+- `snibbly/etc/llama-swap/config.yaml` — the `coder-30b` and `big-30b-thinking`
+  entries (both 64k, full MoE offload, `--jinja`) and the `8b-abliterated` Lab
+  model.
 - `snibbly/bench/` — tool-calling validation (`toolcall_test.py`) and the bench
   that proved the box stable enough for standing agent duty.
 - `docs/langfuse.md` — where the agent's every model call is traced.

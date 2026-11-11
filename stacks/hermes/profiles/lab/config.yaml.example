@@ -1,0 +1,20 @@
+# Hermes "Lab" profile — the uncensored chat pen. One gateway serves both
+# profiles; gateway.profile_routes in the Operator config routes the
+# "Ladybird Lab" Telegram group here. Copy to data/profiles/lab/config.yaml
+# after `hermes profiles create lab` — see docs/hermes.md "The Lab profile".
+#
+# CHAT-ONLY BY DESIGN (trust model, docs/hermes.md): abliterated models never
+# get tools. No terminal backend, no mcp_servers, no plugins in this file —
+# and keep it that way. After copying it in, also disable the shell toolsets
+# inside the profile:
+#   docker compose run --rm gateway hermes -p lab tools disable terminal code_execution computer_use
+
+model:
+  default: openai/8b-abliterated
+
+# Deliberately NO fallback_providers: if the lab model is unreachable the
+# answer is an error, not a silent hop onto a clean model wearing the Lab soul.
+
+compression:
+  enabled: true
+  threshold: 0.85
