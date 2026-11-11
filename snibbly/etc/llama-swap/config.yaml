@@ -16,11 +16,16 @@ models:
       -m /opt/models/Qwen3-8B-Q4_K_M.gguf -ngl 99 -t 4 -c 16384 -np 2 --jinja
     env: ["CUDA_VISIBLE_DEVICES=0"]
     ttl: 0
+  # The scheduled-jobs engine (Hermes `cron.model`): same 30B-A3B weights as
+  # coder-30b but the Thinking tune — slower, stronger multi-step analysis,
+  # which is the right trade for unattended cron scans. Full MoE offload
+  # (--n-cpu-moe 48) like coder-30b so the 64k KV cache an agent loop needs
+  # fits on GPU 0.
   "big-30b-thinking":
     cmd: |
       /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
-      -m /opt/models/Qwen3-30B-A3B-Thinking-2507-Q4_K_M.gguf -ngl 99 --n-cpu-moe 32
-      -t 4 -c 16384 -ctk q8_0 -ctv q8_0 -fa on -np 1 --jinja
+      -m /opt/models/Qwen3-30B-A3B-Thinking-2507-Q4_K_M.gguf -ngl 99 --n-cpu-moe 48
+      -t 4 -c 65536 -ctk q8_0 -ctv q8_0 -fa on -np 1 --jinja
     env: ["CUDA_VISIBLE_DEVICES=0"]
     ttl: 0
   "big-14b":

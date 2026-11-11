@@ -21,6 +21,32 @@ fallback_providers:
     base_url: http://192.168.0.19:8080/v1
     key_env: OPENAI_API_KEY
 
+# Scheduled jobs think harder than chat: any cron job that doesn't pin its own
+# model runs on the Thinking tune of the 30B (same weights as coder-30b, extra
+# reasoning — right trade when nobody is waiting on the reply). Needs the
+# openai/big-30b-thinking litellm alias. llama-swap swaps within the "big"
+# group, so a firing job evicts coder-30b for its duration (and vice versa —
+# the next chat message swaps back, ~1 min of model-load each way): schedule
+# heavy scans for hours nobody chats. Per-job override: `hermes cron edit <id>
+# --model …`, or ask the agent to pin one.
+cron:
+  model: openai/big-30b-thinking
+
+# One bot, several brains: the gateway serves extra profiles and routes by
+# chat. Messages from the "Ladybird Lab" Telegram group go to the `lab`
+# profile (chat-only, abliterated model — profiles/lab/ in this stack dir);
+# every chat not listed falls through to this Operator profile. The target
+# profile must exist before the gateway restarts (`hermes profiles create
+# lab`). chat_id must be a QUOTED string; find the group's id in
+# data/channel_directory.json after sending one message in the group.
+gateway:
+  multiplex_profiles: true
+  profile_routes:
+    - name: ladybird-lab
+      platform: telegram
+      chat_id: "<LAB_GROUP_CHAT_ID>"
+      profile: lab
+
 # Agent shell / code-execution. The deployed Operator profile uses the DOCKER
 # sandbox — the agent's code runs in an ephemeral child container (requires the
 # /var/run/docker.sock mount + group_add in docker-compose.yml, root-equivalent
