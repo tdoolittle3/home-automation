@@ -30,6 +30,9 @@
     </div>
     <div class="muted">{{e.start_ts|dt}}
       · {{((e.end_ts or e.start_ts) - e.start_ts)|round|int}}s · {{e.dets}} det</div>
+    {% if comp.get(e.id) %}<div class="muted">
+      {%- for lab, n in comp[e.id] %}{{lab}}{% if n > 1 %} ×{{n}}{% endif %}{{ " · " if not loop.last }}{% endfor -%}
+    </div>{% endif %}
   </div>
 {% else %}
   <p class="muted">No events match.</p>

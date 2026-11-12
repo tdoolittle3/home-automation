@@ -118,6 +118,14 @@ def _event_summary(c, event_id):
         return None
     n = c.execute("SELECT COUNT(*) FROM detections WHERE event_id=?",
                   (event_id,)).fetchone()[0]
+    # what was actually in frame, as individuals: "person ×2 (one of them the
+    # named entity), car ×1" — far more useful to relay than a detection count
+    comp = c.execute(
+        """SELECT d.label, COUNT(DISTINCT COALESCE(d.entity_id, -d.id)) individuals,
+                  GROUP_CONCAT(DISTINCT e.name) named
+           FROM detections d LEFT JOIN entities e ON e.id=d.entity_id
+           WHERE d.event_id=? GROUP BY d.label
+           ORDER BY individuals DESC""", (event_id,)).fetchall()
     return {
         "event_id": ev["id"],
         "camera": ev["camera"],
@@ -127,6 +135,10 @@ def _event_summary(c, event_id):
         "duration_secs": round((ev["end_ts"] or ev["start_ts"] or 0)
                                - (ev["start_ts"] or 0)),
         "detections": n,
+        "composition": [
+            {"label": r["label"], "individuals": r["individuals"],
+             **({"named": r["named"].split(",")} if r["named"] else {})}
+            for r in comp],
         "night": _is_night(ev["start_ts"]) if ev["start_ts"] else None,
         "url": f"{WEB}/event/{ev['id']}",
     }

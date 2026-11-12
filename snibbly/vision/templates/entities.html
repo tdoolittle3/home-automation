@@ -3,6 +3,26 @@
 {% block body %}
 <p class="muted">Recurring things, clustered by appearance. Unnamed entities are
 auto-founded; open one to name it, merge duplicates into it, or delete junk.</p>
+
+{% if statics %}
+<h2>Static right now <span class="muted">({{statics|length}})</span></h2>
+<p class="muted">Objects sitting still in frame (a parked car, scenery YOLO
+misreads) — their detections are suppressed until they move. The worker forgets
+an entry after a few sweep chunks without a match; "forget" just re-evaluates.</p>
+<table>
+  <tr><th>camera</th><th>label</th><th>since</th><th>last seen</th><th>suppressed</th><th></th></tr>
+  {% for s in statics %}
+  <tr>
+    <td>{{s.camera}}</td>
+    <td>{{s.label}}</td>
+    <td>{{s.first_seen|dt}}</td>
+    <td>{{s.last_seen|dt}}</td>
+    <td>{{s.hits}}</td>
+    <td><form method="post" action="/static/{{s.id}}/delete"><button>forget</button></form></td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
 {% for label, ents in groups.items() %}
 <h2>{{label}} <span class="muted">({{ents|length}})</span></h2>
 <div class="grid">

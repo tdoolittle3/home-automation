@@ -32,6 +32,8 @@ import numpy as np
 log = logging.getLogger("vision")
 
 YOLO_WEIGHTS = "/opt/vision/models/yolo11s.pt"
+REGISTER_MIN_FRAMES = 120  # sweep chunk must span >= this many keyframes (2 min)
+                           # before its static clusters are trusted into the registry
 # the -quickgelu variant matters: OpenAI weights use QuickGELU, and plain
 # ViT-B-16 silently runs them with the wrong activation (open_clip warns)
 CLIP_MODEL, CLIP_PRETRAINED = "ViT-B-16-quickgelu", "openai"
@@ -60,12 +62,14 @@ def _static_mask(per_frame, min_presence):
     """Scenery suppression. A detection that sits in (nearly) the same box
     with the same label across >= min_presence of the frames is a static
     object — a parked car, a grill YOLO calls a suitcase — not an event.
-    Returns, per frame, the set of detection indices to suppress. Needs a
-    decent frame count to judge; short batches are left untouched."""
+    Returns, per frame, the set of detection indices to suppress, plus the
+    (label, box) of each static cluster found so the registry can learn it.
+    Needs a decent frame count to judge; short batches are left untouched."""
     n = len(per_frame)
     masks = [set() for _ in per_frame]
+    clusters = []
     if n < 8:
-        return masks
+        return masks, clusters
     all_dets = [(fi, di, lab, box) for fi, dets in enumerate(per_frame)
                 for di, (lab, _conf, box) in enumerate(dets)]
     assigned = set()
@@ -80,10 +84,11 @@ def _static_mask(per_frame, min_presence):
                 members.append((fj, dj))
                 frames_seen.add(fj)
         if len(frames_seen) >= min_presence * n:
+            clusters.append((lab, box))
             for m in members:
                 assigned.add(m)
                 masks[m[0]].add(m[1])
-    return masks
+    return masks, clusters
 
 
 class Analyzer:
@@ -171,6 +176,88 @@ class Analyzer:
             "VALUES(?,?,1,?,?)", (label, _to_blob(vec), ts, ts))
         return cur.lastrowid
 
+    # ---- static-object registry ----
+    #
+    # _static_mask suppresses within one batch; the registry remembers across
+    # batches. Sweep chunks teach it (their static clusters get registered),
+    # and every batch — including the short Frigate-event batches _static_mask
+    # can't judge — is filtered against it before anything persists. Matching
+    # is label + IoU on the stored box, which is refreshed on every match so
+    # it tracks slow drift (sun, shadows). An entry expires after
+    # static_expire_chunks consecutive sweep chunks with no match — the
+    # departure itself still makes an event, because a moving box falls below
+    # the IoU threshold and comes through live.
+
+    def _registry_filter(self, camera, per_frame, ts_list):
+        """Drop detections that match a registered static object. Returns the
+        filtered per_frame and the ids of the entries that matched."""
+        rows = self.db.query("SELECT id, label, box FROM static_objects "
+                             "WHERE camera=?", (camera,))
+        if not rows:
+            return per_frame, set()
+        entries = [(r["id"], r["label"], json.loads(r["box"])) for r in rows]
+        iou_thr = self.cfg["static_registry_iou"]
+        matched = {}  # entry id -> [latest box, latest ts, suppressed count]
+        out = []
+        for dets, ts in zip(per_frame, ts_list):
+            live = []
+            for lab, conf, box in dets:
+                sid = next((i for i, elab, ebox in entries
+                            if elab == lab and _iou(box, ebox) >= iou_thr), None)
+                if sid is None:
+                    live.append((lab, conf, box))
+                elif sid in matched:
+                    matched[sid][0], matched[sid][1] = box, ts
+                    matched[sid][2] += 1
+                else:
+                    matched[sid] = [box, ts, 1]
+            out.append(live)
+        for sid, (box, ts, n) in matched.items():
+            self.db.execute(
+                "UPDATE static_objects SET box=?, last_seen=?, misses=0, "
+                "hits=hits+? WHERE id=?", (json.dumps(box), ts, n, sid))
+        if matched:
+            self.db.bump("static_suppressed", sum(m[2] for m in matched.values()))
+        return out, set(matched)
+
+    def _registry_learn(self, camera, clusters, ts):
+        """Register this sweep chunk's static clusters (or refresh the entries
+        they already match). Returns the ids touched."""
+        iou_thr = self.cfg["static_registry_iou"]
+        rows = self.db.query("SELECT id, label, box FROM static_objects "
+                             "WHERE camera=?", (camera,))
+        active = set()
+        for lab, box in clusters:
+            sid = next((r["id"] for r in rows if r["label"] == lab
+                        and _iou(json.loads(r["box"]), box) >= iou_thr), None)
+            if sid is None:
+                cur = self.db.execute(
+                    "INSERT INTO static_objects(camera, label, box, first_seen,"
+                    " last_seen) VALUES(?,?,?,?,?)",
+                    (camera, lab, json.dumps(box), ts, ts))
+                sid = cur.lastrowid
+                log.info("static registry: new %s on %s at %s", lab, camera, box)
+            else:
+                self.db.execute("UPDATE static_objects SET box=?, last_seen=?, "
+                                "misses=0 WHERE id=?", (json.dumps(box), ts, sid))
+            active.add(sid)
+        return active
+
+    def _registry_expire(self, camera, active_ids):
+        """End of a sweep chunk with no sign of the other entries: count a
+        miss each; enough consecutive misses means the object left."""
+        for r in self.db.query("SELECT id, label, misses FROM static_objects "
+                               "WHERE camera=?", (camera,)):
+            if r["id"] in active_ids:
+                continue
+            if r["misses"] + 1 >= self.cfg["static_expire_chunks"]:
+                self.db.execute("DELETE FROM static_objects WHERE id=?", (r["id"],))
+                log.info("static registry: %s #%d on %s expired",
+                         r["label"], r["id"], camera)
+            else:
+                self.db.execute("UPDATE static_objects SET misses=misses+1 "
+                                "WHERE id=?", (r["id"],))
+
     # ---- zero-shot tags ----
 
     def _tag_vectors(self):
@@ -225,7 +312,9 @@ class Analyzer:
         self._ensure_models()
         with self.gpu_lock:
             per_frame = self._detect([f["path"] for f in frames])
-            masks = _static_mask(per_frame, self.cfg["static_presence"])
+            per_frame, _ = self._registry_filter(
+                frames[0]["camera"], per_frame, [f["ts"] for f in frames])
+            masks, _ = _static_mask(per_frame, self.cfg["static_presence"])
             hits = []
             for frame, dets, static in zip(frames, per_frame, masks):
                 live = [d for k, d in enumerate(dets) if k not in static]
@@ -247,7 +336,16 @@ class Analyzer:
         keep_thr = self.cfg["sweep_keep_threshold"]
         with self.gpu_lock:
             per_frame = self._detect([os.path.join(tmp_dir, n) for n in names])
-        masks = _static_mask(per_frame, self.cfg["static_presence"])
+        ts_list = [start + i for i in range(len(names))]  # keyframes are 1/s
+        per_frame, matched = self._registry_filter(camera, per_frame, ts_list)
+        masks, clusters = _static_mask(per_frame, self.cfg["static_presence"])
+        # a tiny partial chunk (camera offline most of it) is too little
+        # context to learn scenery from — filter against the registry, but
+        # don't let it teach or expire entries
+        if len(names) >= REGISTER_MIN_FRAMES:
+            active = matched | self._registry_learn(camera, clusters,
+                                                    start + len(names) - 1)
+            self._registry_expire(camera, active)
         kept = []  # (frame row, live dets)
         stamp = time.strftime("%Y%m%d-%H%M", time.localtime(start))
         keep_dir = os.path.join(self.data_dir, "frames", "sweep", camera, stamp)
@@ -258,7 +356,7 @@ class Analyzer:
             os.makedirs(keep_dir, exist_ok=True)
             path = os.path.join(keep_dir, name)
             os.replace(os.path.join(tmp_dir, name), path)
-            ts = start + i  # keyframes are 1/s
+            ts = ts_list[i]
             cur = self.db.execute(
                 "INSERT INTO frames(camera, ts, path, analyzed) VALUES(?,?,?,1)",
                 (camera, ts, path))
