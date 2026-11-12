@@ -56,7 +56,8 @@ DEFAULTS = {
               "start_offset_hours": 6},
     "analyze": {"conf_threshold": 0.40, "sweep_keep_threshold": 0.50,
                 "entity_match_threshold": 0.85, "sweep_event_gap_secs": 90,
-                "batch_size": 16, "static_presence": 0.5},
+                "batch_size": 16, "static_presence": 0.5,
+                "static_registry_iou": 0.5, "static_expire_chunks": 3},
     "mcp": {"bind": "0.0.0.0", "port": 8097, "timezone": "America/Denver",
             "night_start_hour": 21, "night_end_hour": 7,
             "web_base_url": "http://192.168.0.19:8099"},
@@ -135,6 +136,16 @@ CREATE TABLE IF NOT EXISTS tags(
   threshold REAL NOT NULL DEFAULT 0.25,     -- cosine cutoff for auto-assignment
   enabled INTEGER NOT NULL DEFAULT 1,
   created_at REAL
+);
+CREATE TABLE IF NOT EXISTS static_objects(
+  id INTEGER PRIMARY KEY,
+  camera TEXT NOT NULL,
+  label TEXT NOT NULL,
+  box TEXT NOT NULL,                        -- [x1,y1,x2,y2] px json; refreshed on match
+  first_seen REAL NOT NULL,
+  last_seen REAL NOT NULL,
+  hits INTEGER NOT NULL DEFAULT 0,          -- detections suppressed against this entry
+  misses INTEGER NOT NULL DEFAULT 0         -- consecutive sweep chunks without a match
 );
 CREATE TABLE IF NOT EXISTS detection_tags(
   detection_id INTEGER NOT NULL REFERENCES detections(id),

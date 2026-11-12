@@ -20,19 +20,30 @@
 </div>
 {% endif %}
 
-<h2>Detections <span class="muted">({{dets|length}})</span></h2>
+<h2>Detections <span class="muted">({{groups|length}} distinct · {{ndets}} total)</span></h2>
 <table>
-  <tr><th>crop</th><th>label</th><th>conf</th><th>entity</th><th>tags</th></tr>
-  {% for d in dets %}
+  <tr><th>crop</th><th>what</th><th>seen</th><th>tags</th></tr>
+  {% for g in groups %}{% set d = g.best %}
   <tr>
     <td>{% if d.crop_path %}<a href="{{d.crop_path|media}}"><img src="{{d.crop_path|media}}" style="height:72px;border-radius:4px" loading="lazy" alt=""></a>{% endif %}</td>
-    <td>{{d.label}}</td>
-    <td>{{"%.2f"|format(d.conf)}}</td>
-    <td>{% if d.entity_id %}<a href="/entity/{{d.entity_id}}">{{d.entity_name or "entity #%d"|format(d.entity_id)}}</a>{% endif %}</td>
     <td>
-      {% for t in det_tags.get(d.id, []) %}
+      <strong>{{d.label}}</strong> {{"%.2f"|format(d.conf)}}
+      {% if d.entity_id %}<br><a href="/entity/{{d.entity_id}}">{{d.entity_name or "entity #%d"|format(d.entity_id)}}</a>{% endif %}
+    </td>
+    <td>
+      {{g.n}}×
+      {% if g.n > 1 %}· {{g.first|dt}} → {{g.last|dt}}
+      <details><summary class="muted">crops ({{g.crops|length}}{% if g.n > g.crops|length %} of {{g.n}}{% endif %})</summary>
+        <div class="thumbs">
+          {% for cd in g.crops %}<a href="{{cd.crop_path|media}}"><img src="{{cd.crop_path|media}}" loading="lazy" alt=""></a>{% endfor %}
+        </div>
+      </details>
+      {% else %}· {{g.first|dt}}{% endif %}
+    </td>
+    <td>
+      {% for t in g.tags.values() %}
         <span class="chip">{{t.name}}{% if t.score %} {{t.score}}{% endif %}
-          <form class="inline" method="post" action="/detection/{{d.id}}/untag">
+          <form class="inline" method="post" action="/detection/{{t.detection_id}}/untag">
             <input type="hidden" name="tag_id" value="{{t.tag_id}}">
             <input type="hidden" name="back" value="/event/{{ev.id}}">
             <button style="padding:0 4px;font-size:11px">×</button>

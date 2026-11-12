@@ -51,3 +51,7 @@ sweep_event_gap_secs = 90      # kept sweep frames closer than this cluster into
 batch_size = 16                # YOLO batch; fp32 on the 4 GB card, keep modest
 static_presence = 0.5          # same label+box in >= this share of a batch's frames = scenery
                                # (parked car, grill-as-suitcase) -> suppressed, no events/entities
+static_registry_iou = 0.5      # IoU for a detection to match a registered static object; the
+                               # stored box refreshes on every match, so it tracks slow drift
+static_expire_chunks = 3       # consecutive sweep chunks without a match before a registered
+                               # static object is forgotten (3 chunks = ~1 h)

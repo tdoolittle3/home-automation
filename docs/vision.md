@@ -99,13 +99,29 @@ ViT-B/16 load in ~2 s and hold ~700 MiB VRAM):
   into `sweep`-source events; this is the Frigate-independent path, so things Frigate never
   noticed become first-class events.
 
-**Scenery suppression** (`static_presence`, the lesson of the first live run): YOLO on a static
-scene is confidently wrong — a backyard fixture read as "surfboard" in every keyframe, so the
-first chunk kept 1200/1200 frames as one 20-minute "surfboard event", and a parked car was
-re-detected 470 times. A detection whose label+box (IoU ≥ 0.6) recurs in ≥50 % of a batch's
-frames is scenery: suppressed from keeps, events, and entities. Same chunk after the fix:
-2 frames kept, one real 28-second car event. Suppression needs ≥8 frames of context, so short
-event batches are untouched.
+**Scenery suppression**, two layers:
+
+* *Per batch* (`static_presence`, the lesson of the first live run): YOLO on a static scene is
+  confidently wrong — a backyard fixture read as "surfboard" in every keyframe, so the first
+  chunk kept 1200/1200 frames as one 20-minute "surfboard event", and a parked car was
+  re-detected 470 times. A detection whose label+box (IoU ≥ 0.6) recurs in ≥50 % of a batch's
+  frames is scenery: suppressed from keeps, events, and entities. Same chunk after the fix:
+  2 frames kept, one real 28-second car event. Needs ≥8 frames of context to judge.
+* *Across batches* (the `static_objects` registry, the lesson of weeks of the owner's own parked
+  car): the per-batch mask starts from zero every time, so short Frigate-event batches (<8
+  frames) re-persisted the parked car endlessly, and slow box drift (sun, shadows) leaked it
+  into sweep events. Sweep chunks ≥2 min teach the registry — each static cluster becomes a
+  per-camera `label+box` entry — and **every** batch, event or sweep, is filtered against it
+  before anything persists (`static_registry_iou`; the stored box refreshes on each match, so
+  it tracks drift). An entry expires after `static_expire_chunks` consecutive sweep chunks with
+  no match; departure still makes an event, because a moving box falls below the IoU threshold
+  and comes through live. The registry is visible (and deletable per entry) on the web view's
+  entities page; suppressed-detection totals show as `static_suppressed` in `:8098` counters.
+
+The web view groups an event's detections into one card per (entity, label) — best crop, count,
+time span, the member crops behind a disclosure — instead of a row per near-identical crop, and
+the event feed and the MCP `recent_events`/`search` results carry a composition line/field
+("person ×2 · car", with entity names where known) built the same way.
 
 Known rough edges: brief detect-only Frigate events can 404 from its API before the worker
 fetches them (they park as `error`; the sweep covers those spans anyway), and OpenAI CLIP

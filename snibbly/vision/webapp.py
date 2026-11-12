@@ -87,13 +87,26 @@ def events(request: Request, camera: str = "", source: str = "", label: str = ""
                 FROM events e WHERE {' AND '.join(where)}
                 ORDER BY e.start_ts DESC LIMIT ? OFFSET ?""",
             params + [PAGE, page * PAGE]).fetchall()
+        # composition line per card: labels with distinct-individual counts
+        # ("person ×2 · car"), unclustered detections each counting as one
+        comp = {}
+        if rows:
+            marks = ",".join("?" * len(rows))
+            for r in c.execute(
+                    f"""SELECT event_id, label,
+                               COUNT(DISTINCT COALESCE(entity_id, -id)) n
+                        FROM detections WHERE event_id IN ({marks})
+                        GROUP BY event_id, label ORDER BY event_id, n DESC""",
+                    [r["id"] for r in rows]):
+                comp.setdefault(r["event_id"], []).append((r["label"], r["n"]))
         cameras = [r[0] for r in c.execute("SELECT DISTINCT camera FROM events")]
         labels = [r[0] for r in c.execute(
             "SELECT DISTINCT label FROM events WHERE label IS NOT NULL ORDER BY label")]
         tags = c.execute("SELECT id, name FROM tags ORDER BY name").fetchall()
-    return render("events.html", request, events=rows, cameras=cameras, labels=labels,
-                  tags=tags, f={"camera": camera, "source": source, "label": label,
-                                "entity": entity, "tag": tag}, page=page)
+    return render("events.html", request, events=rows, comp=comp, cameras=cameras,
+                  labels=labels, tags=tags,
+                  f={"camera": camera, "source": source, "label": label,
+                     "entity": entity, "tag": tag}, page=page)
 
 
 @app.get("/event/{event_id}")
@@ -103,9 +116,10 @@ def event(request: Request, event_id: str):
         if not ev:
             raise HTTPException(404)
         dets = c.execute(
-            """SELECT d.*, e.name entity_name FROM detections d
-               LEFT JOIN entities e ON e.id=d.entity_id
-               WHERE d.event_id=? ORDER BY d.conf DESC LIMIT 200""",
+            """SELECT d.id, d.ts, d.label, d.conf, d.crop_path, d.entity_id,
+                      e.name entity_name
+               FROM detections d LEFT JOIN entities e ON e.id=d.entity_id
+               WHERE d.event_id=? ORDER BY d.conf DESC""",
             (event_id,)).fetchall()
         det_tags = {}
         for r in c.execute(
@@ -119,9 +133,25 @@ def event(request: Request, event_id: str):
             "SELECT * FROM frames WHERE event_id=? AND path IS NOT NULL "
             "ORDER BY ts LIMIT 24", (event_id,)).fetchall()
         all_tags = c.execute("SELECT id, name FROM tags ORDER BY name").fetchall()
+    # one card per (entity, label), not one row per near-identical crop; dets
+    # arrive conf-desc, so the first member of a group is its best detection
+    groups = {}
+    for d in dets:
+        g = groups.setdefault((d["entity_id"], d["label"]), {
+            "best": d, "n": 0, "first": d["ts"], "last": d["ts"],
+            "crops": [], "tags": {}})
+        g["n"] += 1
+        g["first"], g["last"] = min(g["first"], d["ts"]), max(g["last"], d["ts"])
+        if d["crop_path"] and len(g["crops"]) < 24:
+            g["crops"].append(d)
+        for t in det_tags.get(d["id"], []):
+            best = g["tags"].get(t["tag_id"])
+            if best is None or (t["score"] or 1) > (best["score"] or 1):
+                g["tags"][t["tag_id"]] = t
+    groups = sorted(groups.values(), key=lambda g: -g["n"])
     clip = (f"{FRIGATE}/api/events/{event_id}/clip.mp4"
             if ev["source"] == "frigate" else None)
-    return render("event.html", request, ev=ev, dets=dets, det_tags=det_tags,
+    return render("event.html", request, ev=ev, groups=groups, ndets=len(dets),
                   frames=frames, all_tags=all_tags, clip=clip)
 
 
@@ -135,10 +165,24 @@ def entities(request: Request):
                  (SELECT crop_path FROM detections d WHERE d.entity_id=e.id
                    ORDER BY d.ts DESC LIMIT 1) thumb
                FROM entities e ORDER BY e.label, e.n DESC""").fetchall()
+        try:
+            statics = c.execute("SELECT * FROM static_objects "
+                                "ORDER BY camera, label").fetchall()
+        except sqlite3.OperationalError:  # worker hasn't created the table yet
+            statics = []
     groups = {}
     for r in rows:
         groups.setdefault(r["label"], []).append(r)
-    return render("entities.html", request, groups=groups)
+    return render("entities.html", request, groups=groups, statics=statics)
+
+
+@app.post("/static/{static_id}/delete")
+def static_delete(static_id: int):
+    """Forget a static object. If it's still in frame and static, the next
+    sweep chunk re-registers it — deleting means "re-evaluate", not "allow"."""
+    with db() as c:
+        c.execute("DELETE FROM static_objects WHERE id=?", (static_id,))
+    return RedirectResponse("/entities", status_code=303)
 
 
 @app.get("/entity/{entity_id}")
