@@ -4,7 +4,8 @@ Covers _iou/_static_mask, the cross-batch static-object registry, sweep
 event clustering, and the webapp routes, all against in-memory/throwaway
 SQLite built from vision_worker.SCHEMA. No GPU, ffmpeg, or MQTT.
 
-Deps: pytest, numpy, fastapi, jinja2, python-multipart, httpx.
+Deps: pytest, numpy, fastapi, jinja2, python-multipart, httpx, mcp>=2
+(the vision-mcp test skips without it).
 """
 
 import json
@@ -234,3 +235,164 @@ def test_entities_page_lists_and_deletes_static_object(web):
     assert r.status_code == 303
     assert sqlite3.connect(webapp.DB_PATH).execute(
         "SELECT COUNT(*) FROM static_objects").fetchone()[0] == 0
+
+
+# ---- frame cap + frames.path migration (2026-11-12 disk-full fix) ----
+
+def _fake_clip(monkeypatch, meta, n_at_base):
+    """Stub Frigate + ffmpeg: the clip yields duration*fps frames, or
+    n_at_base frames when no fps cap is requested."""
+    calls = {}
+
+    def sample(url, out_dir, fps=None, keyframes_only=False, timeout=900):
+        calls["fps"] = fps
+        os.makedirs(out_dir, exist_ok=True)
+        dur = (meta.get("end_time") or 0) - (meta.get("start_time") or 0)
+        n = int(dur * fps) + 1 if (fps and dur) else n_at_base
+        for i in range(n):
+            open(os.path.join(out_dir, f"{i + 1:06d}.jpg"), "w").close()
+        return n
+
+    monkeypatch.setattr(vision_worker, "sample_clip", sample)
+    monkeypatch.setattr(vision_worker, "api_json", lambda cfg, path, timeout=10: meta)
+    monkeypatch.setattr(vision_worker, "enqueue", lambda *a, **k: None)
+    return calls
+
+
+def _event_cfg(tmp_path):
+    cfg = vision_worker.load_config()
+    cfg["storage"] = dict(cfg["storage"], data_dir=str(tmp_path))
+    return cfg
+
+
+def test_handle_event_caps_frames_over_long_event(tmp_path, monkeypatch):
+    # a parked car Frigate tracked for 2 h used to become ~15k full-res JPGs
+    db = MemDB()
+    calls = _fake_clip(monkeypatch, {"has_clip": True, "start_time": 1000.0,
+                                     "end_time": 8553.0}, 0)
+    vision_worker.handle_event(_event_cfg(tmp_path), db,
+                               {"id": "ev", "camera": "driveway", "start_ts": 1000.0})
+    rows = db.query("SELECT ts FROM frames WHERE event_id='ev' ORDER BY ts")
+    assert len(rows) == 120
+    assert calls["fps"] == pytest.approx(120 / 7553)
+    assert rows[0]["ts"] == 1000.0 and rows[-1]["ts"] > 8000  # spans the event
+    assert len(os.listdir(tmp_path / "frames/events/driveway/ev")) == 120
+
+
+def test_handle_event_short_event_keeps_full_fps(tmp_path, monkeypatch):
+    db = MemDB()
+    calls = _fake_clip(monkeypatch, {"has_clip": True, "start_time": 0.0,
+                                     "end_time": 20.0}, 0)
+    vision_worker.handle_event(_event_cfg(tmp_path), db,
+                               {"id": "ev", "camera": "driveway", "start_ts": 0.0})
+    assert calls["fps"] == 2.0
+    assert db.query("SELECT COUNT(*) n FROM frames")[0]["n"] == 41
+
+
+def test_handle_event_backstop_thins_when_duration_unknown(tmp_path, monkeypatch):
+    db = MemDB()
+    _fake_clip(monkeypatch, {"has_clip": True}, 5000)
+    vision_worker.handle_event(_event_cfg(tmp_path), db,
+                               {"id": "ev", "camera": "driveway", "start_ts": 0.0})
+    rows = db.query("SELECT path FROM frames WHERE event_id='ev'")
+    assert len(rows) == 120
+    assert len(os.listdir(tmp_path / "frames/events/driveway/ev")) == 120
+    assert all(os.path.exists(r["path"]) for r in rows)
+
+
+def test_db_migrates_frames_path_to_nullable(tmp_path):
+    # pre-2026-11-12 DBs had path NOT NULL, so retention's SET path=NULL threw
+    path = str(tmp_path / "vision.db")
+    old = sqlite3.connect(path)
+    old.executescript(vision_worker.SCHEMA.replace(
+        "path TEXT,", "path TEXT NOT NULL,", 1))
+    old.execute("INSERT INTO frames(id, event_id, camera, ts, path) "
+                "VALUES(7, 'e', 'driveway', 1, 'a.jpg')")
+    old.commit()
+    old.close()
+    db = vision_worker.DB(path)
+    notnull = [c["notnull"] for c in db.query("PRAGMA table_info(frames)")
+               if c["name"] == "path"]
+    assert notnull == [0]
+    db.execute("UPDATE frames SET path=NULL WHERE id=7")  # retention's write
+    assert db.query("SELECT event_id, path FROM frames WHERE id=7")[0]["path"] is None
+    vision_worker.DB(path)  # second open: no-op, no error
+
+
+# ---- label allowlist + competitive zero-shot tags ----
+
+def _unit(v):
+    import numpy as np
+    v = np.asarray(v, dtype=np.float32)
+    return v / np.linalg.norm(v)
+
+
+def test_tag_hits_tag_must_beat_backgrounds_and_siblings():
+    import numpy as np
+    from analyzer import tag_hits
+    e = np.eye(8, dtype=np.float32)  # orthogonal concepts: ties are exact
+    truck, van = e[0], e[1]
+    negs = ["bg-a", "bg-b", "bg-c"]
+    neg_vecs = [e[2], e[3], e[4]]
+    tags = [(1, "garbage truck", 0.2, truck), (2, "delivery van", 0.2, van)]
+    crops = np.vstack([
+        _unit(truck + 0.1 * e[5]),     # clearly a garbage truck
+        _unit(e[2] + 0.1 * e[5]),      # background
+        _unit(truck + van),            # torn between the two kinds
+    ])
+    hits = tag_hits(crops, tags, negs, neg_vecs)
+    assert [h[0] for h in hits[0]] == [1]
+    assert hits[1] == []
+    assert hits[2] == []  # neither kind takes >= 0.5 of the vote
+
+
+def test_tag_hits_cosine_floor_still_applies():
+    import numpy as np
+    from analyzer import tag_hits
+    t = _unit([1, 0, 0, 0])
+    crop = _unit([0.3, 1, 1, 1])  # wins the softmax (no rival near it) but cos < 0.5
+    hits = tag_hits(crop, [(1, "t", 0.5, t)], ["bg"], [_unit([0, 0, 0, 1])])
+    assert hits == [[]]
+
+
+def test_detect_drops_labels_outside_allowlist(ana):
+    class Box:
+        def __init__(self, cls, xyxy):
+            self.cls, self.conf = cls, 0.9
+            self.xyxy = [type("T", (), {"tolist": lambda s, v=xyxy: v})()]
+
+    class Result:
+        names = {0: "person", 1: "bench"}
+        boxes = [Box(0, [0, 0, 50, 90]), Box(1, [100, 100, 300, 200])]
+
+    ana._labels = {"person", "car"}
+    ana.yolo = type("Y", (), {"predict": lambda s, paths, **k: [Result()] * len(paths)})()
+    assert [[d[0] for d in f] for f in ana._detect(["a.jpg"])] == [["person"]]
+
+
+# ---- vision-mcp: named-day windows (local model got weekday maths wrong) ----
+
+def test_named_spans_resolve_in_house_time():
+    pytest.importorskip("mcp.server.mcpserver")  # mcp>=2; CI installs it
+    from datetime import datetime, timedelta
+    import mcp_server as m
+    today = datetime.now(m.TZ).date()
+    midnight = datetime.combine(today, datetime.min.time(), m.TZ)
+
+    s, e = m._window("yesterday", "")
+    assert s == (midnight - timedelta(days=1)).timestamp()
+    assert e == midnight.timestamp()
+
+    s, e = m._window("wed morning", "")
+    start = datetime.fromtimestamp(s, m.TZ)
+    assert start.weekday() == 2 and start.hour == 5
+    assert 0 <= (today - start.date()).days < 7
+    assert datetime.fromtimestamp(e, m.TZ).hour == 12 or e <= datetime.now().timestamp()
+
+    s, _ = m._window("last night", "")
+    assert datetime.fromtimestamp(s, m.TZ) == midnight - timedelta(days=1) + timedelta(
+        hours=m.MCP_CFG["night_start_hour"])
+
+    assert m._named_span("2d") is None
+    with pytest.raises(ValueError, match="named span"):
+        m._window("someday", "")

@@ -43,8 +43,9 @@ CLIP_MODEL, CLIP_PRETRAINED = "ViT-B-16-quickgelu", "openai"
 # absolute floor, but on its own it can't tell a real garbage truck (0.29) from
 # a shed wall YOLO called a truck (0.25). So tags are classes in one softmax —
 # CLIP's own zero-shot recipe: every enabled tag prompt plus these background
-# prompts compete, and a tag fires only where it takes >= TAG_MIN_PROB of the
-# probability. Tags must therefore be mutually exclusive *kinds* (garbage truck
+# prompts compete, and a tag fires only where it takes > TAG_MIN_PROB of the
+# probability (a strict majority — a tie between two kinds
+# fires neither). Tags must therefore be mutually exclusive *kinds* (garbage truck
 # vs delivery van vs school bus), not attributes like "white" — an attribute
 # tag would split the vote with the kind it describes. The backgrounds are the
 # ordinary versions of each label, so a tag has to beat "just a car/person".
@@ -64,9 +65,9 @@ CLIP_LOGIT_SCALE = 100.0
 def tag_hits(vecs, tags, neg_prompts, neg_vecs, min_prob=TAG_MIN_PROB):
     """vecs: (n, d) unit crop embeddings. tags: [(id, prompt, threshold,
     unit text vec)]. Returns per crop a list of (tag_id, cosine, prob) for the
-    tags that clear their cosine threshold and win >= min_prob of a softmax
+    tags that clear their cosine threshold and win > min_prob of a softmax
     over all tags + the negatives (a negative duplicating a tag prompt sits
-    out). At min_prob 0.5 that is at most one tag per crop."""
+    out). At min_prob 0.5 that is at most one tag per crop, and none on a tie."""
     vecs = np.atleast_2d(vecs)
     tag_prompts = {t[1] for t in tags}
     negs = [v for p, v in zip(neg_prompts, neg_vecs) if p not in tag_prompts]
@@ -78,7 +79,7 @@ def tag_hits(vecs, tags, neg_prompts, neg_vecs, min_prob=TAG_MIN_PROB):
     prob /= prob.sum(axis=1, keepdims=True)
     out = [[] for _ in range(len(vecs))]
     for j, (tag_id, _prompt, thr, _v) in enumerate(tags):
-        for i in np.nonzero((cos[:, j] >= thr) & (prob[:, j] >= min_prob))[0]:
+        for i in np.nonzero((cos[:, j] >= thr) & (prob[:, j] > min_prob))[0]:
             out[i].append((tag_id, float(cos[i, j]), float(prob[i, j])))
     return out
 

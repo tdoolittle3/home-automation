@@ -69,7 +69,7 @@ jobs:
 
       - name: Install test deps
         # pure-logic tests only — no torch/ultralytics/GPU, see test_vision.py
-        run: pip install pytest numpy fastapi jinja2 python-multipart httpx
+        run: pip install pytest numpy fastapi jinja2 python-multipart httpx "mcp>=2"
 
       - name: Run pytest
         run: python -m pytest snibbly/vision/ -v
