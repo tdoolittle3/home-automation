@@ -25,7 +25,10 @@ Two ingest paths feed one database, each event marked by source:
 * **Fast path** — subscribe to `frigate/events` on ladybird's Mosquitto; on event end, pull the
   full-resolution clip (`http://192.168.0.13:5000/api/events/<id>/clip.mp4` — the record stream:
   driveway 2688×1520 H.265, backyard 2MP; snapshots are detect-stream res and not worth
-  analyzing) and sample frames densely around the event.
+  analyzing) and sample frames densely around the event — 2 fps, capped at
+  `[events] max_frames` (120) per event. Frigate holds an event open for as long as a parked
+  car stays tracked (hours), so a long event gets a lower fps spread over its whole span; before
+  the cap, single events reached 10–20 GB of JPGs and filled snibbly's disk (2026-11-12).
 * **Sweep path** — periodically pull the continuous recordings (retained 2 days at full quality)
   and sample **1 fps**, running detection on everything, Frigate's opinion not required. The
   cameras record with a 1-second GOP, so 1 fps sampling is keyframe-only extraction — no full

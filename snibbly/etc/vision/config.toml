@@ -36,6 +36,8 @@ sweep_frames_retain_days = 7
 [events]
 fps = 2.0             # event clips are short — decode fully at 2 fps
 clip_wait_secs = 15   # Frigate finalizes the clip shortly after the event ends
+max_frames = 120      # cap per event: long events (a parked car tracked for hours) get a
+                      # lower fps so frames spread over the whole event, not 10-20 GB of JPGs
 
 [sweep]
 enabled = true
