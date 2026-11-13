@@ -56,3 +56,20 @@ jobs:
             (cd "$(dirname "$f")" && docker compose -f docker-compose.yml config --quiet) \
               && echo "ok   $f"
           done
+
+  python-tests:
+    name: vision pipeline tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install test deps
+        # pure-logic tests only — no torch/ultralytics/GPU, see test_vision.py
+        run: pip install pytest numpy fastapi jinja2 python-multipart httpx
+
+      - name: Run pytest
+        run: python -m pytest snibbly/vision/ -v
