@@ -61,6 +61,10 @@ DEFAULTS = {
                 "labels": ["person", "bicycle", "car", "motorcycle", "bus", "truck",
                            "dog", "cat", "bird", "horse", "sheep", "cow", "bear",
                            "backpack", "handbag", "umbrella"]},
+    "caption": {"enabled": True, "base_url": "http://127.0.0.1:9292/v1",
+                "model": "vlm-8b", "max_age_days": 7, "max_side": 1280,
+                "max_tokens": 120, "idle_secs": 60, "retry_secs": 120,
+                "camera_notes": {}},
     "mcp": {"bind": "0.0.0.0", "port": 8097, "timezone": "America/Denver",
             "night_start_hour": 21, "night_end_hour": 7,
             "web_base_url": "http://192.168.0.19:8099"},
@@ -182,7 +186,24 @@ class DB:
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript("PRAGMA journal_mode=WAL;" + SCHEMA)
         self._relax_frames_path()
+        self._add_columns()
         self.lock = threading.Lock()
+
+    # columns added after the first deploy; CREATE TABLE IF NOT EXISTS can't
+    # grow an existing table, so each lands here once via ALTER TABLE
+    ADDED_COLUMNS = [
+        ("events", "caption", "TEXT"),           # VLM description; '' = no frame to caption
+        ("events", "caption_frame_id", "INTEGER"),
+        ("events", "caption_model", "TEXT"),
+        ("events", "caption_ts", "REAL"),
+    ]
+
+    def _add_columns(self):
+        for table, col, decl in self.ADDED_COLUMNS:
+            have = {c["name"] for c in self.conn.execute(f"PRAGMA table_info({table})")}
+            if col not in have:
+                self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
+        self.conn.commit()
 
     def _relax_frames_path(self):
         """DBs created before 2026-11-12 have frames.path NOT NULL, which made

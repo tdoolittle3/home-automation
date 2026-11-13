@@ -57,7 +57,10 @@ server = MCPServer("vision", instructions=(
     "mail truck come?'. Do NOT answer camera questions from Home Assistant: "
     "its frigate sensors only expose coarse occupancy counts, while this "
     "archive holds every detection with timestamps, re-identified "
-    "individuals, and links to the footage."))
+    "individuals, written descriptions of each event, and links to the "
+    "footage. 'What happened this morning?' → timeline(since='this morning'). "
+    "'Did the garbage truck come?' → recent_events(tag='garbage truck', "
+    "since='wednesday morning'). Pass day words in since; don't compute dates."))
 
 _clip_lock = threading.Lock()
 _clip = {}  # model/tokenizer, lazy — only semantic search pays the load cost
@@ -128,6 +131,8 @@ def _named_span(text):
     day_word, part = words[0], (words[1] if len(words) > 1 else "")
     if day_word in ("tonight",):
         day_word, part = "today", "night"
+    elif day_word == "this" and part:  # 'this morning', 'this afternoon'
+        day_word = "today"
     if day_word == "today":
         day = today
     elif day_word == "yesterday":
@@ -176,6 +181,18 @@ def _is_night(ts):
     return h >= start or h < end
 
 
+NOTHING = "nothing notable"
+
+
+def _caption(ev):
+    """The event's VLM caption, or None when there's nothing worth relaying
+    (not captioned yet, no usable frame, or the model saw nothing)."""
+    text = ev["caption"] if "caption" in ev.keys() else None
+    if not text or text.strip().rstrip(".").lower() == NOTHING:
+        return None
+    return text
+
+
 def _event_summary(c, event_id):
     ev = c.execute("SELECT * FROM events WHERE id=?", (event_id,)).fetchone()
     if not ev:
@@ -204,6 +221,8 @@ def _event_summary(c, event_id):
         "source": ev["source"],      # 'frigate' or 'sweep' (sweep = our own find)
         "label": label,
         "tags": tags,                # zero-shot kinds, e.g. 'garbage truck'
+        # VLM sentence from captioner.py — what was happening; None = not yet
+        "caption": _caption(ev),
         "when": _local(ev["start_ts"]),
         "duration_secs": round((ev["end_ts"] or ev["start_ts"] or 0)
                                - (ev["start_ts"] or 0)),
@@ -293,12 +312,19 @@ def search(query: str, since: str = "24h", until: str = "", camera: str = "",
                 "tag_hits_in_window": _tag_sightings(c, tag["id"], t_from, t_to, 20),
                 "latest_sightings_any_time": _tag_sightings(c, tag["id"], limit=5),
             }
+        caption_hits = _caption_matches(c, query, t_from, t_to, camera)
+        if caption_hits:
+            tag_block["caption_matches"] = caption_hits
 
     note = ""
-    if tag_block:
+    if "tag" in tag_block:
         note = (f"'{tag['name']}' is a recognized kind: tag_hits_in_window are "
                 "the reliable answer for this window; results below are fuzzy "
                 "visual similarity. Window wrong? pass since='wednesday morning' etc.")
+    elif tag_block.get("caption_matches"):
+        note = ("caption_matches are events whose written description contains "
+                "your words — usually the best answer; results below are fuzzy "
+                "visual similarity.")
     elif not results:
         note = "no matches — try a lower min_score, a wider window, or recent_events"
     return {"query": query, "window": [_local(t_from), _local(t_to)],
@@ -359,8 +385,9 @@ def recent_events(since: str = "24h", until: str = "", camera: str = "",
                 truncated += 1
                 continue
             events.append(ev)
+        coverage = _coverage(c, t_to, camera)
     return {"window": [_local(t_from), _local(t_to)], "events": events,
-            "more_not_shown": truncated}
+            "more_not_shown": truncated, **coverage}
 
 
 @server.tool()
@@ -408,6 +435,52 @@ def frames_with(labels: list[str], since: str = "7d", until: str = "",
 
 
 @server.tool()
+def timeline(since: str = "today", until: str = "", camera: str = "",
+             limit: int = 60) -> dict:
+    """What the cameras saw, in time order, as plain sentences — the tool for
+    "what happened this morning?", "describe yesterday at the house", "anything
+    going on last night?". Each entry is one event's written description
+    (e.g. "A person in a red top is walking several black dogs on leashes down
+    the driveway.") with its time, camera, recognized kinds, and footage link.
+
+    since: pass the words — 'today', 'yesterday', 'wednesday morning',
+    'last night' (resolved server-side, leave until empty) — or '6h'/'2d',
+    'YYYY-MM-DD HH:MM' local. camera: '' = both cameras.
+    Events not yet described (recent ones are captioned within minutes) are
+    counted in not_yet_described; summarize from the entries, don't list all.
+    """
+    t_from, t_to = _window(since, until)
+    with db() as c:
+        if not _has_captions(c):
+            return {"window": [_local(t_from), _local(t_to)], "entries": [],
+                    "note": "captions not enabled yet — use recent_events"}
+        where, params = ["start_ts BETWEEN ? AND ?"], [t_from, t_to]
+        if camera:
+            where.append("camera = ?")
+            params.append(camera)
+        rows = c.execute(
+            f"SELECT id, caption FROM events WHERE {' AND '.join(where)} "
+            f"ORDER BY start_ts", params).fetchall()
+        entries, pending, quiet = [], 0, 0
+        for r in rows:
+            if r["caption"] is None:
+                pending += 1
+                continue
+            ev = _event_summary(c, r["id"])
+            if not ev or not ev["caption"]:
+                quiet += 1  # no frame, or the model saw nothing notable
+                continue
+            entries.append({k: ev[k] for k in
+                            ("when", "camera", "caption", "tags", "source", "url")})
+        coverage = _coverage(c, t_to, camera)
+    more = max(0, len(entries) - limit)
+    return {"window": [_local(t_from), _local(t_to)], **coverage,
+            "entries": entries[:limit] if not more else entries[-limit:],
+            "earlier_entries_not_shown": more,
+            "not_yet_described": pending, "nothing_notable": quiet}
+
+
+@server.tool()
 def tags() -> dict:
     """List the zero-shot kinds the archive recognizes on detections (e.g.
     'garbage truck', 'delivery van', 'mail truck', 'school bus'), with how many
@@ -429,6 +502,66 @@ def tags() -> dict:
             "note": "recent_sightings are the newest first, house-local. For a "
                     "specific day call recent_events(tag=<name>, "
                     "since='wednesday morning')."}
+
+
+STOPWORDS = {"the", "and", "any", "was", "were", "with", "that", "this", "did",
+             "come", "came", "by", "for", "from", "there", "who", "what", "when",
+             "our", "into", "onto", "has", "have", "today", "yesterday"}
+
+
+def _coverage(c, t_to, camera=""):
+    """How far the recordings sweep has processed each camera. Events after
+    that point may be missing (Frigate's fast path still lands, the sweep's
+    own finds don't yet) — the agent must say so instead of reporting a
+    quiet afternoon. Returns {} when the window is fully covered."""
+    # sweep_progress.swept_until advances when a chunk is *scheduled*; the
+    # real frontier is the oldest chunk still queued or running
+    rows = c.execute(
+        """SELECT p.camera, COALESCE(
+                 (SELECT MIN(json_extract(j.payload, '$.start')) FROM jobs j
+                  WHERE j.kind = 'sweep' AND j.state IN ('queued', 'running')
+                    AND json_extract(j.payload, '$.camera') = p.camera),
+                 p.swept_until) done_until
+           FROM sweep_progress p""").fetchall()
+    behind = {r["camera"]: _local(r["done_until"]) for r in rows
+              if (not camera or r["camera"] == camera) and r["done_until"] < t_to - 1800}
+    if not behind:
+        return {}
+    return {"archive_processed_until": behind,
+            "coverage_note": "Recordings after these times haven't been swept yet "
+                             "(catching up), so events there may be missing or not "
+                             "yet described — say the archive is behind, not that "
+                             "nothing happened."}
+
+
+def _has_captions(c):
+    return any(r[1] == "caption" for r in c.execute("PRAGMA table_info(events)"))
+
+
+def _caption_matches(c, query, t_from, t_to, camera="", limit=10):
+    """Events whose VLM caption contains every content word of the query
+    (case-insensitive; a plural 's' is dropped so 'dogs' finds 'dog')."""
+    if not _has_captions(c):
+        return []
+    words = []
+    for w in query.lower().replace(",", " ").split():
+        w = w.strip(".?!'\"")
+        if len(w) < 3 or w in STOPWORDS:
+            continue
+        words.append(w[:-1] if w.endswith("s") and len(w) > 4 else w)
+    if not words:
+        return []
+    where = ["start_ts BETWEEN ? AND ?", "caption IS NOT NULL", "caption != ''"]
+    params = [t_from, t_to]
+    for w in words:
+        where.append("LOWER(caption) LIKE ?")
+        params.append(f"%{w}%")
+    if camera:
+        where.append("camera = ?")
+        params.append(camera)
+    rows = c.execute(f"SELECT id FROM events WHERE {' AND '.join(where)} "
+                     f"ORDER BY start_ts DESC LIMIT ?", params + [limit]).fetchall()
+    return [_event_summary(c, r["id"]) for r in rows]
 
 
 def _tag_sightings(c, tag_id, since=0.0, until=None, limit=8):

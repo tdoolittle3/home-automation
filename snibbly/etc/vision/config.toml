@@ -63,3 +63,20 @@ static_expire_chunks = 3       # consecutive sweep chunks without a match before
 labels = ["person", "bicycle", "car", "motorcycle", "bus", "truck",
           "dog", "cat", "bird", "horse", "sheep", "cow", "bear",
           "backpack", "handbag", "umbrella"]
+
+[caption]
+# One-to-two-sentence VLM description per event (captioner.py, vision-captioner.service).
+enabled = true
+base_url = "http://127.0.0.1:9292/v1"   # llama-swap directly — keeps captions out of Langfuse
+model = "vlm-8b"                         # llama-swap entry: Qwen3-VL-8B, --fit beside the agent model
+max_age_days = 7      # caption events back this far; newest first
+max_side = 1280       # frame is downscaled to this before upload (~1k image tokens)
+max_tokens = 120
+idle_secs = 60        # nothing to caption: check again after this
+retry_secs = 120      # llama-swap busy/evicted: back off this long
+
+# Geometry the model can't infer from one frame. The 2026-11-12 bench put a
+# street-side garbage truck "on the driveway" without this.
+[caption.camera_notes]
+driveway = "The camera looks down the house's driveway toward the street; vehicles near the top of the frame are passing on the street, not in the driveway."
+backyard = "The camera looks across the fenced back yard (shed, kayaks, lawn)."

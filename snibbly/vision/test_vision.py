@@ -4,7 +4,7 @@ Covers _iou/_static_mask, the cross-batch static-object registry, sweep
 event clustering, and the webapp routes, all against in-memory/throwaway
 SQLite built from vision_worker.SCHEMA. No GPU, ffmpeg, or MQTT.
 
-Deps: pytest, numpy, fastapi, jinja2, python-multipart, httpx, mcp>=2
+Deps: pytest, numpy, fastapi, jinja2, python-multipart, httpx, pillow, mcp>=2
 (the vision-mcp test skips without it).
 """
 
@@ -393,6 +393,171 @@ def test_named_spans_resolve_in_house_time():
     assert datetime.fromtimestamp(s, m.TZ) == midnight - timedelta(days=1) + timedelta(
         hours=m.MCP_CFG["night_start_hour"])
 
+    assert m._window("this morning", "")[0] == (midnight + timedelta(hours=5)).timestamp()
     assert m._named_span("2d") is None
     with pytest.raises(ValueError, match="named span"):
         m._window("someday", "")
+
+
+# ---- caption stage (captioner.py) ----
+
+def _cap_db():
+    db = MemDB()
+    db._add_columns()
+    return db
+
+
+def _frame(db, event_id, fid, path, dets, tagged=()):
+    """dets: [(label, conf)]; tagged: indexes into dets that carry a tag."""
+    db.execute("INSERT INTO frames(id, event_id, camera, ts, path, analyzed) "
+               "VALUES(?,?,?,?,?,1)", (fid, event_id, "driveway", fid, path))
+    for i, (lab, conf) in enumerate(dets):
+        cur = db.execute("INSERT INTO detections(frame_id, event_id, camera, ts, label, conf, box)"
+                         " VALUES(?,?,?,?,?,?,'[0,0,1,1]')",
+                         (fid, event_id, "driveway", fid, lab, conf))
+        if i in tagged:
+            db.execute("INSERT OR IGNORE INTO tags(id, name, prompt) VALUES(1,'garbage truck','p')")
+            db.execute("INSERT INTO detection_tags(detection_id, tag_id, score) VALUES(?,1,0.3)",
+                       (cur.lastrowid,))
+
+
+def _event(db, eid, ts=None, status="analyzed"):
+    import time as _t
+    db.execute("INSERT INTO events(id, source, camera, label, start_ts, end_ts, status, created_at)"
+               " VALUES(?,?,?,?,?,?,?,?)",
+               (eid, "frigate", "driveway", "car", ts or _t.time(), ts or _t.time(), status, 0))
+
+
+LABS = ["person", "car", "truck", "dog"]
+
+
+def test_add_columns_is_idempotent():
+    db = _cap_db()
+    db._add_columns()
+    cols = {c["name"] for c in db.query("PRAGMA table_info(events)")}
+    assert {"caption", "caption_frame_id", "caption_model", "caption_ts"} <= cols
+
+
+def test_pick_frame_prefers_tagged_then_lively_then_busiest():
+    import captioner
+    db = _cap_db()
+    _event(db, "e")
+    _frame(db, "e", 1, "a.jpg", [("car", 0.9), ("car", 0.9), ("car", 0.9)])
+    _frame(db, "e", 2, "b.jpg", [("person", 0.5)])
+    assert captioner.pick_frame(db, "e", LABS)["id"] == 2      # person beats 3 cars
+    _frame(db, "e", 3, "c.jpg", [("truck", 0.4)], tagged=(0,))
+    assert captioner.pick_frame(db, "e", LABS)["id"] == 3      # recognized kind wins
+
+
+def test_pick_frame_ignores_scenery_labels_and_pruned_frames():
+    import captioner
+    db = _cap_db()
+    _event(db, "e")
+    _frame(db, "e", 1, "bench.jpg", [("bench", 0.99), ("bench", 0.99)])
+    _frame(db, "e", 2, None, [("person", 0.9)])                 # file pruned
+    assert captioner.pick_frame(db, "e", LABS) is None
+
+
+def test_caption_one_stores_text_and_skips_frameless_events(tmp_path):
+    import captioner
+    from PIL import Image
+    img = tmp_path / "f.jpg"
+    Image.new("RGB", (64, 48)).save(img)
+    db = _cap_db()
+    _event(db, "real")
+    _frame(db, "real", 1, str(img), [("truck", 0.8)])
+    _event(db, "empty")
+    seen = {}
+
+    def fake_ask(cfg, image_url, prompt):
+        seen["prompt"], seen["img"] = prompt, image_url
+        return "  A green garbage truck   passes on the street.\n"
+
+    cfg = dict(vision_worker.DEFAULTS["caption"],
+               camera_notes={"driveway": "Top of frame is the street."})
+    ev = {r["id"]: r for r in db.query("SELECT id, camera FROM events")}
+    assert captioner.caption_one(db, cfg, LABS, ev["real"], ask=fake_ask) == \
+        "A green garbage truck passes on the street."
+    assert "Top of frame is the street." in seen["prompt"]
+    assert seen["img"].startswith("data:image/jpeg;base64,")
+    assert captioner.caption_one(db, cfg, LABS, ev["empty"], ask=fake_ask) == ""
+    rows = {r["id"]: r for r in db.query("SELECT id, caption, caption_frame_id, caption_model FROM events")}
+    assert rows["real"]["caption_frame_id"] == 1 and rows["real"]["caption_model"] == "vlm-8b"
+    assert rows["empty"]["caption"] == ""
+    assert captioner.next_events(db, 7) == []                   # both done
+
+
+def test_caption_one_error_leaves_event_for_retry(tmp_path):
+    import urllib.error
+    import captioner
+    from PIL import Image
+    img = tmp_path / "f.jpg"
+    Image.new("RGB", (8, 8)).save(img)
+    db = _cap_db()
+    _event(db, "e")
+    _frame(db, "e", 1, str(img), [("person", 0.8)])
+
+    def evicted(*a):
+        raise urllib.error.URLError("llama-swap swapping")
+
+    ev = db.query("SELECT id, camera FROM events")[0]
+    with pytest.raises(urllib.error.URLError):
+        captioner.caption_one(db, vision_worker.DEFAULTS["caption"], LABS, ev, ask=evicted)
+    assert [r["id"] for r in captioner.next_events(db, 7)] == ["e"]
+
+
+def test_next_events_newest_first_and_only_analyzed():
+    import time as _t
+    import captioner
+    db = _cap_db()
+    now = _t.time()
+    _event(db, "old", now - 3600)
+    _event(db, "new", now - 60)
+    _event(db, "sampled", now, status="sampled")
+    _event(db, "ancient", now - 30 * 86400)
+    assert [r["id"] for r in captioner.next_events(db, 7)] == ["new", "old"]
+
+
+def test_mcp_timeline_and_caption_matches(tmp_path, monkeypatch):
+    pytest.importorskip("mcp.server.mcpserver")
+    import time as _t
+    import mcp_server as m
+    path = str(tmp_path / "v.db")
+    db = vision_worker.DB(path)
+    now = _t.time()
+    for eid, ts, cap in [("a", now - 300, "A person is walking two black dogs down the driveway."),
+                         ("b", now - 200, "Nothing notable."),
+                         ("c", now - 100, None)]:
+        db.execute("INSERT INTO events(id, source, camera, label, start_ts, end_ts, status,"
+                   " created_at, caption) VALUES(?,?,?,?,?,?,?,?,?)",
+                   (eid, "sweep", "driveway", "person", ts, ts, "analyzed", 0, cap))
+        db.execute("INSERT INTO frames(id, event_id, camera, ts, path) VALUES(?,?,?,?,'x')",
+                   (len(eid) + int(ts) % 1000, eid, "driveway", ts))
+    monkeypatch.setattr(m, "DB_PATH", path)
+    t = m.timeline(since="2h")
+    assert [e["caption"] for e in t["entries"]] == [
+        "A person is walking two black dogs down the driveway."]
+    assert t["not_yet_described"] == 1 and t["nothing_notable"] == 1
+    with m.db() as c:
+        hits = m._caption_matches(c, "person walking dogs", now - 3600, now)
+        assert [h["event_id"] for h in hits] == ["a"]
+        assert m._caption_matches(c, "garbage truck", now - 3600, now) == []
+
+
+def test_mcp_coverage_uses_oldest_pending_sweep_chunk(tmp_path, monkeypatch):
+    pytest.importorskip("mcp.server.mcpserver")
+    import time as _t
+    import mcp_server as m
+    path = str(tmp_path / "v.db")
+    db = vision_worker.DB(path)
+    now = _t.time()
+    db.execute("INSERT INTO sweep_progress VALUES('driveway', ?)", (now,))   # scheduled to now...
+    vision_worker.enqueue(db, "sweep", {"camera": "driveway", "start": now - 5 * 3600,
+                                        "end": now - 5 * 3600 + 1200})   # ...but 5 h still queued
+    db.execute("INSERT INTO sweep_progress VALUES('backyard', ?)", (now,))   # fully caught up
+    monkeypatch.setattr(m, "DB_PATH", path)
+    with m.db() as c:
+        cov = m._coverage(c, now)
+        assert list(cov["archive_processed_until"]) == ["driveway"]
+        assert m._coverage(c, now - 6 * 3600) == {}        # window ends before the gap
+    assert "archive_processed_until" in m.timeline(since="2h")

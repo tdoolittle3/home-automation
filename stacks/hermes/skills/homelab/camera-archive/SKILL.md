@@ -1,7 +1,7 @@
 ---
 name: camera-archive
 description: Answer questions about what or who the security cameras saw — people, vehicles (garbage truck, delivery van, mail truck, school bus), animals, by day or description — using the mcp_vision_* tools, which hold the full detection archive. Home Assistant's frigate sensors are the wrong source for these questions, and so is this archive for aircraft (planes come from the radio-logs skill, not the cameras).
-version: 1.1.0
+version: 1.2.0
 author: homelab
 license: MIT
 platforms: [linux]
@@ -24,7 +24,9 @@ metadata:
   event and also runs its own **sweep** over the continuous recordings, which
   catches what Frigate missed. It re-detects, recognizes kinds of vehicles
   (garbage truck, delivery van, mail truck, school bus), clusters recurring
-  individuals, and keeps it all. The `mcp_vision_*` tools query it.
+  individuals, and **writes a one-to-two-sentence description of every event**
+  ("A person in a red top is walking several black dogs on leashes down the
+  driveway"). The `mcp_vision_*` tools query it.
 
 So: answer from `mcp_vision_*`. Frigate's events are *inputs* to it — results
 with `source: frigate` started as a Frigate event, `source: sweep` are finds
@@ -45,6 +47,8 @@ your answer.
 
 | Question shape | Tool and call |
 |---|---|
+| "What happened this morning?" / "Describe yesterday" / "Anything last night?" | `mcp_vision_timeline` since='this morning' / 'yesterday' / 'last night' |
+| "Did someone drop off a package?" / "Anyone with a dog?" | `mcp_vision_search` query='carrying a box' / 'dog' — read `caption_matches` first |
 | "Did the garbage truck come Wednesday morning?" | `mcp_vision_recent_events` tag='garbage truck', since='wednesday morning' |
 | "When did the mail truck last come?" | `mcp_vision_tags` (last_seen per kind), then `recent_events` tag='mail truck' for detail |
 | "Who was by the driveway today?" | `mcp_vision_recent_events` label='person', camera='driveway', since='today' |
@@ -60,6 +64,13 @@ similarity ranking and will always return *something* — only trust scores
 around 0.28+ and say it's a visual-similarity match.
 
 ## Answering well
+
+- For "what happened" questions, summarize the `timeline` entries in a few
+  sentences grouped by time of day — don't paste every entry. Quote a caption
+  when it's the specific evidence.
+- Each event's `caption` is a model-written description of one frame: rich but
+  occasionally wrong about details (where exactly, who). Say "the camera
+  description says…" for anything surprising, and give the footage link.
 
 - Lead with yes/no and the time: "Yes — a garbage truck passed at 09:53
   Wednesday (driveway camera)", then the footage link (`url`).

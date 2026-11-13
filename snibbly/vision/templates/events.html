@@ -33,6 +33,7 @@
     {% if comp.get(e.id) %}<div class="muted">
       {%- for lab, n in comp[e.id] %}{{lab}}{% if n > 1 %} ×{{n}}{% endif %}{{ " · " if not loop.last }}{% endfor -%}
     </div>{% endif %}
+    {% if e.caption %}<div class="caption">{{e.caption}}</div>{% endif %}
   </div>
 {% else %}
   <p class="muted">No events match.</p>

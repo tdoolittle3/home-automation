@@ -143,6 +143,38 @@ fetches them (they park as `error`; the sweep covers those spans anyway), and Op
 weights must load as `ViT-B-16-quickgelu` — the plain variant silently uses the wrong
 activation.
 
+## Captions (vision-captioner)
+
+YOLO + CLIP know *which classes* were in frame; the caption stage says what was
+happening — "Two people are walking on the driveway near a white Nissan SUV. One person
+is carrying a cardboard box." ([captioner.py](../snibbly/vision/captioner.py),
+[unit](../snibbly/etc/systemd/system/vision-captioner.service), `[caption]` in
+[config.toml](../snibbly/etc/vision/config.toml)).
+
+* **One frame per event**, the most informative surviving one: a frame holding a tagged
+  detection (garbage truck…) beats one with a person or animal, which beats the busiest.
+  Downscaled to 1280 px (~1k image tokens), sent with a prompt plus per-camera geometry notes
+  (`[caption.camera_notes]` — without them the model put a street-side garbage truck "on the
+  driveway"). The prompt asks for only what's present; "Nothing notable." is a valid answer
+  and the MCP tools hide it.
+* **Model: Qwen3-VL-8B Q4 + F16 mmproj** as llama-swap entry `vlm-8b` (GPU 0). `--fit on`
+  sizes its GPU layers to the VRAM left when it loads: ~2.2 GB beside a resident coder-30b
+  (~8–13 s/caption), the whole card when nothing else is loaded (~3 s). Its llama-swap group
+  is non-exclusive: it never unloads anything, and any request to an exclusive-group model
+  unloads it — even a request to a model that's already loaded (observed 2026-11-12) — so
+  Hermes never waits on it and the captioner just reloads it (~10–14 s) afterwards.
+  Qwen3-VL-30B-A3B was ruled out: its 18 GB of experts can't share RAM with coder-30b's.
+* **Order and volume**: newest uncaptioned analyzed events first, back `max_age_days` (7).
+  ~60 captionable events/day after the label allowlist; a week of backlog is 1–3 h.
+* Calls go to llama-swap on `127.0.0.1:9292` directly (key via the unit's
+  `EnvironmentFile=/etc/llama/llama.env`), not LiteLLM, so captions don't flood Langfuse.
+* Stored on the event row (`caption`, `caption_frame_id`, `caption_model`, `caption_ts`;
+  added by `DB._add_columns`); `''` = no usable frame. vision-web shows them on the feed and
+  event pages. To regenerate after a prompt change: `UPDATE events SET caption=NULL`.
+
+Deploy: llama-swap config (hot-reloads — but reloading unloads every running model), then
+`captioner.py` + unit + `[caption]` config, `systemctl enable --now vision-captioner`.
+
 ## Agent search (vision-mcp)
 
 The archive is queryable by the Hermes agent ([docs/hermes.md](hermes.md)): `vision-mcp`
@@ -152,7 +184,7 @@ streamable HTTP on `:8097`, same venv and config as the worker. Hermes's native 
 registers them at startup as `mcp_vision_*`, so from Telegram you can ask "did anyone walk a
 dog past the driveway today?" and get event links back.
 
-Five tools, each matched to what the data actually supports. Every `since` accepts a named
+Six tools, each matched to what the data actually supports. Every `since` accepts a named
 span — `yesterday`, `wednesday morning`, `last night`, `tue night` — resolved server-side in
 house time (morning 05–12, afternoon 12–17, evening 17–21, night 21–07): the local model
 reliably got weekday arithmetic wrong ("Wednesday" → today's date), so it passes words.
@@ -167,6 +199,10 @@ reliably got weekday arithmetic wrong ("Wednesday" → today's date), so it pass
   sweep), and `night_only` (21:00–07:00 local by default; snibbly runs UTC, so the `[mcp]`
   timezone config does the translation).
 * **`entities(…)`** — the re-ID clusters, named and unnamed, with sighting counts.
+* **`timeline(since)`** — the captions in time order ("what happened this morning?"),
+  with counts of events not yet described and "nothing notable" ones. Every event summary
+  also carries its `caption`, and `search()` adds `caption_matches` — events whose
+  description contains every content word of the query ("carrying a box", "dog").
 * **`tags()`** — the recognized kinds with each one's recent sightings; `recent_events(tag=…)`
   filters by one. `search()` also notices a query naming a tag and leads with that tag's hits
   in the window plus its latest sightings anywhere — the agent tends to skip `since`, and this
