@@ -561,3 +561,15 @@ def test_mcp_coverage_uses_oldest_pending_sweep_chunk(tmp_path, monkeypatch):
         assert list(cov["archive_processed_until"]) == ["driveway"]
         assert m._coverage(c, now - 6 * 3600) == {}        # window ends before the gap
     assert "archive_processed_until" in m.timeline(since="2h")
+
+
+def test_mcp_recent_events_unfiltered_points_to_timeline(tmp_path, monkeypatch):
+    # nightly eval 2026-11-12: "anything last night?" was answered by binning
+    # unfiltered raw rows; the result itself now redirects to timeline
+    pytest.importorskip("mcp.server.mcpserver")
+    import mcp_server as m
+    path = str(tmp_path / "v.db")
+    vision_worker.DB(path)
+    monkeypatch.setattr(m, "DB_PATH", path)
+    assert "timeline(since='last night')" in m.recent_events(since="last night")["note"]
+    assert "note" not in m.recent_events(since="last night", label="person")

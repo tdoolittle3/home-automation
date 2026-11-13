@@ -275,6 +275,25 @@ every night and grades the answers against ground truth fetched at eval time.
   last night?" got `recent_events` noise ("4:00–4:10 AM: multiple car detections") instead of the
   caption `timeline`. "Aircraft in the last hour?" mixed real recent flights with stale claims.
   The third failure was the harness's fault (truncated ground truth), fixed before scheduling.
+  **Fixes, same day:**
+  - "Last night": the `recent_events` description and the camera skill had steered
+    open questions there. Both now point at `timeline`, and unfiltered `recent_events` results
+    carry a note redirecting to it.
+  - Aircraft: the stream showed the radio-logs skill's `python3 - <<EOF` snippet **blocked by
+    Hermes's approval guard** ("script execution via heredoc", with no user present to approve).
+    The agent fell back to `tail` and guessed.
+- **Rule for the harness: rules over the judge for anything countable.** coder-30b as
+  judge mis-compared a ~60-callsign set and miscounted a time window, so the aircraft
+  question uses `no_stale` instead: every callsign the answer names must be in the window.
+  Live truth is fetched *after* the answer, widened by the run time. Every report keeps each
+  tool call's input and output (⛔ marks calls the approval guard blocked), since the eval
+  deletes its sessions.
+- **Rule for skills: ship scripts as files, never inline.** The approval guard
+  (`tools/approval_detection.py`) flags `python -c`/`-e` and `python <<` in cron and `-q`
+  runs, and asks for approval in Telegram, but leaves `python3 <file>` alone. Skills now ship
+  helpers under `skills/<cat>/<skill>/scripts/`, and the sandbox mounts
+  `data/skills` read-only at `/opt/data/skills` (`terminal.docker_volumes`). The first one is
+  `radio-logs/scripts/adsb_summary.py N` (last N minutes, midnight-safe).
 - **Questions cover:** camera history (tags, captions, named days, an honest "no"),
   role knowledge (vision worker vs Frigate), and routing (garage state → HA,
   aircraft → radio logs, never the cameras). Each has a `why` saying what a failure means.

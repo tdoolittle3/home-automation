@@ -1,7 +1,7 @@
 ---
 name: camera-archive
 description: Answer questions about what or who the security cameras saw — people, vehicles (garbage truck, delivery van, mail truck, school bus), animals, by day or description — using the mcp_vision_* tools, which hold the full detection archive. Home Assistant's frigate sensors are the wrong source for these questions, and so is this archive for aircraft (planes come from the radio-logs skill, not the cameras).
-version: 1.2.0
+version: 1.3.0
 author: homelab
 license: MIT
 platforms: [linux]
@@ -52,7 +52,7 @@ your answer.
 | "Did the garbage truck come Wednesday morning?" | `mcp_vision_recent_events` tag='garbage truck', since='wednesday morning' |
 | "When did the mail truck last come?" | `mcp_vision_tags` (last_seen per kind), then `recent_events` tag='mail truck' for detail |
 | "Who was by the driveway today?" | `mcp_vision_recent_events` label='person', camera='driveway', since='today' |
-| "Any motion last night?" | `mcp_vision_recent_events` since='last night' |
+| "Any people at night?" (a specific label) | `mcp_vision_recent_events` label='person', since='last night' |
 | "Was there a red pickup this week?" (not a tag) | `mcp_vision_search` query='red pickup truck', since='7d' |
 | "Person walking a dog?" | `mcp_vision_frames_with` labels=['person','dog'] |
 | "Is that the same person as yesterday?" | `mcp_vision_entities` label='person' |

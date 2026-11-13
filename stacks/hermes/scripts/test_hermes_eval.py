@@ -126,7 +126,7 @@ def test_question_file_is_valid():
     ids = [q["id"] for q in qs]
     assert len(ids) == len(set(ids))
     known = {"tools_any", "tools_none", "time", "day", "regex_all", "regex_none",
-             "truth_word", "truth_any", "judge"}
+             "truth_word", "truth_any", "no_stale", "judge"}
     fns = {"none", "fixed", "tag_latest", "tag_in_window", "timeline", "ha_state",
            "adsb_recent"}
     for q in qs:
@@ -157,3 +157,35 @@ def test_truth_any_requires_a_real_callsign():
     ok = he.grade(q, {"answer": "SKW4643 passed at 19:15.", "tools": []}, truth, datetime.date.today())
     bad = he.grade(q, {"answer": "SKW5551 overnight.", "tools": []}, truth, datetime.date.today())
     assert he.verdict(ok) and not he.verdict(bad)
+
+
+def test_call_transcript_pairs_results_and_flags_blocked():
+    events = [json.loads(l) for l in [
+        '{"type": "tool_use", "name": "tool_search", "tool_call_id": "s", "input": {}}',
+        '{"type": "tool_use", "name": "terminal", "tool_call_id": "a", "input": {"command": "python3 - <<EOF"}}',
+        '{"type": "tool_result", "tool_call_id": "a", "output": "{\\"status\\": \\"blocked\\"}"}',
+        '{"type": "tool_use", "name": "terminal", "tool_call_id": "b", "input": {"command": "ls"}}',
+        '{"type": "tool_result", "tool_call_id": "b", "output": "x.jsonl"}']]
+    calls = he.call_transcript(events)
+    assert [c["blocked"] for c in calls] == [True, False]
+    assert calls[1]["output"] == "x.jsonl" and "ls" in calls[1]["input"]
+
+
+def test_adsb_truth_lists_every_aircraft(tmp_path):
+    now = datetime.datetime(2026, 11, 13, 0, 30, tzinfo=he.TZ)
+    rows = "".join(json.dumps({"hex": f"h{i}", "flight": f"F{i}",
+                               "last_seen": f"2026-11-13T00:{i % 30:02d}:00-07:00"}) + "\n"
+                   for i in range(45))
+    (tmp_path / "2026-11-13.jsonl").write_text(rows)
+    t = he.adsb_recent(60, now=now, adsb_dir=str(tmp_path))
+    assert t["facts"]["count"] == 45 and len(t["facts"]["aircraft"]) == 45
+
+
+def test_no_stale_flags_callsigns_from_outside_the_window():
+    q = {"prompt": "?", "checks": {"no_stale": True}}
+    truth = {"tokens": ["UAL504", "SKW4666"], "all_tokens": ["UAL504", "SKW4666", "SKW5551"]}
+    today = datetime.date.today()
+    good = he.grade(q, {"answer": "UAL504 and SKW4666 passed.", "tools": []}, truth, today)
+    bad = he.grade(q, {"answer": "UAL504, and earlier SKW5551.", "tools": []}, truth, today)
+    assert he.verdict(good)
+    assert not he.verdict(bad) and "SKW5551" in bad[0][2]

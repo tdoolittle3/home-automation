@@ -67,6 +67,11 @@ terminal:
     # radio-logs / frigate-incidents skills find nothing (2026-11-09).
     - "/opt/stacks/radiolog/data:/opt/data/workspace/radiolog:ro"
     - "/var/lib/frigate-incidents:/opt/data/workspace/frigate-incidents:ro"
+    # Skills ship helper scripts (radio-logs/scripts/adsb_summary.py) that the
+    # agent runs as `python3 <file>`. Inline `python3 - <<EOF` / `-c` is blocked
+    # by Hermes's approval guard when nobody can approve (cron, -q), so skills
+    # must hand the sandbox a file. Read-only: instruction text, no secrets.
+    - "/opt/stacks/hermes/data/skills:/opt/data/skills:ro"
   docker_forward_env:
     - NTFY_URL
 

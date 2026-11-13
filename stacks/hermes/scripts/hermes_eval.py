@@ -141,7 +141,9 @@ def truth_for(spec, mcp):
                            for e in r.get("entries", [])]
         return {"facts": keep}
     if fn == "adsb_recent":
-        return adsb_recent(spec.get("minutes", 60))
+        # the agent's "last hour" ended anywhere inside its run; the log also
+        # lags ~5 min — widen so nothing it could legitimately cite is missing
+        return adsb_recent(spec.get("minutes", 60) + spec.get("run_secs", 0) / 60 + 5)
     if fn == "ha_state":
         req = urllib.request.Request(f"{HASS_URL}/api/states/{spec['entity']}",
                                      headers={"Authorization": f"Bearer {HASS_TOKEN}"})
@@ -162,7 +164,7 @@ def adsb_recent(minutes, now=None, adsb_dir=None):
     now = now or datetime.datetime.now(TZ)
     adsb_dir = adsb_dir or ADSB_DIR
     cutoff = now - datetime.timedelta(minutes=minutes)
-    flights = []
+    flights, every = [], set()  # every = all callsigns in the files, any time
     for day in {cutoff.date(), now.date()}:
         path = os.path.join(adsb_dir, f"{day.isoformat()}.jsonl")
         if not os.path.exists(path):
@@ -174,15 +176,21 @@ def adsb_recent(minutes, now=None, adsb_dir=None):
                     seen = datetime.datetime.fromisoformat(a["last_seen"])
                 except (ValueError, KeyError):
                     continue
+                if (a.get("flight") or "").strip():
+                    every.add(a["flight"].strip())
                 if cutoff <= seen <= now:
                     flights.append({"flight": (a.get("flight") or a.get("hex", "")).strip(),
                                     "last_seen": a["last_seen"][11:16], "_ts": seen,
                                     "min_dist_nm": a.get("min_dist_nm"),
                                     "max_alt": a.get("max_alt")})
     flights.sort(key=lambda a: a.pop("_ts"), reverse=True)  # full time: midnight-safe
-    return {"facts": {"window_minutes": minutes, "aircraft": flights[:30],
+    # every aircraft, compact: a 30-row cap made real recent flights look
+    # invented to the judge (2026-11-12, ~60 aircraft/hour here)
+    return {"facts": {"window_minutes": round(minutes),
+                      "aircraft": [f"{a['flight']} last_seen {a['last_seen']}" for a in flights],
                       "count": len(flights)},
             "tokens": [a["flight"] for a in flights if a["flight"]],
+            "all_tokens": sorted(every),
             "answer": "yes" if flights else "no"}
 
 
@@ -218,7 +226,26 @@ def parse_stream(lines):
     if text is None:
         text = "".join(e.get("text", "") for e in events if e.get("type") == "text")
     return {"answer": (text or "").strip(), "tools": flatten_tools(events),
+            "calls": call_transcript(events),
             "session_id": result.get("session_id"), "exit_code": result.get("exit_code")}
+
+
+def call_transcript(events, cap=400):
+    """Each tool call with its (truncated) input and output, for the report:
+    the eval deletes its sessions, so this is the only record of what the
+    agent actually ran — e.g. a heredoc blocked by the approval guard."""
+    outputs = {e.get("tool_call_id"): str(e.get("output", ""))
+               for e in events if e.get("type") == "tool_result"}
+    calls = []
+    for e in events:
+        if e.get("type") != "tool_use" or e.get("name") == "tool_search":
+            continue
+        out = outputs.get(e.get("tool_call_id"), "")
+        calls.append({"name": e.get("name"),
+                      "input": json.dumps(e.get("input"), ensure_ascii=False)[:cap],
+                      "output": out[:cap],
+                      "blocked": '"status": "blocked"' in out or "BLOCKED:" in out})
+    return calls
 
 
 def ask_hermes(prompt):
@@ -363,6 +390,15 @@ def grade(q, run, truth, today, judge_call=None):
                     f"mentions {hit[:3]}" if hit else
                     f"none of {truth['tokens'][:5]}{'…' if len(truth['tokens']) > 5 else ''}",
                     "rule"))
+    if c.get("no_stale") and truth.get("all_tokens") is not None:
+        # names the answer uses that the logs know, but not inside the window:
+        # exact and cheap, where an LLM judge miscounted a 60-callsign set
+        fresh = set(truth.get("tokens", []))
+        named = {t for t in truth["all_tokens"] if re.search(rf"\b{re.escape(t)}\b", a, re.I)}
+        stale = sorted(named - fresh)
+        out.append(("nothing stale", not stale,
+                    f"outside the window: {stale[:5]}" if stale else f"{len(named)} named, all in window",
+                    "rule"))
     if c.get("truth_word"):
         w = truth.get("word") or ""
         other = {"open": "closed", "closed": "open"}.get(w)
@@ -414,6 +450,8 @@ def render_html(run):
   <p><strong>Q:</strong> {esc(r['prompt'])}</p>
   <ul>{checks}</ul>
   <p class=muted>tools: {esc(', '.join(r['tools']) or 'none')}</p>
+  <details><summary>tool calls ({len(r.get('calls', []))}{', ' + str(sum(c['blocked'] for c in r.get('calls', []))) + ' BLOCKED' if any(c['blocked'] for c in r.get('calls', [])) else ''})</summary>
+  {''.join(f"<pre>{'⛔ ' if c['blocked'] else ''}{esc(c['name'])} {esc(c['input'])}\n→ {esc(c['output'])}</pre>" for c in r.get('calls', []))}</details>
   <details><summary>answer</summary><pre>{esc(r['answer'])}</pre></details>
   <details><summary>ground truth</summary><pre>{esc(json.dumps(r['truth'], indent=1, ensure_ascii=False)[:5000])}</pre></details>
 </section>""")
@@ -460,16 +498,21 @@ def main():
     mcp = MCP(VISION_MCP).init()
     results = []
     for q in questions:
-        try:
-            truth = truth_for(q.get("truth", {}), mcp)
-        except Exception as e:  # noqa: BLE001 — record, keep going
-            truth = {"facts": f"[ground truth unavailable: {e}]"}
         run = ask_hermes(q["prompt"])
         delete_session(run.get("session_id"))
+        # truth AFTER the answer: a run takes 1-5 min, and a live window ("last
+        # hour") fetched before it drifted past what the agent saw. Windows
+        # widen by the run time (see truth_for).
+        spec = dict(q.get("truth", {}), run_secs=run["secs"])
+        try:
+            truth = truth_for(spec, mcp)
+        except Exception as e:  # noqa: BLE001 — record, keep going
+            truth = {"facts": f"[ground truth unavailable: {e}]"}
         checks = grade(q, run, truth, today)
         results.append({"id": q["id"], "why": q.get("why", ""), "prompt": q["prompt"],
                         "pass": verdict(checks), "checks": checks, "answer": run["answer"],
-                        "tools": run["tools"], "secs": run["secs"], "truth": truth})
+                        "tools": run["tools"], "calls": run.get("calls", []),
+                        "secs": run["secs"], "truth": truth})
     prev = (history_tail(1) or [None])[-1]
     run = {"date": today.isoformat(), "model": os.environ.get("EVAL_AGENT_MODEL", "config default"),
            "total": len(results), "passed": sum(r["pass"] for r in results),

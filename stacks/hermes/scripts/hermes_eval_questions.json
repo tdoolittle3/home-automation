@@ -62,8 +62,8 @@
       "why": "Routing + window: aircraft come from the radio logs (never cameras/HA), and 'last hour' means the last hour — the first dry run (2026-11-12) routed right but reported planes from 11 PM-2:35 AM as 'the last hour' at 19:20.",
       "prompt": "What aircraft flew over the house in the last hour?",
       "truth": {"fn": "adsb_recent", "minutes": 65},
-      "checks": {"tools_none": ["mcp__vision__", "ha_"], "regex_none": ["camera"], "truth_any": true,
-                 "judge": "PASS if the aircraft the answer describes are from the ground-truth window (the last hour) and it presents nothing from hours earlier as recent. If the ground truth has no aircraft, the answer must say none were seen in the last hour."}
+      "checks": {"tools_none": ["mcp__vision__", "ha_"], "regex_none": ["camera"],
+                 "truth_any": true, "no_stale": true}
     }
   ]
 }

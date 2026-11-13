@@ -336,13 +336,18 @@ def search(query: str, since: str = "24h", until: str = "", camera: str = "",
 def recent_events(since: str = "24h", until: str = "", camera: str = "",
                   label: str = "", tag: str = "", source: str = "",
                   night_only: bool = False, limit: int = 40) -> dict:
-    """List security-camera events — who/what was seen, when, on which camera,
-    with a footage link each. The first tool for "who was by the driveway
-    today?" (label='person', camera='driveway'), "any motion last night?"
-    (night_only=true), "what did the backyard camera see?", and for specific
-    vehicle kinds: "did the garbage truck come Wednesday?" → tag='garbage truck'
-    with since='wednesday morning'. Far more specific than Home
-    Assistant's frigate occupancy sensors — prefer this.
+    """List security-camera events FILTERED by label or tag — who/what was
+    seen, when, on which camera, with a footage link each. Use it for a
+    specific thing: "who was by the driveway today?" (label='person',
+    camera='driveway'), "did the garbage truck come Wednesday?"
+    (tag='garbage truck', since='wednesday morning'). Far more specific than
+    Home Assistant's frigate occupancy sensors — prefer this.
+
+    NOT for open questions — "anything on the cameras last night?", "what
+    happened this morning?", "what did the backyard camera see?": use
+    timeline(since=...), which gives written descriptions. Unfiltered, this
+    list is mostly raw detections (parked-car re-detections, headlights) that
+    read as noise.
 
     label: a YOLO class like person, car, truck, dog, cat.
     tag: a zero-shot kind such as 'garbage truck', 'delivery van', 'mail truck',
@@ -386,8 +391,16 @@ def recent_events(since: str = "24h", until: str = "", camera: str = "",
                 continue
             events.append(ev)
         coverage = _coverage(c, t_to, camera)
-    return {"window": [_local(t_from), _local(t_to)], "events": events,
-            "more_not_shown": truncated, **coverage}
+    out = {"window": [_local(t_from), _local(t_to)], "events": events,
+           "more_not_shown": truncated, **coverage}
+    if not (label or tag):
+        # the nightly eval caught the agent answering "anything last night?"
+        # by binning these raw rows into "4:00-4:10: multiple car detections";
+        # results are what it reads, so the redirect lives here too
+        out["note"] = (f"Unfiltered raw events. To answer 'what happened / "
+                       f"anything …?', call timeline(since='{since}') and "
+                       f"summarize its descriptions instead of listing these.")
+    return out
 
 
 @server.tool()
