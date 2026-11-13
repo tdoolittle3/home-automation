@@ -271,6 +271,10 @@ every night and grades the answers against ground truth fetched at eval time.
   criteria get **one** bounded judge call (coder-30b, temperature 0, JSON verdict), shown
   as *model-judged* in the report. A judge outage marks that check "–" rather than failing
   the agent.
+- **First dry run (2026-11-12): 6/9.** The two genuine failures are the useful part. "Anything
+  last night?" got `recent_events` noise ("4:00–4:10 AM: multiple car detections") instead of the
+  caption `timeline`. "Aircraft in the last hour?" mixed real recent flights with stale claims.
+  The third failure was the harness's fault (truncated ground truth), fixed before scheduling.
 - **Questions cover:** camera history (tags, captions, named days, an honest "no"),
   role knowledge (vision worker vs Frigate), and routing (garage state → HA,
   aircraft → radio logs, never the cameras). Each has a `why` saying what a failure means.
@@ -284,12 +288,12 @@ every night and grades the answers against ground truth fetched at eval time.
 Schedule (`--no-agent` = the script *is* the job, so no cron model swap):
 
 ```bash
-docker exec -u 1000 hermes hermes cron create "15 3 * * *" --script hermes_eval.py \
+docker exec hermes hermes cron create "15 3 * * *" --script hermes_eval.py \
   --no-agent --name hermes-eval --deliver telegram --timezone America/Denver
 # one-off / subset:  docker exec -u 1000 -e EVAL_ONLY=garage_state hermes python3 /opt/data/scripts/hermes_eval.py
 ```
 
-03:15 is quiet: ~9 questions × 1–5 min each fits well inside the 1 h cron script timeout
+Live since 2026-11-12 as job `84b75d43c47d`. 03:15 is quiet: ~9 questions × 1–5 min each fits well inside the 1 h cron script timeout
 (`HERMES_CRON_SCRIPT_TIMEOUT`).
 
 ## Tool routing — the homelab map
