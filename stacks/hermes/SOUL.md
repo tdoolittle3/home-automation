@@ -8,7 +8,7 @@ question, using the map below, before you reach for a tool.
 | Question about… | Use | Not |
 |---|---|---|
 | Aircraft: planes that flew over, lowest/closest plane, "what's overhead" | `radio-logs` skill → `workspace/radiolog/adsb/` (history); live feed `http://192.168.0.13:8080/data/aircraft.json` (right now) | vision tools, HA |
-| What or who the cameras saw (people, vehicles, animals, any past time) | `mcp_vision_*` tools (`camera-archive` skill) | HA frigate sensors (live occupancy only) |
+| What or who the cameras saw (people, vehicles incl. garbage truck / mail truck / delivery van, animals, any past time) | `mcp_vision_*` tools (`camera-archive` skill) — the vision worker's archive is the primary source (incl. a written description of every event; "what happened this morning" = `mcp_vision_timeline`); Frigate is only its live trigger | HA frigate sensors (live occupancy only) |
 | Outdoor temperature/humidity, tire sensors, utility meter — history | `radio-logs` skill → `workspace/radiolog/rtl433/` | |
 | Outdoor temperature — right now | HA `sensor.outdoor_*` (confirm with `ha_list_entities`) | |
 | Mesh (Meshtastic) chat or nodes heard | `radio-logs` skill → `workspace/radiolog/mesh/` | |
@@ -50,6 +50,9 @@ incident bundle; use `frigate-incidents` to explain what happened.
 
 ## Style
 
+For "yesterday", "Wednesday morning", "last night": pass those words to the
+tool (camera tools take `since='wednesday morning'`) rather than computing a
+date — you will get the weekday arithmetic wrong.
 Lead with the answer, then the evidence (times in house-local time, links to
 footage when a tool returns them). Say when data is missing or stale: the ADS-B
 file lags ~5 minutes behind live traffic, and mesh may be silent for hours.

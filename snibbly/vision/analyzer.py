@@ -39,6 +39,51 @@ REGISTER_MIN_FRAMES = 120  # sweep chunk must span >= this many keyframes (2 min
 CLIP_MODEL, CLIP_PRETRAINED = "ViT-B-16-quickgelu", "openai"
 
 
+# Zero-shot tags are judged two ways. The tag's own cosine threshold is an
+# absolute floor, but on its own it can't tell a real garbage truck (0.29) from
+# a shed wall YOLO called a truck (0.25). So tags are classes in one softmax —
+# CLIP's own zero-shot recipe: every enabled tag prompt plus these background
+# prompts compete, and a tag fires only where it takes > TAG_MIN_PROB of the
+# probability (a strict majority — a tie between two kinds
+# fires neither). Tags must therefore be mutually exclusive *kinds* (garbage truck
+# vs delivery van vs school bus), not attributes like "white" — an attribute
+# tag would split the vote with the kind it describes. The backgrounds are the
+# ordinary versions of each label, so a tag has to beat "just a car/person".
+NEGATIVE_PROMPTS = [
+    "a photo of a car", "a photo of a pickup truck", "a photo of an SUV",
+    "a photo of a box truck", "a photo of a work van",
+    "a photo of a person", "a photo of a person walking",
+    "a photo of a person standing in a driveway",
+    "a photo of a house", "a photo of a shed", "a photo of a trash can",
+    "a photo of a tree", "a photo of a fence", "a photo of an empty street",
+    "a photo of a bush",
+]
+TAG_MIN_PROB = 0.5
+CLIP_LOGIT_SCALE = 100.0
+
+
+def tag_hits(vecs, tags, neg_prompts, neg_vecs, min_prob=TAG_MIN_PROB):
+    """vecs: (n, d) unit crop embeddings. tags: [(id, prompt, threshold,
+    unit text vec)]. Returns per crop a list of (tag_id, cosine, prob) for the
+    tags that clear their cosine threshold and win > min_prob of a softmax
+    over all tags + the negatives (a negative duplicating a tag prompt sits
+    out). At min_prob 0.5 that is at most one tag per crop, and none on a tie."""
+    vecs = np.atleast_2d(vecs)
+    tag_prompts = {t[1] for t in tags}
+    negs = [v for p, v in zip(neg_prompts, neg_vecs) if p not in tag_prompts]
+    classes = np.vstack([t[3] for t in tags] + negs)             # (t+k, d)
+    cos = vecs @ classes.T                                       # (n, t+k)
+    logits = CLIP_LOGIT_SCALE * cos
+    logits -= logits.max(axis=1, keepdims=True)
+    prob = np.exp(logits)
+    prob /= prob.sum(axis=1, keepdims=True)
+    out = [[] for _ in range(len(vecs))]
+    for j, (tag_id, _prompt, thr, _v) in enumerate(tags):
+        for i in np.nonzero((cos[:, j] >= thr) & (prob[:, j] > min_prob))[0]:
+            out[i].append((tag_id, float(cos[i, j]), float(prob[i, j])))
+    return out
+
+
 def _to_blob(vec):
     return vec.astype(np.float32).tobytes()
 
@@ -99,7 +144,9 @@ class Analyzer:
         self.gpu_lock = threading.Lock()
         self._loaded = False
         self._tags_loaded_at = 0.0
-        self._tags = []  # (id, name, threshold, unit text vec)
+        self._tags = []  # (id, prompt, threshold, unit text vec)
+        self._neg_vecs = None
+        self._labels = set(self.cfg.get("labels") or [])  # empty = keep all
 
     # ---- models ----
 
@@ -134,7 +181,10 @@ class Analyzer:
                     box = [round(v) for v in b.xyxy[0].tolist()]
                     if box[2] - box[0] < 4 or box[3] - box[1] < 4:
                         continue  # degenerate sliver; CLIP preprocess would choke
-                    dets.append((r.names[int(b.cls)], float(b.conf), box))
+                    label = r.names[int(b.cls)]
+                    if self._labels and label not in self._labels:
+                        continue  # COCO classes that are only ever scenery here
+                    dets.append((label, float(b.conf), box))
                 out.append(dets)
         return out
 
@@ -268,9 +318,11 @@ class Analyzer:
             self._tags = []
             if rows:
                 vecs = self._text_embed([r["prompt"] for r in rows])
-                self._tags = [(r["id"], r["name"], r["threshold"], v)
+                self._tags = [(r["id"], r["prompt"], r["threshold"], v)
                               for r, v in zip(rows, vecs)]
             self._tags_loaded_at = stamp
+        if self._neg_vecs is None:
+            self._neg_vecs = self._text_embed(NEGATIVE_PROMPTS)
         return self._tags
 
     # ---- the main entry points ----
@@ -283,10 +335,13 @@ class Analyzer:
         crops = [img.crop(box) for _, _, box in dets]
         vecs = self._embed_crops(crops)
         tags = self._tag_vectors()
+        hits = (tag_hits(vecs, tags, NEGATIVE_PROMPTS, self._neg_vecs)
+                if tags else [[] for _ in dets])
         crop_dir = os.path.join(self.data_dir, "crops", frame["camera"],
                                 time.strftime("%Y%m%d", time.localtime(frame["ts"])))
         os.makedirs(crop_dir, exist_ok=True)
-        for i, ((label, conf, box), vec, crop) in enumerate(zip(dets, vecs, crops)):
+        for i, ((label, conf, box), vec, crop, tag_hit) in enumerate(
+                zip(dets, vecs, crops, hits)):
             crop_path = os.path.join(crop_dir, f"{frame['id']}-{i}.jpg")
             crop.save(crop_path, quality=85)
             entity_id = self._match_entity(label, vec, frame["ts"])
@@ -297,13 +352,11 @@ class Analyzer:
                 (frame["id"], event_id, frame["camera"], frame["ts"], label,
                  conf, json.dumps(box), crop_path, _to_blob(vec), entity_id))
             det_id = cur.lastrowid
-            for tag_id, _name, thr, tvec in tags:
-                score = float(np.dot(vec, tvec))
-                if score >= thr:
-                    self.db.execute(
-                        "INSERT OR IGNORE INTO detection_tags"
-                        "(detection_id, tag_id, score, source)"
-                        " VALUES(?,?,?,'auto')", (det_id, tag_id, score))
+            for tag_id, score, _prob in tag_hit:
+                self.db.execute(
+                    "INSERT OR IGNORE INTO detection_tags"
+                    "(detection_id, tag_id, score, source)"
+                    " VALUES(?,?,?,'auto')", (det_id, tag_id, score))
 
     def analyze_frames(self, frames, event_id=None):
         """frames: rows with id/camera/ts/path. Detect (with scenery

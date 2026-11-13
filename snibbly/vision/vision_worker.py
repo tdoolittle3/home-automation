@@ -51,13 +51,20 @@ DEFAULTS = {
     "web": {"bind": "0.0.0.0", "port": 8099},
     "storage": {"data_dir": "/opt/vision/data",
                 "event_frames_retain_days": 30, "sweep_frames_retain_days": 7},
-    "events": {"fps": 2.0, "clip_wait_secs": 15},
+    "events": {"fps": 2.0, "clip_wait_secs": 15, "max_frames": 120},
     "sweep": {"enabled": True, "chunk_minutes": 20, "lag_minutes": 10,
               "start_offset_hours": 6},
     "analyze": {"conf_threshold": 0.40, "sweep_keep_threshold": 0.50,
                 "entity_match_threshold": 0.85, "sweep_event_gap_secs": 90,
                 "batch_size": 16, "static_presence": 0.5,
-                "static_registry_iou": 0.5, "static_expire_chunks": 3},
+                "static_registry_iou": 0.5, "static_expire_chunks": 3,
+                "labels": ["person", "bicycle", "car", "motorcycle", "bus", "truck",
+                           "dog", "cat", "bird", "horse", "sheep", "cow", "bear",
+                           "backpack", "handbag", "umbrella"]},
+    "caption": {"enabled": True, "base_url": "http://127.0.0.1:9292/v1",
+                "model": "vlm-8b", "max_age_days": 7, "max_side": 1280,
+                "max_tokens": 120, "idle_secs": 60, "retry_secs": 120,
+                "camera_notes": {}},
     "mcp": {"bind": "0.0.0.0", "port": 8097, "timezone": "America/Denver",
             "night_start_hour": 21, "night_end_hour": 7,
             "web_base_url": "http://192.168.0.19:8099"},
@@ -81,7 +88,7 @@ CREATE TABLE IF NOT EXISTS frames(
   event_id TEXT REFERENCES events(id),      -- NULL for kept sweep frames
   camera TEXT NOT NULL,
   ts REAL NOT NULL,
-  path TEXT NOT NULL,
+  path TEXT,                                -- NULL once retention prunes the file
   analyzed INTEGER NOT NULL DEFAULT 0       -- phase 2 flips this
 );
 CREATE INDEX IF NOT EXISTS frames_event ON frames(event_id);
@@ -178,7 +185,48 @@ class DB:
         self.conn = sqlite3.connect(path, check_same_thread=False)
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript("PRAGMA journal_mode=WAL;" + SCHEMA)
+        self._relax_frames_path()
+        self._add_columns()
         self.lock = threading.Lock()
+
+    # columns added after the first deploy; CREATE TABLE IF NOT EXISTS can't
+    # grow an existing table, so each lands here once via ALTER TABLE
+    ADDED_COLUMNS = [
+        ("events", "caption", "TEXT"),           # VLM description; '' = no frame to caption
+        ("events", "caption_frame_id", "INTEGER"),
+        ("events", "caption_model", "TEXT"),
+        ("events", "caption_ts", "REAL"),
+    ]
+
+    def _add_columns(self):
+        for table, col, decl in self.ADDED_COLUMNS:
+            have = {c["name"] for c in self.conn.execute(f"PRAGMA table_info({table})")}
+            if col not in have:
+                self.conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
+        self.conn.commit()
+
+    def _relax_frames_path(self):
+        """DBs created before 2026-11-12 have frames.path NOT NULL, which made
+        retention's `SET path=NULL` throw. Rebuild the table once without it
+        (detections reference frames.id; ids are copied, so they stay valid)."""
+        cols = self.conn.execute("PRAGMA table_info(frames)").fetchall()
+        if not any(c["name"] == "path" and c["notnull"] for c in cols):
+            return
+        log.info("migrating frames.path to nullable")
+        self.conn.executescript("""
+            BEGIN;
+            CREATE TABLE frames_new(
+              id INTEGER PRIMARY KEY,
+              event_id TEXT REFERENCES events(id),
+              camera TEXT NOT NULL,
+              ts REAL NOT NULL,
+              path TEXT,
+              analyzed INTEGER NOT NULL DEFAULT 0);
+            INSERT INTO frames_new SELECT id, event_id, camera, ts, path, analyzed FROM frames;
+            DROP TABLE frames;
+            ALTER TABLE frames_new RENAME TO frames;
+            CREATE INDEX IF NOT EXISTS frames_event ON frames(event_id);
+            COMMIT;""")
 
     def execute(self, sql, params=()):
         with self.lock, self.conn:
@@ -211,7 +259,8 @@ def sample_clip(url, out_dir, fps=None, keyframes_only=False, timeout=900):
     os.makedirs(out_dir, exist_ok=True)
     cmd = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error"]
     if keyframes_only:
-        cmd += ["-skip_frame", "nokey", "-i", url, "-fps_mode", "passthrough"]
+        cmd += ["-skip_frame", "nokey", "-i", url]
+        cmd += ["-vf", f"fps={fps}"] if fps else ["-fps_mode", "passthrough"]
     else:
         cmd += ["-i", url, "-vf", f"fps={fps}"]
     cmd += ["-q:v", "4", os.path.join(out_dir, "%06d.jpg")]
@@ -249,17 +298,38 @@ def handle_event(cfg, db, p):
         keyframes = True
     out_dir = os.path.join(cfg["storage"]["data_dir"], "frames", "events",
                            camera, event_id)
-    n = sample_clip(url, out_dir, fps=cfg["events"]["fps"], keyframes_only=keyframes)
+    # Frigate keeps an event open for as long as a parked car stays tracked —
+    # hours. At full fps that was 10-20 GB of full-res JPGs per event and it
+    # filled the disk (2026-11-12). Spread at most max_frames over the event.
+    max_frames = cfg["events"]["max_frames"]
+    base_fps = 1.0 if keyframes else cfg["events"]["fps"]
+    t0 = meta.get("start_time") or p.get("start_ts")
+    t1 = meta.get("end_time") or p.get("end_ts")
+    duration = (t1 - t0) if (t0 and t1) else 0
+    fps = base_fps
+    if duration * base_fps > max_frames:
+        fps = max_frames / duration
+    shutil.rmtree(out_dir, ignore_errors=True)  # a retried job starts clean
+    n = sample_clip(url, out_dir, fps=None if (keyframes and fps == base_fps) else fps,
+                    keyframes_only=keyframes)
     if n == 0:
         shutil.rmtree(out_dir, ignore_errors=True)
         raise Retry(f"event {event_id}: clip produced 0 frames")
     start_ts = p.get("start_ts") or time.time()
-    step = 1.0 if keyframes else 1.0 / cfg["events"]["fps"]
+    step = 1.0 / fps
+    names = sorted(os.listdir(out_dir))
+    keep = range(len(names))
+    if len(names) > max_frames:  # backstop when the duration was unknown
+        keep = sorted({round(i * (len(names) - 1) / (max_frames - 1))
+                       for i in range(max_frames)})
+        for i in set(range(len(names))) - set(keep):
+            os.unlink(os.path.join(out_dir, names[i]))
+        n = len(keep)
     with db.lock, db.conn:
-        for i, name in enumerate(sorted(os.listdir(out_dir))):
+        for i in keep:
             db.conn.execute(
                 "INSERT INTO frames(event_id, camera, ts, path) VALUES(?,?,?,?)",
-                (event_id, camera, start_ts + i * step, os.path.join(out_dir, name)))
+                (event_id, camera, start_ts + i * step, os.path.join(out_dir, names[i])))
         db.conn.execute("UPDATE events SET status='sampled' WHERE id=?", (event_id,))
     db.bump("event_frames_kept", n)
     enqueue(db, "analyze", {"id": event_id})

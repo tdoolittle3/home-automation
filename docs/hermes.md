@@ -250,6 +250,71 @@ Mechanics worth knowing:
 - Jobs live in `data/cron/jobs.json`; `hermes cron list` / `/cron list` to
   audit what the agent has scheduled for itself.
 
+## Nightly eval — is the agent getting better or worse?
+
+Every change to tools, skills, SOUL.md or the model can quietly break an answer
+that used to work. [`scripts/hermes_eval.py`](../stacks/hermes/scripts/hermes_eval.py)
+asks the live agent a fixed set of golden questions
+([`hermes_eval_questions.json`](../stacks/hermes/scripts/hermes_eval_questions.json))
+every night and grades the answers against ground truth fetched at eval time.
+
+- **How a question runs:** `hermes chat -q … --format stream-json`, the same config,
+  SOUL.md, skills and tools as Telegram. The JSONL stream gives the final answer and
+  every tool called (the lazy loader's `tool_call` wrapper is unwrapped). The eval's
+  sessions are deleted afterwards so they don't show up in `session_search`.
+- **Ground truth:** vision-mcp (`tags`, `recent_events`, `timeline`) for camera facts,
+  the HA REST API for device state, the radio-log JSONL for aircraft, or fixed facts for
+  anchored history ("garbage truck 09:53, Wed Nov 11") that must stay answerable forever.
+- **Grading:** rule checks first. These cover which tools were (not) called, a clock
+  time within ±3 min (12/24 h aware), the right day (weekday, date or
+  "yesterday"), a real callsign or state word, and regexes. Meaning-level
+  criteria get **one** bounded judge call (coder-30b, temperature 0, JSON verdict), shown
+  as *model-judged* in the report. A judge outage marks that check "–" rather than failing
+  the agent.
+- **First dry run (2026-11-12): 6/9.** The two genuine failures are the useful part. "Anything
+  last night?" got `recent_events` noise ("4:00–4:10 AM: multiple car detections") instead of the
+  caption `timeline`. "Aircraft in the last hour?" mixed real recent flights with stale claims.
+  The third failure was the harness's fault (truncated ground truth), fixed before scheduling.
+  **Fixes, same day:**
+  - "Last night": the `recent_events` description and the camera skill had steered
+    open questions there. Both now point at `timeline`, and unfiltered `recent_events` results
+    carry a note redirecting to it.
+  - Aircraft: the stream showed the radio-logs skill's `python3 - <<EOF` snippet **blocked by
+    Hermes's approval guard** ("script execution via heredoc", with no user present to approve).
+    The agent fell back to `tail` and guessed.
+- **Rule for the harness: rules over the judge for anything countable.** coder-30b as
+  judge mis-compared a ~60-callsign set and miscounted a time window, so the aircraft
+  question uses `no_stale` instead: every callsign the answer names must be in the window.
+  Live truth is fetched *after* the answer, widened by the run time. Every report keeps each
+  tool call's input and output (⛔ marks calls the approval guard blocked), since the eval
+  deletes its sessions.
+- **Rule for skills: ship scripts as files, never inline.** The approval guard
+  (`tools/approval_detection.py`) flags `python -c`/`-e` and `python <<` in cron and `-q`
+  runs, and asks for approval in Telegram, but leaves `python3 <file>` alone. Skills now ship
+  helpers under `skills/<cat>/<skill>/scripts/`, and the sandbox mounts
+  `data/skills` read-only at `/opt/data/skills` (`terminal.docker_volumes`). The first one is
+  `radio-logs/scripts/adsb_summary.py N` (last N minutes, midnight-safe).
+- **Questions cover:** camera history (tags, captions, named days, an honest "no"),
+  role knowledge (vision worker vs Frigate), and routing (garage state → HA,
+  aircraft → radio logs, never the cameras). Each has a `why` saying what a failure means.
+  Add one when a real conversation goes wrong: a failing question is the regression test.
+- **Output:** `reports/hermes-eval/<date>.html` + `.json`, `latest.html` and
+  `history.jsonl` (trend), served at
+  `https://ladybird.tail0e6756.ts.net:9123/hermes-eval/latest.html`. The 2–4 line
+  stdout summary (score, delta vs the last run, each failure's reason, link) is the
+  cron delivery to the home channel.
+
+Schedule (`--no-agent` = the script *is* the job, so no cron model swap):
+
+```bash
+docker exec hermes hermes cron create "15 3 * * *" --script hermes_eval.py \
+  --no-agent --name hermes-eval --deliver telegram --timezone America/Denver
+# one-off / subset:  docker exec -u 1000 -e EVAL_ONLY=garage_state hermes python3 /opt/data/scripts/hermes_eval.py
+```
+
+Live since 2026-11-12 as job `84b75d43c47d`. 03:15 is quiet: ~9 questions × 1–5 min each fits well inside the 1 h cron script timeout
+(`HERMES_CRON_SCRIPT_TIMEOUT`).
+
 ## Tool routing — the homelab map
 
 Skills only load when a request matches their description, and the model

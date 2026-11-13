@@ -12,6 +12,8 @@
   {% if ev.top_score %}· top score {{"%.2f"|format(ev.top_score)}}{% endif %}
   {% if clip %}· <a href="{{clip}}">frigate clip</a> <span class="muted">(while retained)</span>{% endif %}
 </p>
+{% if ev.caption %}<p class="caption">{{ev.caption}}
+  <span class="muted">— {{ev.caption_model}}</span></p>{% endif %}
 
 {% if frames %}
 <h2>Frames <span class="muted">(first {{frames|length}})</span></h2>

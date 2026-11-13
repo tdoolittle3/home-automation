@@ -1,7 +1,7 @@
 ---
 name: radio-logs
 description: Answer questions about aircraft/planes/flights that flew over or near the house (ADS-B from our own SDR receiver — lowest plane, closest approach, callsigns, what's overhead), Meshtastic mesh chat messages and nodes, and outdoor temperature/tire/utility-meter history (rtl_433), from JSONL files mounted read-only in the workspace. Use this for planes — NOT the camera/vision tools and NOT Home Assistant.
-version: 1.0.0
+version: 1.2.0
 author: homelab
 license: MIT
 platforms: [linux]
@@ -86,28 +86,27 @@ the house in nautical miles, `max_gs` = ground speed in knots.
 ## Aircraft summary — run this, don't eyeball it
 
 For ANY "how many / lowest / closest / fastest / which planes" question, run
-the snippet below in the terminal (sandbox has python3) and report ITS output.
-Scanning dozens of JSON lines by eye gets the min/max wrong. Optional first
-argument = a date (`YYYY-MM-DD`); default = newest file. Records with a null
-`min_alt`/`min_dist_nm` (no position fix) are skipped for those rankings.
+this script in the terminal and report ITS output. Scanning dozens of JSON
+lines by eye gets the min/max and the times wrong.
 
 ```bash
-python3 - [YYYY-MM-DD] <<'EOF'
-import glob, json, sys
-d = "/opt/data/workspace/radiolog/adsb/"
-f = d + sys.argv[1] + ".jsonl" if len(sys.argv) > 1 else sorted(glob.glob(d + "*.jsonl"))[-1]
-r = [json.loads(l) for l in open(f) if l.strip()]
-def show(x):
-    return (f'{x.get("flight") or x["hex"]} hex={x["hex"]} alt={x["min_alt"]}ft '
-            f'dist={x["min_dist_nm"]}nm gs={x["max_gs"]}kt {x["first_seen"][11:16]}-{x["last_seen"][11:16]}')
-def top(key, rev=False):
-    return sorted((x for x in r if x.get(key) is not None), key=lambda x: x[key], reverse=rev)[:5]
-print(f, "-", len(r), "aircraft,", sum(1 for x in r if x.get("flight")), "with callsign")
-print("LOWEST:");  [print(" ", show(x)) for x in top("min_alt")]
-print("CLOSEST:"); [print(" ", show(x)) for x in top("min_dist_nm")]
-print("FASTEST:"); [print(" ", show(x)) for x in top("max_gs", True)]
-EOF
+python3 /opt/data/skills/homelab/radio-logs/scripts/adsb_summary.py 60
 ```
+
+The argument picks the window. Always pass one that matches the question:
+
+- `60` (a number) = the **last N minutes**: "in the last hour" → `60`,
+  "last 3 hours" → `180`. Reads across midnight and prints EVERY aircraft in
+  the window, newest first. Report only those, never planes from earlier
+  in the day.
+- `YYYY-MM-DD` = that whole day ("this morning", "on Tuesday" → the day, then
+  use the times it prints).
+- none = the newest day file.
+
+Run the file as shown. Don't paste its code as `python3 - <<EOF` or
+`python3 -c`: Hermes blocks inline scripts unless someone approves them.
+The file lags ~5 min (see above); for "right now / overhead", use the live
+feed instead.
 
 ## Tips
 

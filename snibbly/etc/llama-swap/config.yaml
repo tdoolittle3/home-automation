@@ -52,6 +52,24 @@ models:
     env: ["CUDA_VISIBLE_DEVICES=0"]
     ttl: 0
 
+  # Vision captions for the camera archive (snibbly/vision/captioner.py). No -ngl:
+  # --fit sizes the GPU layers to whatever VRAM is free when it loads — ~2.2 GB
+  # beside a resident coder-30b, ~8-13 s per caption — so it never needs the agent
+  # model evicted. Its group is non-exclusive: it never unloads anyone, while any
+  # request to an exclusive-group model — even one already loaded, verified
+  # 2026-11-12 — unloads it. So Hermes never waits on it; the captioner just
+  # reloads it (~10-14 s from page cache) after agent activity. Safe by
+  # construction: fast-8b/big-14b, which need the whole GPU, always win.
+  # ttl frees the VRAM when captions go idle.
+  "vlm-8b":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/Qwen3-VL-8B-Instruct-Q4_K_M.gguf
+      --mmproj /opt/models/Qwen3-VL-8B-mmproj-F16.gguf
+      --fit on -t 4 -c 8192 -np 1 --image-max-tokens 1024 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=0"]
+    ttl: 300
+
 routing:
   router:
     use: group
@@ -69,3 +87,7 @@ routing:
           swap: false
           exclusive: true
           members: ["8b-abliterated"]
+        "vlm":
+          swap: false
+          exclusive: false
+          members: ["vlm-8b"]

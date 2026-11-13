@@ -1,0 +1,69 @@
+{
+  "_doc": "Golden questions for hermes_eval.py. Each runs through `hermes chat -q` with the live config. truth = ground truth fetched at eval time (vision-mcp / Home Assistant) or fixed for anchored history; checks = what must hold. See docs/hermes.md 'Nightly eval'.",
+  "questions": [
+    {
+      "id": "garbage_wed_anchor",
+      "why": "Anchored history: the question that started this. Fails if routing, tags or date handling regress.",
+      "prompt": "Did the garbage truck come on the morning of Wednesday, November 11, 2026? If so, at what time?",
+      "truth": {"fn": "fixed", "facts": "Yes. A garbage truck passed the house on the street at 09:53-09:54 on Wednesday November 11 2026 (driveway camera).", "times": ["09:53"], "answer": "yes"},
+      "checks": {"tools_any": ["mcp__vision__"], "tools_none": ["ha_"], "time": true, "judge": "The answer must say YES, the garbage truck came, at about 9:53-9:54 AM."}
+    },
+    {
+      "id": "delivery_wed_anchor",
+      "why": "Anchored history: a second vehicle kind, around midday rather than morning.",
+      "prompt": "Was a delivery van seen near the house around midday on Wednesday, November 11, 2026?",
+      "truth": {"fn": "fixed", "facts": "Yes. A delivery van (a UPS van per the camera description) was seen on the street at about 11:51 on Wednesday November 11 2026.", "times": ["11:51"], "answer": "yes"},
+      "checks": {"tools_any": ["mcp__vision__"], "tools_none": ["ha_"], "time": true, "judge": "The answer must say YES, a delivery van was seen, at about 11:51 AM."}
+    },
+    {
+      "id": "garbage_latest",
+      "why": "Live: 'last time X' must come from the tag sightings, with the right day and time.",
+      "prompt": "When did the garbage truck last come by?",
+      "truth": {"fn": "tag_latest", "tag": "garbage truck"},
+      "checks": {"tools_any": ["mcp__vision__"], "tools_none": ["ha_"], "time": true, "day": true}
+    },
+    {
+      "id": "school_bus_sunday_anchor",
+      "why": "Anchored negative: an honest 'no' (or yes, if the data says so) instead of padding with nearby sightings from other days.",
+      "prompt": "Did the cameras see a school bus on Sunday, November 8, 2026?",
+      "truth": {"fn": "tag_in_window", "tag": "school bus", "since": "2026-11-08 00:00", "until": "2026-11-09 00:00"},
+      "checks": {"tools_any": ["mcp__vision__"], "judge": "The answer's yes/no must match the ground truth for Sunday November 8 specifically. Mentioning a sighting on another day is fine only if it is clearly labelled as another day."}
+    },
+    {
+      "id": "yesterday_summary",
+      "why": "Live: the caption timeline turned into a short narrative without inventing events.",
+      "prompt": "What did the cameras see yesterday? Give me a short summary.",
+      "truth": {"fn": "timeline", "since": "yesterday"},
+      "checks": {"tools_any": ["mcp__vision__"], "tools_none": ["ha_"], "judge": "PASS if the answer describes at least one specific event that appears in the ground-truth entries and states nothing that contradicts them or is absent from them. If the ground truth reports the archive is behind (archive_processed_until), the answer should mention that coverage is incomplete. If there are no entries at all, an answer saying it found nothing notable passes."}
+    },
+    {
+      "id": "last_night",
+      "why": "Live: night window resolution ('last night' = 21:00-07:00) and honesty about quiet nights.",
+      "prompt": "Anything on the cameras last night?",
+      "truth": {"fn": "timeline", "since": "last night"},
+      "checks": {"tools_any": ["mcp__vision__"], "tools_none": ["ha_"], "judge": "PASS if the answer is consistent with the ground-truth entries for last night: it mentions at least one real entry when there are some, or says nothing notable happened when there are none. It must not invent events."}
+    },
+    {
+      "id": "roles",
+      "why": "Knows the vision worker archive is primary and Frigate is the live trigger.",
+      "prompt": "In two sentences: what's the difference between Frigate and the vision worker, and which one is the main source for questions about past camera activity?",
+      "truth": {"fn": "fixed", "facts": "Frigate watches the streams live and triggers events/alerts. The vision worker re-analyzes full-resolution footage (plus its own sweep of the recordings), keeps the archive with tags and descriptions, and is the main source for past activity."},
+      "checks": {"regex_all": ["vision (worker|archive|pipeline)", "(primary|main)"], "judge": "PASS if the answer says the vision worker / its archive is the main source for past activity and Frigate is the live/real-time detector. FAIL if it says Frigate is the main source for history."}
+    },
+    {
+      "id": "garage_state",
+      "why": "Routing: live device state comes from Home Assistant, not the camera archive.",
+      "prompt": "Is the garage door open or closed right now?",
+      "truth": {"fn": "ha_state", "entity": "binary_sensor.garage_door", "words": {"on": "open", "off": "closed"}},
+      "checks": {"tools_any": ["ha_"], "tools_none": ["mcp__vision__"], "truth_word": true}
+    },
+    {
+      "id": "planes_routing",
+      "why": "Routing + window: aircraft come from the radio logs (never cameras/HA), and 'last hour' means the last hour — the first dry run (2026-11-12) routed right but reported planes from 11 PM-2:35 AM as 'the last hour' at 19:20.",
+      "prompt": "What aircraft flew over the house in the last hour?",
+      "truth": {"fn": "adsb_recent", "minutes": 65},
+      "checks": {"tools_none": ["mcp__vision__", "ha_"], "regex_none": ["camera"],
+                 "truth_any": true, "no_stale": true}
+    }
+  ]
+}

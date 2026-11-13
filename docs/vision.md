@@ -25,7 +25,10 @@ Two ingest paths feed one database, each event marked by source:
 * **Fast path** — subscribe to `frigate/events` on ladybird's Mosquitto; on event end, pull the
   full-resolution clip (`http://192.168.0.13:5000/api/events/<id>/clip.mp4` — the record stream:
   driveway 2688×1520 H.265, backyard 2MP; snapshots are detect-stream res and not worth
-  analyzing) and sample frames densely around the event.
+  analyzing) and sample frames densely around the event — 2 fps, capped at
+  `[events] max_frames` (120) per event. Frigate holds an event open for as long as a parked
+  car stays tracked (hours), so a long event gets a lower fps spread over its whole span; before
+  the cap, single events reached 10–20 GB of JPGs and filled snibbly's disk (2026-11-12).
 * **Sweep path** — periodically pull the continuous recordings (retained 2 days at full quality)
   and sample **1 fps**, running detection on everything, Frigate's opinion not required. The
   cameras record with a 1-second GOP, so 1 fps sampling is keyframe-only extraction — no full
@@ -91,10 +94,22 @@ ViT-B/16 load in ~2 s and hold ~700 MiB VRAM):
   recurring people (347 and 111 sightings) unprompted. Persons use CLIP like everything else —
   OSNet was the plan but torchreid won't install on py3.12/torch-2.14, so person matching is
   clothing-level for now.
-* **Zero-shot tags** — any row in the `tags` table with a `prompt` is CLIP-text-embedded and
-  scored against every crop; scores ≥ the tag's threshold are recorded in `detection_tags`.
-  Manual tags use the same table with `prompt NULL` (Phase 3 UI). Expect thresholds to need
-  tuning per prompt (~0.22–0.30 cosine is the useful range).
+* **Label allowlist** — `[analyze] labels`: only those YOLO classes are kept (people,
+  vehicles, animals, a few carried things). The other COCO classes — bench, suitcase, boat,
+  train, parking meter — only ever fired on scenery here; one Wednesday morning had 3,581
+  "bench" detections burying the real events. The MCP tools apply the same list to older rows.
+* **Zero-shot tags** — *kinds* of thing ("garbage truck", "delivery van", "mail truck",
+  "school bus"; seeded by [`retag.py --seed`](../snibbly/vision/retag.py)). Every enabled tag
+  prompt plus a fixed set of background prompts ("a photo of a car / a person / a shed / a
+  trash can"…) compete in one CLIP softmax, and a tag is recorded only where it wins ≥ 0.5 of
+  it *and* clears its own cosine threshold. The absolute cosine alone can't do it: a real
+  garbage truck scored 0.29 and a shed wall YOLO called a truck 0.25. Because tags compete,
+  they must be mutually exclusive kinds — an attribute tag like "white vehicle" would split
+  the vote (the old one is disabled). Person-activity tags ("delivery person with a package")
+  were tried and fired on anyone holding a phone: a person crop can't carry that, it's VLM
+  work. Tags apply to new detections as they're analyzed; `retag.py --since 30` re-scores
+  history from the stored embeddings (CPU, seconds), replacing only `auto` rows. Manual tags
+  use the same table with `prompt NULL` (Phase 3 UI).
 * **Sweep events** — sweep keyframes with a confident detection survive and cluster (90 s gap)
   into `sweep`-source events; this is the Frigate-independent path, so things Frigate never
   noticed become first-class events.
@@ -128,6 +143,38 @@ fetches them (they park as `error`; the sweep covers those spans anyway), and Op
 weights must load as `ViT-B-16-quickgelu` — the plain variant silently uses the wrong
 activation.
 
+## Captions (vision-captioner)
+
+YOLO + CLIP know *which classes* were in frame; the caption stage says what was
+happening — "Two people are walking on the driveway near a white Nissan SUV. One person
+is carrying a cardboard box." ([captioner.py](../snibbly/vision/captioner.py),
+[unit](../snibbly/etc/systemd/system/vision-captioner.service), `[caption]` in
+[config.toml](../snibbly/etc/vision/config.toml)).
+
+* **One frame per event**, the most informative surviving one: a frame holding a tagged
+  detection (garbage truck…) beats one with a person or animal, which beats the busiest.
+  Downscaled to 1280 px (~1k image tokens), sent with a prompt plus per-camera geometry notes
+  (`[caption.camera_notes]` — without them the model put a street-side garbage truck "on the
+  driveway"). The prompt asks for only what's present; "Nothing notable." is a valid answer
+  and the MCP tools hide it.
+* **Model: Qwen3-VL-8B Q4 + F16 mmproj** as llama-swap entry `vlm-8b` (GPU 0). `--fit on`
+  sizes its GPU layers to the VRAM left when it loads: ~2.2 GB beside a resident coder-30b
+  (~8–13 s/caption), the whole card when nothing else is loaded (~3 s). Its llama-swap group
+  is non-exclusive: it never unloads anything, and any request to an exclusive-group model
+  unloads it — even a request to a model that's already loaded (observed 2026-11-12) — so
+  Hermes never waits on it and the captioner just reloads it (~10–14 s) afterwards.
+  Qwen3-VL-30B-A3B was ruled out: its 18 GB of experts can't share RAM with coder-30b's.
+* **Order and volume**: newest uncaptioned analyzed events first, back `max_age_days` (7).
+  ~60 captionable events/day after the label allowlist; a week of backlog is 1–3 h.
+* Calls go to llama-swap on `127.0.0.1:9292` directly (key via the unit's
+  `EnvironmentFile=/etc/llama/llama.env`), not LiteLLM, so captions don't flood Langfuse.
+* Stored on the event row (`caption`, `caption_frame_id`, `caption_model`, `caption_ts`;
+  added by `DB._add_columns`); `''` = no usable frame. vision-web shows them on the feed and
+  event pages. To regenerate after a prompt change: `UPDATE events SET caption=NULL`.
+
+Deploy: llama-swap config (hot-reloads — but reloading unloads every running model), then
+`captioner.py` + unit + `[caption]` config, `systemctl enable --now vision-captioner`.
+
 ## Agent search (vision-mcp)
 
 The archive is queryable by the Hermes agent ([docs/hermes.md](hermes.md)): `vision-mcp`
@@ -137,7 +184,10 @@ streamable HTTP on `:8097`, same venv and config as the worker. Hermes's native 
 registers them at startup as `mcp_vision_*`, so from Telegram you can ask "did anyone walk a
 dog past the driveway today?" and get event links back.
 
-Four tools, each matched to what the data actually supports:
+Six tools, each matched to what the data actually supports. Every `since` accepts a named
+span — `yesterday`, `wednesday morning`, `last night`, `tue night` — resolved server-side in
+house time (morning 05–12, afternoon 12–17, evening 17–21, night 21–07): the local model
+reliably got weekday arithmetic wrong ("Wednesday" → today's date), so it passes words.
 
 * **`search(query, …)`** — semantic: the query goes through the same CLIP text tower (CPU —
   the GPU belongs to the worker) and ranks the stored per-crop embeddings by cosine, grouped
@@ -149,6 +199,14 @@ Four tools, each matched to what the data actually supports:
   sweep), and `night_only` (21:00–07:00 local by default; snibbly runs UTC, so the `[mcp]`
   timezone config does the translation).
 * **`entities(…)`** — the re-ID clusters, named and unnamed, with sighting counts.
+* **`timeline(since)`** — the captions in time order ("what happened this morning?"),
+  with counts of events not yet described and "nothing notable" ones. Every event summary
+  also carries its `caption`, and `search()` adds `caption_matches` — events whose
+  description contains every content word of the query ("carrying a box", "dog").
+* **`tags()`** — the recognized kinds with each one's recent sightings; `recent_events(tag=…)`
+  filters by one. `search()` also notices a query naming a tag and leads with that tag's hits
+  in the window plus its latest sightings anywhere — the agent tends to skip `since`, and this
+  is what turned "did the garbage truck come Wednesday?" from "no" into the right answer.
 
 Deploy (one-time, after the Phase 1–3 install):
 

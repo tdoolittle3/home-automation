@@ -1,0 +1,27 @@
+[Unit]
+Description=Vision pipeline caption stage (Qwen3-VL via llama-swap)
+After=network-online.target llama-swap.service
+Wants=network-online.target
+
+[Service]
+User=vision
+Group=vision
+WorkingDirectory=/opt/vision
+ExecStart=/opt/vision/venv/bin/python /opt/vision/captioner.py
+Restart=always
+RestartSec=10
+# llama-swap's API key; systemd reads this root:llama 0640 file before dropping
+# to the vision user, so the key never needs copying into vision's config
+EnvironmentFile=/etc/llama/llama.env
+# no GPU here: the VLM runs inside llama-swap; this process only resizes JPEGs
+Environment=CUDA_VISIBLE_DEVICES=
+# the low-priority tenant: yields CPU to the agent model's MoE experts
+Nice=10
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/vision/data
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
