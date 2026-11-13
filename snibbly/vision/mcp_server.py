@@ -25,7 +25,7 @@ import logging
 import sqlite3
 import threading
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import numpy as np
@@ -40,6 +40,10 @@ DB_PATH = cfg["storage"]["data_dir"] + "/vision.db"
 WEB = MCP_CFG["web_base_url"].rstrip("/")
 TZ = ZoneInfo(MCP_CFG["timezone"])
 EMB_CHUNK = 20_000  # detections per scoring batch; bounds memory as the DB grows
+# the worker's YOLO class allowlist; older rows still hold scenery classes
+# (bench, suitcase, boat...) from before it existed, so queries apply it too
+LABELS = list(cfg["analyze"].get("labels") or [])
+LABEL_SQL = f"label IN ({','.join(repr(lab) for lab in LABELS)})" if LABELS else "1"
 
 log = logging.getLogger("vision-mcp")
 
@@ -97,8 +101,68 @@ def _parse_when(value, name):
         dt = datetime.fromisoformat(s)
         return (dt if dt.tzinfo else dt.replace(tzinfo=TZ)).timestamp()
     except (ValueError, KeyError):
-        raise ValueError(f"can't parse {name}={value!r}: use '6h'/'2d'/'90m', "
-                         "'YYYY-MM-DD HH:MM' (local), or a unix epoch")
+        raise ValueError(f"can't parse {name}={value!r}: use a named span like "
+                         "'yesterday' / 'wednesday morning' / 'last night', "
+                         "'6h'/'2d'/'90m', 'YYYY-MM-DD HH:MM' (local), or a unix epoch")
+
+
+WEEKDAYS = ["monday", "tuesday", "wednesday", "thursday", "friday",
+            "saturday", "sunday"]
+PARTS = {"morning": (5, 12), "afternoon": (12, 17), "evening": (17, 21)}
+
+
+def _named_span(text):
+    """'yesterday', 'wednesday morning', 'today afternoon', 'last night',
+    'tuesday night' -> (start, end) epoch in house-local time, else None.
+    A weekday means the most recent one, today included. Local models get
+    calendar arithmetic wrong ("Wednesday" -> today's date), so the agent is
+    told to pass the words and let this resolve them."""
+    words = str(text).strip().lower().replace(",", " ").split()
+    if not words:
+        return None
+    if words[0] == "last" and len(words) > 1:
+        words = words[1:]
+        if words == ["night"]:
+            words = ["yesterday", "night"]
+    today = datetime.now(TZ).date()
+    day_word, part = words[0], (words[1] if len(words) > 1 else "")
+    if day_word in ("tonight",):
+        day_word, part = "today", "night"
+    if day_word == "today":
+        day = today
+    elif day_word == "yesterday":
+        day = today - timedelta(days=1)
+    elif len(day_word) >= 3 and any(w.startswith(day_word) for w in WEEKDAYS):
+        # full name or a prefix: 'wednesday', 'wed', 'thurs'
+        idx = next(i for i, w in enumerate(WEEKDAYS) if w.startswith(day_word))
+        day = today - timedelta(days=(today.weekday() - idx) % 7)
+    else:
+        return None
+    if len(words) > 2 or (part and part not in PARTS and part != "night"):
+        return None
+    start = datetime.combine(day, datetime.min.time(), TZ)
+    if part == "night":
+        s = start + timedelta(hours=MCP_CFG["night_start_hour"])
+        e = start + timedelta(days=1, hours=MCP_CFG["night_end_hour"])
+    elif part:
+        a, b = PARTS[part]
+        s, e = start + timedelta(hours=a), start + timedelta(hours=b)
+    else:
+        s, e = start, start + timedelta(days=1)
+    return s.timestamp(), min(e.timestamp(), time.time())
+
+
+def _window(since, until):
+    """Resolve a tool's since/until. A named span in `since` ('wednesday
+    morning') supplies both ends unless `until` is given explicitly."""
+    span = _named_span(since)
+    if span:
+        t_from, t_to = span
+    else:
+        t_from, t_to = _parse_when(since, "since"), time.time()
+    if until:
+        t_to = (_named_span(until) or (None, _parse_when(until, "until")))[1]
+    return t_from, t_to
 
 
 def _local(ts):
@@ -121,16 +185,25 @@ def _event_summary(c, event_id):
     # what was actually in frame, as individuals: "person ×2 (one of them the
     # named entity), car ×1" — far more useful to relay than a detection count
     comp = c.execute(
-        """SELECT d.label, COUNT(DISTINCT COALESCE(d.entity_id, -d.id)) individuals,
+        f"""SELECT d.label, COUNT(DISTINCT COALESCE(d.entity_id, -d.id)) individuals,
                   GROUP_CONCAT(DISTINCT e.name) named
            FROM detections d LEFT JOIN entities e ON e.id=d.entity_id
-           WHERE d.event_id=? GROUP BY d.label
+           WHERE d.event_id=? AND d.{LABEL_SQL} GROUP BY d.label
            ORDER BY individuals DESC""", (event_id,)).fetchall()
+    tags = [r[0] for r in c.execute(
+        """SELECT t.name FROM detection_tags dt
+           JOIN detections d ON d.id=dt.detection_id JOIN tags t ON t.id=dt.tag_id
+           WHERE d.event_id=? AND t.enabled=1 GROUP BY t.name
+           ORDER BY MAX(dt.score) DESC""", (event_id,))]
+    label = ev["label"]
+    if LABELS and label not in LABELS:  # a scenery-labelled sweep event
+        label = comp[0]["label"] if comp else None
     return {
         "event_id": ev["id"],
         "camera": ev["camera"],
         "source": ev["source"],      # 'frigate' or 'sweep' (sweep = our own find)
-        "label": ev["label"],
+        "label": label,
+        "tags": tags,                # zero-shot kinds, e.g. 'garbage truck'
         "when": _local(ev["start_ts"]),
         "duration_secs": round((ev["end_ts"] or ev["start_ts"] or 0)
                                - (ev["start_ts"] or 0)),
@@ -157,14 +230,16 @@ def search(query: str, since: str = "24h", until: str = "", camera: str = "",
     listings ("who was by the driveway today" = label 'person') use
     recent_events — it's cheaper and complete.
 
-    since/until: '6h'/'2d'/'90m' ago, 'YYYY-MM-DD HH:MM' local, or epoch.
+    since: a named span — 'yesterday', 'wednesday morning', 'last night',
+    'today afternoon' (resolved server-side in house time; covers that whole
+    span, so leave until empty) — or '6h'/'2d'/'90m' ago, 'YYYY-MM-DD HH:MM'
+    local, or epoch.
     camera: '' = all. min_score: CLIP cosine cutoff — 0.2 loose, 0.3 strict.
     """
-    t_from = _parse_when(since, "since")
-    t_to = _parse_when(until, "until") if until else time.time()
+    t_from, t_to = _window(since, until)
     qvec = _text_embed(query)
 
-    where = "embedding IS NOT NULL AND ts >= ? AND ts <= ?"
+    where = f"embedding IS NOT NULL AND ts >= ? AND ts <= ? AND {LABEL_SQL}"
     params = [t_from, t_to]
     if camera:
         where += " AND camera = ?"
@@ -203,36 +278,72 @@ def search(query: str, since: str = "24h", until: str = "", camera: str = "",
                 results.append(_event_summary(c, key) or {})
             results[-1].update(score=round(score, 3), matched_label=label)
 
+        # the query names a recognized kind ("garbage truck") — those tag hits
+        # are precise where crop similarity is fuzzy, so lead with them, and
+        # show the latest sightings outside the window too: models routinely
+        # leave `since` at its 24h default for "yesterday morning"
+        q = query.strip().lower()
+        tag = next((t for t in c.execute(
+            "SELECT id, name FROM tags WHERE enabled=1").fetchall()
+            if t["name"].lower() in q), None)
+        tag_block = {}
+        if tag:
+            tag_block = {
+                "tag": tag["name"],
+                "tag_hits_in_window": _tag_sightings(c, tag["id"], t_from, t_to, 20),
+                "latest_sightings_any_time": _tag_sightings(c, tag["id"], limit=5),
+            }
+
+    note = ""
+    if tag_block:
+        note = (f"'{tag['name']}' is a recognized kind: tag_hits_in_window are "
+                "the reliable answer for this window; results below are fuzzy "
+                "visual similarity. Window wrong? pass since='wednesday morning' etc.")
+    elif not results:
+        note = "no matches — try a lower min_score, a wider window, or recent_events"
     return {"query": query, "window": [_local(t_from), _local(t_to)],
-            "detections_scanned": scanned, "results": results,
-            "note": ("no matches — try a lower min_score, a wider window, or "
-                     "recent_events" if not results else "")}
+            **tag_block, "detections_scanned": scanned, "results": results,
+            "note": note}
 
 
 @server.tool()
 def recent_events(since: str = "24h", until: str = "", camera: str = "",
-                  label: str = "", source: str = "", night_only: bool = False,
-                  limit: int = 40) -> dict:
+                  label: str = "", tag: str = "", source: str = "",
+                  night_only: bool = False, limit: int = 40) -> dict:
     """List security-camera events — who/what was seen, when, on which camera,
     with a footage link each. The first tool for "who was by the driveway
     today?" (label='person', camera='driveway'), "any motion last night?"
-    (night_only=true), "what did the backyard camera see?". Far more specific
-    than Home Assistant's frigate occupancy sensors — prefer this.
+    (night_only=true), "what did the backyard camera see?", and for specific
+    vehicle kinds: "did the garbage truck come Wednesday?" → tag='garbage truck'
+    with since='wednesday morning'. Far more specific than Home
+    Assistant's frigate occupancy sensors — prefer this.
 
-    label: a YOLO/Frigate class like person, car, truck, dog, cat.
+    label: a YOLO class like person, car, truck, dog, cat.
+    tag: a zero-shot kind such as 'garbage truck', 'delivery van', 'mail truck',
+    'school bus' — call tags() for the current list. Precise; prefer it over
+    search() when the thing asked about is one of the tags.
     source: 'frigate' (Frigate's own detections) or 'sweep' (our recordings
     sweep — catches what Frigate missed); '' = both.
     night_only: keep only events starting at night — 21:00 to 07:00 local by
     default (config [mcp] night_start_hour/night_end_hour).
-    since/until: '6h'/'2d', 'YYYY-MM-DD HH:MM' local, or epoch.
+    since: for a named day pass the words — 'yesterday', 'wednesday morning',
+    'last night', 'today afternoon' — and leave until empty: the server
+    resolves them in house time. Never compute dates yourself. Otherwise
+    '6h'/'2d' ago, 'YYYY-MM-DD HH:MM' local, or epoch. The default (last 24h)
+    is NOT "yesterday".
     """
-    t_from = _parse_when(since, "since")
-    t_to = _parse_when(until, "until") if until else time.time()
+    t_from, t_to = _window(since, until)
     where, params = ["start_ts >= ?", "start_ts <= ?"], [t_from, t_to]
     for col, val in (("camera", camera), ("label", label), ("source", source)):
         if val:
             where.append(f"{col} = ?")
             params.append(val)
+    if tag:
+        where.append("""EXISTS(SELECT 1 FROM detections d
+                          JOIN detection_tags dt ON dt.detection_id=d.id
+                          JOIN tags t ON t.id=dt.tag_id
+                          WHERE d.event_id=events.id AND t.name = ? COLLATE NOCASE)""")
+        params.append(tag.strip())
     with db() as c:
         rows = c.execute(
             f"SELECT id FROM events WHERE {' AND '.join(where)} "
@@ -240,6 +351,8 @@ def recent_events(since: str = "24h", until: str = "", camera: str = "",
         events, truncated = [], 0
         for r in rows:
             ev = _event_summary(c, r["id"])
+            if ev["label"] is None:  # nothing but scenery classes
+                continue
             if night_only and not ev["night"]:
                 continue
             if len(events) >= limit:
@@ -264,8 +377,7 @@ def frames_with(labels: list[str], since: str = "7d", until: str = "",
     if len(labels) < 2:
         return {"error": "give at least two labels; for one label use "
                          "recent_events or search"}
-    t_from = _parse_when(since, "since")
-    t_to = _parse_when(until, "until") if until else time.time()
+    t_from, t_to = _window(since, until)
     params = [t_from, t_to] + labels + [len(labels)]
     extra = ""
     if camera:
@@ -296,6 +408,44 @@ def frames_with(labels: list[str], since: str = "7d", until: str = "",
 
 
 @server.tool()
+def tags() -> dict:
+    """List the zero-shot kinds the archive recognizes on detections (e.g.
+    'garbage truck', 'delivery van', 'mail truck', 'school bus'), with how many
+    events carry each and when it was last seen. Use the name as
+    recent_events(tag=...). A kind not in this list isn't tagged — fall back
+    to search() with a description."""
+    with db() as c:
+        rows = c.execute(
+            """SELECT t.id, t.name, COUNT(DISTINCT d.event_id) events
+               FROM tags t
+               LEFT JOIN detection_tags dt ON dt.tag_id=t.id
+               LEFT JOIN detections d ON d.id=dt.detection_id
+               WHERE t.enabled=1 GROUP BY t.id ORDER BY t.name""").fetchall()
+        out = []
+        for r in rows:
+            out.append({"name": r["name"], "events": r["events"],
+                        "recent_sightings": _tag_sightings(c, r["id"], limit=8)})
+    return {"tags": out,
+            "note": "recent_sightings are the newest first, house-local. For a "
+                    "specific day call recent_events(tag=<name>, "
+                    "since='wednesday morning')."}
+
+
+def _tag_sightings(c, tag_id, since=0.0, until=None, limit=8):
+    """Distinct events carrying a tag, newest first: when/camera/url."""
+    until = until or time.time()
+    rows = c.execute(
+        """SELECT d.event_id, MIN(d.ts) ts, d.camera, MAX(dt.score) score
+           FROM detection_tags dt JOIN detections d ON d.id=dt.detection_id
+           WHERE dt.tag_id=? AND d.ts BETWEEN ? AND ?
+           GROUP BY COALESCE(d.event_id, d.id) ORDER BY ts DESC LIMIT ?""",
+        (tag_id, since, until, limit)).fetchall()
+    return [{"when": _local(r["ts"]), "camera": r["camera"],
+             "url": f"{WEB}/event/{r['event_id']}" if r["event_id"] else WEB}
+            for r in rows]
+
+
+@server.tool()
 def entities(label: str = "") -> dict:
     """List recurring individuals the cameras re-identified across days — the
     same specific person/vehicle/animal clustered by appearance. Named ones
@@ -305,9 +455,9 @@ def entities(label: str = "") -> dict:
 
     label: filter by YOLO class (person, car, truck, dog...); '' = all.
     """
-    where, params = "", []
+    where, params = f"WHERE {LABEL_SQL}", []
     if label:
-        where = "WHERE label = ?"
+        where += " AND label = ?"
         params = [label.strip().lower()]
     with db() as c:
         rows = c.execute(

@@ -57,3 +57,9 @@ static_registry_iou = 0.5      # IoU for a detection to match a registered stati
                                # stored box refreshes on every match, so it tracks slow drift
 static_expire_chunks = 3       # consecutive sweep chunks without a match before a registered
                                # static object is forgotten (3 chunks = ~1 h)
+# YOLO classes worth keeping. Everything else in COCO's 80 (bench, suitcase, boat,
+# train, parking meter, tv...) only ever fires on scenery at this house and buried
+# real events. Animals stay broad: raccoons/deer come through as cat/dog/bear/sheep.
+labels = ["person", "bicycle", "car", "motorcycle", "bus", "truck",
+          "dog", "cat", "bird", "horse", "sheep", "cow", "bear",
+          "backpack", "handbag", "umbrella"]

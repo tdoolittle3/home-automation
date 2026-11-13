@@ -1,47 +1,70 @@
 ---
 name: camera-archive
-description: Answer questions about what or who the security cameras saw — people, vehicles, animals, by time or description — using the mcp_vision_* tools, which hold the full detection archive. Home Assistant's frigate sensors are the wrong source for these questions, and so is this archive for aircraft (planes come from the radio-logs skill, not the cameras).
-version: 1.0.0
+description: Answer questions about what or who the security cameras saw — people, vehicles (garbage truck, delivery van, mail truck, school bus), animals, by day or description — using the mcp_vision_* tools, which hold the full detection archive. Home Assistant's frigate sensors are the wrong source for these questions, and so is this archive for aircraft (planes come from the radio-logs skill, not the cameras).
+version: 1.1.0
 author: homelab
 license: MIT
 platforms: [linux]
 metadata:
   hermes:
-    tags: [cameras, security, frigate, vision, driveway, backyard, homelab]
+    tags: [cameras, security, frigate, vision, driveway, backyard, garbage truck, homelab]
     category: homelab
 ---
 
 # Camera archive (vision search)
 
-The house cameras (driveway, backyard) feed a vision pipeline on snibbly that
-keeps every detection: timestamps, object labels, image crops, visual
-embeddings, and re-identified recurring individuals. The `mcp_vision_*` tools
-query that archive directly.
+## Two systems, one archive: who does what
 
-## Routing rule — read this first
+- **Frigate** (on ladybird) watches the camera streams live. It decides in real
+  time that "something is moving" and fires an event. It drives the live
+  alerts and Home Assistant's frigate sensors. It's fast, but it only ever
+  looks at the low-res detect stream and it misses things.
+- **The vision worker** (on snibbly) is the **primary source for questions about
+  what happened**. It pulls the full-resolution footage for every Frigate
+  event and also runs its own **sweep** over the continuous recordings, which
+  catches what Frigate missed. It re-detects, recognizes kinds of vehicles
+  (garbage truck, delivery van, mail truck, school bus), clusters recurring
+  individuals, and keeps it all. The `mcp_vision_*` tools query it.
 
-For ANY question about what or who the cameras saw, use the `mcp_vision_*`
-tools, **not Home Assistant**. HA's frigate entities only expose coarse
-live occupancy ("1 person in zone right now") — they cannot answer who, when,
-how many events, or anything historical. The archive can, with footage links.
+So: answer from `mcp_vision_*`. Frigate's events are *inputs* to it — results
+with `source: frigate` started as a Frigate event, `source: sweep` are finds
+Frigate never flagged. Both are real. Never use HA's frigate sensors for
+"what/who/when" questions; they only say what's in frame right now.
+
+## Dates: pass words, not dates
+
+For a named day, pass the words as `since` and leave `until` empty — the
+server resolves them in house time:
+`since='yesterday'`, `'wednesday morning'`, `'last night'`, `'today afternoon'`,
+`'tue night'`. **Do not work out the date yourself**; the default window
+(last 24h) is not "yesterday". Morning = 05–12, afternoon = 12–17, evening =
+17–21, night = 21–07. Every result echoes the resolved `window` — say it in
+your answer.
 
 ## Which tool
 
 | Question shape | Tool and call |
 |---|---|
-| "Who was by the driveway today?" | `mcp_vision_recent_events` with label='person', camera='driveway' |
-| "Any motion last night?" | `mcp_vision_recent_events` with night_only=true |
-| "Was there a white van this week?" | `mcp_vision_search` with query='white delivery van', since='7d' |
-| "Person walking a dog?" | `mcp_vision_frames_with` with labels=['person','dog'] |
-| "When did the mail truck last come?" | `mcp_vision_entities`, find it by name, report last_seen |
-| "Is that the same person as yesterday?" | `mcp_vision_entities` with label='person' — sighting counts + first/last seen |
+| "Did the garbage truck come Wednesday morning?" | `mcp_vision_recent_events` tag='garbage truck', since='wednesday morning' |
+| "When did the mail truck last come?" | `mcp_vision_tags` (last_seen per kind), then `recent_events` tag='mail truck' for detail |
+| "Who was by the driveway today?" | `mcp_vision_recent_events` label='person', camera='driveway', since='today' |
+| "Any motion last night?" | `mcp_vision_recent_events` since='last night' |
+| "Was there a red pickup this week?" (not a tag) | `mcp_vision_search` query='red pickup truck', since='7d' |
+| "Person walking a dog?" | `mcp_vision_frames_with` labels=['person','dog'] |
+| "Is that the same person as yesterday?" | `mcp_vision_entities` label='person' |
+
+Order of preference for "did X come/happen": a **tag** if X is one (check
+`mcp_vision_tags`) → a **label** (person, car, truck, dog, cat…) →
+`search` with a description. A tag hit is precise; `search` is a fuzzy
+similarity ranking and will always return *something* — only trust scores
+around 0.28+ and say it's a visual-similarity match.
 
 ## Answering well
 
-- Every result carries a `url` into the vision-web UI — include the links so
-  the owner can see the footage.
-- Events have `source`: 'frigate' (live detection) or 'sweep' (found later in
-  the recordings — things Frigate missed). Both are real; mention sweep finds.
-- `search` scores are cosine similarity: ~0.22 is a loose match, ~0.30 strong.
-  No hits? Lower min_score, widen the window, or fall back to recent_events.
+- Lead with yes/no and the time: "Yes — a garbage truck passed at 09:53
+  Wednesday (driveway camera)", then the footage link (`url`).
+- No hit is an answer too, but state the window you searched and that the
+  archive only knows what the two cameras (driveway, backyard) could see.
+- Group repeats: many events of the same parked car or person minutes apart
+  are one thing, not a list of twenty.
 - Times in results are already house-local.
