@@ -32,3 +32,6 @@ vaultwarden/vw-data/
 # statistics database and the downloaded filter lists.
 dns/conf/
 dns/work/
+# ntfy runtime state - message cache and the user/ACL/token db (docs/tv-fleet.md)
+ntfy/cache/
+ntfy/data/
