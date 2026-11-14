@@ -38,6 +38,9 @@
       - rasdaemon
       - sqlite3    # vaultwarden-backup.sh takes online .backup snapshots
       - rsync      # vaultwarden-backup.sh's off-box leg (found missing 2026-11-07)
+      - adb                # tv-fleet.py: network ADB to the Fire TVs (docs/tv-fleet.md)
+      - python3-yaml       # tv-fleet.py reads the tv-fleet.yml inventory
+      - python3-paho-mqtt  # tv-fleet.py status -> MQTT (HA discovery sensors)
 
 - name: ssh enabled
   ansible.builtin.systemd:

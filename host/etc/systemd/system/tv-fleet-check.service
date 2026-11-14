@@ -1,0 +1,17 @@
+[Unit]
+Description=Fire TV fleet watchdog (Ladybird app, overlay, screensaver - docs/tv-fleet.md)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# MUST be the admin user: adb authenticates with ~/.android/adbkey, and root's
+# key is a different key - every TV would prompt "Allow USB debugging?" again.
+User=thomas
+Group=thomas
+# /var/lib/tv-fleet, owned by User=; holds the consecutive-failure counters.
+StateDirectory=tv-fleet
+Environment=TV_FLEET_STATE=/var/lib/tv-fleet/state.json
+ExecStart=/opt/stacks/net/tv-fleet.py check
+# An unreachable TV costs ~3-8s; an APK reinstall can take a couple of minutes.
+TimeoutStartSec=900

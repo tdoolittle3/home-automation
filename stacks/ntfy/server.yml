@@ -1,0 +1,26 @@
+# ntfy server config for the TV notification bus (docs/tv-fleet.md).
+# Nothing secret lives here - users, ACLs and tokens are in data/user.db.
+
+# Used in links ntfy generates (e.g. the web app). LAN address on purpose: the
+# TVs are on the LAN and resolve nothing else reliably.
+base-url: "http://192.168.0.13:8090"
+listen-http: ":80"
+
+# Keep messages so a TV that was asleep or off the network catches up through
+# since=<last id> on reconnect (the TV app's documented behavior). A day is
+# plenty: anything older than that is stale on a TV banner anyway.
+cache-file: "/var/cache/ntfy/cache.db"
+cache-duration: "24h"
+
+# Locked down: no anonymous read or write on any topic. HA publishes with a
+# write-only token, TVs subscribe with a read-only one, both scoped to
+# ladybird-*.
+auth-file: "/var/lib/ntfy/user.db"
+auth-default-access: "deny-all"
+
+# No attachment-cache-dir: uploads are disabled, and only external attachment
+# URLs (the Attach header - e.g. a Frigate snapshot on :5000) are allowed.
+# The TV fetches the snapshot itself over the LAN.
+
+# Direct LAN clients, no reverse proxy in front.
+behind-proxy: false

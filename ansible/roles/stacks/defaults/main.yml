@@ -3,7 +3,7 @@ stacks_root: /opt/stacks
 
 # Synced as whole directories. frigate and home are handled by their own
 # tasks (seed config / restart-on-change rules); see tasks/main.yml.
-stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns, vaultwarden, radiolog, hermes]
+stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns, vaultwarden, radiolog, hermes, ntfy]
 
 # `docker compose up -d` runs for these every play — idempotent, a no-op for
 # unchanged services. Deliberately absent:
@@ -19,7 +19,7 @@ stacks_whole_dirs: [media, immich, net, n8n, stt, mesh, dash, sdr, dns, vaultwar
 #   hermes — image is built from the hermes-agent clone, and the gateway
 #          can't start before data/.env secrets exist on the box; auto-up
 #          on a fresh rebuild would fail the whole play (docs/hermes.md)
-stacks_auto_up: [frigate, home, media, immich, net, n8n, stt, vaultwarden]
+stacks_auto_up: [frigate, home, media, immich, net, n8n, stt, vaultwarden, ntfy]
 
 # Executed by systemd units as root; systemd refuses a non-root-owned
 # disk-guard.sh, and the other root-run guards follow the same rule.
@@ -37,3 +37,4 @@ stacks_admin_scripts:
   - iptv-playlist.py
   - kuma-provision.py
   - vault-seed-build.py
+  - tv-fleet.py          # tv-fleet-*.service run User=thomas (adb key)

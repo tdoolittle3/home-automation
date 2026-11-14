@@ -11,6 +11,17 @@
     group: root
     mode: "0755"
 
+# Where tv-fleet.py looks for the Ladybird TV APK (tv-fleet.yml defaults.apk).
+# The APK itself is a build artifact of the home-dashboard repo, copied in by
+# hand - docs/tv-fleet.md "Updating the APK".
+- name: ladybird TV APK dir
+  ansible.builtin.file:
+    path: /opt/ladybird-tv
+    state: directory
+    owner: "{{ admin_user }}"
+    group: "{{ admin_user }}"
+    mode: "0755"
+
 - name: guard and playlist units
   ansible.builtin.copy:
     src: "{{ repo_root }}/host/etc/systemd/system/{{ item }}"
@@ -28,6 +39,9 @@
     - iptv-playlist.timer
     - vaultwarden-backup.service
     - vaultwarden-backup.timer
+    - tv-fleet-check.service
+    - tv-fleet-check.timer
+    - tv-fleet-status.service
   notify: systemd daemon-reload
 
 - name: apply any pending daemon-reload before enabling timers
@@ -48,3 +62,6 @@
     - kuma-watchdog.timer
     - iptv-playlist.timer
     - vaultwarden-backup.timer
+    - tv-fleet-check.timer
+    # long-running, not a timer: polls every TV every 30s for the HA sensors
+    - tv-fleet-status.service

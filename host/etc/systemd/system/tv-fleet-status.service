@@ -1,0 +1,19 @@
+[Unit]
+Description=Fire TV status -> MQTT (foreground app + playing, HA discovery - docs/tv-fleet.md)
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+# Admin user for the same adb-key reason as tv-fleet-check.service. The adb
+# server this spawns lives in this service's cgroup, so the 10-minute watchdog
+# (and manual adb as thomas) reuse it instead of starting one per run.
+User=thomas
+Group=thomas
+StateDirectory=tv-fleet
+ExecStart=/usr/bin/python3 -u /opt/stacks/net/tv-fleet.py status --loop 30
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

@@ -72,4 +72,5 @@ jobs:
         run: pip install pytest numpy fastapi jinja2 python-multipart httpx pillow "mcp>=2"
 
       - name: Run pytest
-        run: python -m pytest snibbly/vision/ stacks/hermes/scripts/ -v
+        # stacks/net: tv-fleet.py against a fake adb (stdlib + pytest only)
+        run: python -m pytest snibbly/vision/ stacks/hermes/scripts/ stacks/net/ -v

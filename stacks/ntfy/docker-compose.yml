@@ -1,0 +1,34 @@
+# ntfy - the LAN/tailnet push server the Ladybird TV app subscribes to
+# (docs/tv-fleet.md). TV banners ONLY: phone alerts and Uptime Kuma stay on
+# public ntfy.sh, because those must survive ladybird being down
+# (docs/uptime-kuma.md "Do not self-host ntfy on this box"). TV alerts don't
+# need that: every producer (HA, Frigate) runs on this box, so if ladybird is
+# down there is nothing to route anyway.
+#
+# Why not ntfy.sh for the TVs: there the topic name is the only secret, and the
+# TV topics (ladybird-house, ladybird-tv-<room>) are guessable by design.
+# Here every topic is deny-all by default and each client gets a scoped token
+# (HA write-only, TVs read-only) - user/token setup is a one-time manual step,
+# docs/tv-fleet.md "ntfy server".
+#
+# Never port-forward 8090. The router doesn't, and the TVs and HA reach it on
+# the LAN.
+services:
+  ntfy:
+    container_name: ntfy
+    image: binwiederhier/ntfy:latest
+    command: serve
+    restart: unless-stopped
+    volumes:
+      - ./server.yml:/etc/ntfy/server.yml:ro
+      # Message cache - lets a TV that slept replay what it missed via since=<id>.
+      - ./cache:/var/cache/ntfy
+      # Users, ACLs and tokens (SQLite). Gitignored; recreate per the doc.
+      - ./data:/var/lib/ntfy
+    ports:
+      - "8090:80"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --tries=1 -O- http://localhost:80/v1/health | grep -q '\"healthy\":true'"]
+      interval: 60s
+      timeout: 10s
+      retries: 3

@@ -1,0 +1,45 @@
+# Fire TV fleet inventory - the single source of truth (docs/tv-fleet.md).
+#
+# tv-fleet.py (provision / check / status / notify), the watchdog timer and the
+# HA sensors (published over MQTT discovery) all read this file. Add a TV here,
+# run `tv-fleet.py provision <name>`, and everything else follows.
+#
+# IPs live here, not in code: TV 1 has a DHCP reservation for .17 that hasn't
+# applied yet, so it is still on .18 - change one line when it moves.
+
+defaults:
+  package: com.thomas.ladybird
+  # Built in the home-dashboard repo (tv-app/). Not in git - a binary, copied
+  # to this path by hand (docs/tv-fleet.md "Updating the APK").
+  apk: /opt/ladybird-tv/ladybird.apk
+  dashboard_url: http://192.168.0.13
+  # The LAN ntfy (stacks/ntfy), NOT ntfy.sh - TV topics are guessable names.
+  ntfy_url: http://192.168.0.13:8090
+  # Every TV subscribes to this plus ladybird-tv-<room>.
+  house_topic: ladybird-house
+  adb_port: 5555
+  screensaver_component: com.thomas.ladybird/.LadybirdDream
+  # Fire OS "screensaver start time" = system screen_off_timeout (verified on
+  # TV 1: the 5 min factory default reads back as 300000). Must stay below
+  # secure sleep_timeout (14 min on TV 1) or the TV sleeps before the
+  # screensaver starts - tv-fleet.py warns if it doesn't.
+  screensaver_timeout_min: 10
+  mqtt_host: 127.0.0.1
+  mqtt_port: 1883
+  # Friendly names for the foreground-app sensor; unknown packages show raw.
+  app_names:
+    com.amazon.tv.launcher: Home
+    com.amazon.ftv.profilepicker: Profile picker
+    com.amazon.firetv.youtube: YouTube
+    com.sling: Sling
+    com.netflix.ninja: Netflix
+    com.thomas.ladybird: Ladybird
+
+tvs:
+  # name: slug used in the CLI, MQTT topics and HA entity ids (sensor.tv_<name>_app)
+  # room: the dashboard /tv?room= preset AND the per-TV topic ladybird-tv-<room>
+  # topics: extra topics on top of house_topic and ladybird-tv-<room> (optional)
+  - name: living
+    room: living
+    ip: 192.168.0.18
+    model: AMZ_K42NE5_4K55N400A

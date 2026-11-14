@@ -1,0 +1,38 @@
+tv_test_notify:
+  alias: TV test notification
+  description: Send a test banner to a TV topic through the LAN ntfy (docs/tv-fleet.md).
+    ladybird-house reaches every TV, ladybird-tv-<room> one TV. Priority 5 = red
+    and sticky, 4 = person, 1-3 = informational.
+  icon: mdi:television-ambient-light
+  fields:
+    topic:
+      name: Topic
+      description: ladybird-house or ladybird-tv-<room>
+      required: true
+      default: ladybird-house
+      example: ladybird-tv-living
+      selector:
+        text:
+    priority:
+      name: Priority
+      required: true
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 5
+          mode: slider
+    message:
+      name: Message
+      default: Test banner from Home Assistant
+      selector:
+        text:
+  sequence:
+  - action: rest_command.ntfy_tv
+    data:
+      topic: '{{ topic }}'
+      title: Test
+      message: '{{ message | default(''Test banner from Home Assistant'') }}'
+      priority: '{{ priority | int(3) }}'
+      tags: test_tube
+  mode: queued

@@ -427,3 +427,90 @@
       priority: default
       tags: white_check_mark
   mode: restart
+- id: tv_person_front_yard
+  alias: TV banner - person in the driveway
+  description: Priority-4 banner on every TV (ladybird-house) when Frigate sees a
+    person inside the driveway camera's front_yard zone, with a live driveway
+    frame attached. Zone-gated like the Frigate review alerts, so people walking
+    or driving past on the street (99% of driveway events) never fire it; it is
+    a person trigger, so the household's parked cars are irrelevant. There is no
+    porch camera yet - add its zone occupancy sensor to the trigger when there
+    is. Mode single plus a 2-minute hold = at most one banner per 2 minutes.
+    docs/tv-fleet.md.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.front_yard_person_occupancy
+    to: 'on'
+  actions:
+  - action: rest_command.ntfy_tv
+    data:
+      topic: ladybird-house
+      title: Someone in the driveway
+      message: Person in the driveway at {{ now().strftime('%H:%M') }}.
+      priority: 4
+      tags: bust_in_silhouette,camera
+      # LAN-only, unauthenticated Frigate API - the TVs are on the LAN. ts
+      # busts any image cache so every banner shows the current frame.
+      attach: http://192.168.0.13:5000/api/driveway/latest.jpg?h=480&bbox=1&ts={{
+        now().timestamp() | int }}
+  - delay:
+      minutes: 2
+  mode: single
+  max_exceeded: silent
+- id: tv_water_leak
+  alias: TV banner - water leak
+  description: Priority-5 (red, stays up) banner on every TV the moment the sink
+    moisture detector reports water. The TV app clears a priority-5 banner after
+    60 s at most, so it is re-sent every minute while the sensor stays wet, for
+    up to 30 minutes. Runs alongside the phone's water_leak_ntfy. docs/tv-fleet.md.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.sink_moisture_detector
+    to: 'on'
+  actions:
+  - repeat:
+      sequence:
+      - action: rest_command.ntfy_tv
+        data:
+          topic: ladybird-house
+          title: WATER LEAK
+          message: '{{ state_attr(''binary_sensor.sink_moisture_detector'', ''friendly_name'')
+            }} is detecting water!'
+          priority: 5
+          tags: rotating_light,droplet
+      - delay:
+          minutes: 1
+      until:
+      - condition: template
+        value_template: '{{ not is_state(''binary_sensor.sink_moisture_detector'',
+          ''on'') or repeat.index >= 30 }}'
+  mode: restart
+- id: tv_door_open_overnight
+  alias: TV banner - door opened overnight
+  description: Priority-4 banner on every TV when an exterior door opens between
+    midnight and 5:30 AM - the same window as door_open_overnight_ntfy (which
+    owns the repeating urgent phone alerts). Stands in for "door open while
+    nobody is home" until presence tracking exists (no person or device_tracker
+    entities yet). One banner per opening, per door. docs/tv-fleet.md.
+  triggers:
+  - trigger: state
+    entity_id:
+    - binary_sensor.living_room_front_door
+    - binary_sensor.sun_room_sliding_glass_door
+    from: 'off'
+    to: 'on'
+  conditions:
+  - condition: time
+    after: '00:00:00'
+    before: '05:30:00'
+  actions:
+  - action: rest_command.ntfy_tv
+    data:
+      topic: ladybird-house
+      title: Door opened
+      message: '{{ trigger.to_state.name }} opened at {{ now().strftime(''%H:%M'') }}.'
+      priority: 4
+      tags: door,new_moon
+  mode: parallel

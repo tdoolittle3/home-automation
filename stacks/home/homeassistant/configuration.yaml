@@ -80,6 +80,29 @@ rest_command:
       Priority: "{{ priority | default('default') }}"
       Tags: "{{ tags | default('house') }}"
 
+  # TV banners -> the LAN ntfy (stacks/ntfy, docs/tv-fleet.md), NOT ntfy.sh.
+  # The Ladybird TV app subscribes to ladybird-house (every TV) and
+  # ladybird-tv-<room> (one TV). Priority is NUMERIC here because the TV app
+  # keys its banner behavior off it:
+  #   5 = leak / urgent (red, stays up)   4 = person at the door/driveway
+  #   1-3 = informational
+  # The token is HA's write-only ntfy token, in secrets.yaml as
+  #   ntfy_tv_auth: "Bearer tk_..."
+  # Call with: topic, title, message, priority (1-5), optional tags (comma
+  # list) and attach (an image URL the TV fetches itself - must be LAN-reachable).
+  ntfy_tv:
+    url: http://127.0.0.1:8090/
+    method: POST
+    content_type: application/json
+    headers:
+      Authorization: !secret ntfy_tv_auth
+    payload: >-
+      {% set m = {"topic": topic, "title": title, "message": message,
+                  "priority": priority | int(3),
+                  "tags": (tags | default('tv')).split(',')} %}
+      {% if attach is defined and attach %}{% set m = dict(m, attach=attach) %}{% endif %}
+      {{ m | to_json }}
+
 # White light on FrontCam (10.10.10.201).
 # The Dahua integration's illuminator entity drives the V1 Lighting table, which on
 # this model is the INFRARED emitter. The white light lives at Lighting_V2[0][0][1],

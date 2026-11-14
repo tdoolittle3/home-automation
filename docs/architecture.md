@@ -114,6 +114,11 @@ garage door open (tiered by time of day), water leak, person detected overnight,
 tier (any sensor offline 30 minutes; all four down at once reads as the coordinator being down).
 The ntfy topic URL is a secret — it lives in `secrets.yaml` on the server, never in git.
 
+A second, LAN-only path puts the same kind of events on the **Fire TVs**: HA publishes to a
+self-hosted ntfy (`stacks/ntfy`, token auth, port 8090) that the Ladybird TV app streams, with
+numeric priorities the app turns into banner styles. The TVs themselves are inventoried in one YAML
+file and kept provisioned over network ADB by a watchdog timer. See [tv-fleet.md](tv-fleet.md).
+
 ## Mesh radio
 
 An ESP32 Meshtastic node (Heltec V4, `192.168.0.16`) on the house Wi‑Fi gateways a private LoRa

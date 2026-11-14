@@ -139,6 +139,20 @@ monitors:
     # live container stays green here - that failure shows up as every
     # Bitwarden client failing to sync at once, see docs/vaultwarden.md.
 
+  - name: ntfy (TV bus)
+    group: Core services
+    type: json-query
+    url: http://192.168.0.13:8090/v1/health
+    json_path: $.healthy
+    expected_value: "true"
+    interval: 120
+    retries: 2
+    retry_interval: 60
+    # The LAN ntfy the TVs subscribe to (docs/tv-fleet.md). /v1/health needs
+    # no auth even with deny-all access. Phone alerts do NOT depend on this
+    # server - they go through ntfy.sh - so a red here means "TV banners
+    # down", never "alerts down".
+
   - name: Mosquitto
     group: Core services
     type: port
