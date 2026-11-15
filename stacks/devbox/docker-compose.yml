@@ -1,0 +1,68 @@
+# Devbox — agent development workbench (docs/devbox.md).
+#
+# The agent loop (pi) and its terminals (herdr) run HERE on ladybird; model
+# inference is snibbly's litellm door (http://192.168.0.19:8080/v1 — LAN
+# address on purpose, bridge containers can't reach tailscale IPs). Repos and
+# all agent state live on the two named volumes: nothing an agent generates
+# lands on the ladybird host filesystem.
+#
+# Deliberately absent, and to stay absent:
+#   - the docker socket (socket access = root on ladybird; this container is
+#     the sandbox, it does not get to make more)
+#   - host bind mounts of any kind
+#   - a port on anything but host loopback
+#
+# Ansible-synced (stacks_whole_dirs) but NOT auto-up: the image is built
+# locally (`docker compose build`), it can't start before .env exists on the
+# box, and recreating the container kills live agent sessions — restarts stay
+# a human decision. First run: docs/devbox.md.
+#
+# The phone door: collie binds 127.0.0.1:${COLLIE_PORT} on the host; the
+# tailnet front is `tailscale serve --bg --https=8787 http://127.0.0.1:8787`
+# (NEVER funnel — docs/devbox.md "Tailscale exposure").
+services:
+  devbox:
+    build: .
+    image: devbox:latest
+    container_name: devbox
+    restart: unless-stopped
+    # Reaps the orphans herdr panes leave behind (every pane is a real shell).
+    init: true
+    env_file:
+      - ./.env                 # gitignored; template in .env.example
+    environment:
+      # collie must listen on the container interface for the loopback port
+      # publish below to reach it; the HOST side of the mapping stays 127.0.0.1.
+      COLLIE_HOST: 0.0.0.0
+      COLLIE_PORT: ${COLLIE_PORT:-8787}
+      COLLIE_MUX: herdr
+    ports:
+      - "127.0.0.1:${COLLIE_PORT:-8787}:${COLLIE_PORT:-8787}"
+    volumes:
+      - devbox_workspace:/workspace   # every repo the agents touch
+      - devbox_home:/home/dev         # pi config, herdr state, collie state, git config
+    # Own bridge network: no shared docker network with the other stacks, so
+    # nothing here resolves other containers by name. The LAN itself is still
+    # reachable (NAT) — accepted, documented in docs/devbox.md "Risks".
+    networks:
+      - devbox
+    # ladybird has 12C/16T and 16 GB shared with frigate, immich, HA and
+    # hermes — keep the dev workbench a tenant, not a landlord.
+    cpus: "2"
+    mem_limit: 3g
+    healthcheck:
+      # collie answering implies the chain phone -> serve -> container is
+      # viable. herdr needs no probe: its death ends the container itself.
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:${COLLIE_PORT:-8787}/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  devbox_workspace:
+  devbox_home:
+
+networks:
+  devbox:
+    driver: bridge

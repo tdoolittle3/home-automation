@@ -25,6 +25,7 @@ plan for what runs.
 | 🚨 **Shouts when it matters** | ntfy push alerts: doors left open, garage overnight, water leaks, person overnight, UPS on battery, disk filling, Zigbee sensors going quiet. |
 | 📺 **Puts alerts on the TVs** | Fire TVs run the Ladybird screensaver app and show banners for people in the driveway, leaks and overnight doors, through a LAN ntfy; a watchdog keeps them provisioned ([tv-fleet.md](docs/tv-fleet.md)). |
 | 🎙 **Listens** | The dashboard's mic goes through whisper.cpp on ladybird to the assistant ([stt.md](docs/stt.md)). |
+| 💻 **Herds coding agents** | A devbox container runs Pi coding agents in Herdr terminal workspaces against snibbly's LLMs, driven from the phone over Tailscale ([devbox.md](docs/devbox.md)). |
 | 🍿 **Serves the media** | Jellyfin for films and TV, with a live-TV guide rebuilt nightly. |
 | 🖼️ **Keeps the photos** | Immich — a self-hosted photo library that replaces the cloud one. |
 | 🛡️ **Filters the ads** | AdGuard Home answers DNS for the whole house, so ads are gone on every device without installing anything on them. |
@@ -52,6 +53,7 @@ in over Tailscale.
 | **Monitoring** (Uptime Kuma) | `http://192.168.0.13:3001` | [setup notes](docs/uptime-kuma.md) |
 | **Passwords** (Vaultwarden) | `https://ladybird.tail0e6756.ts.net:8443` | tailnet only, via `tailscale serve` — never log in over the plain-http `:8222` ([vaultwarden.md](docs/vaultwarden.md)) |
 | **Automations** (n8n) | `http://192.168.0.13:5678` | |
+| **Dev agents** (Collie) | `https://ladybird.tail0e6756.ts.net:8787` | tailnet only, via `tailscale serve` — the phone UI for the devbox coding agents ([devbox.md](docs/devbox.md)) |
 | **TV alert bus** (ntfy) | `http://192.168.0.13:8090` | LAN only, token auth — TV banners, not phone alerts ([tv-fleet.md](docs/tv-fleet.md)) |
 | **Aircraft map** (tar1090) | `http://192.168.0.13:8080` | [setup notes](docs/sdr.md) |
 | **File share** (Samba) | `//192.168.0.13/files` | serves `/srv/storage/files` |
@@ -129,6 +131,7 @@ Full notes, the hardware inventory and what is still unconfirmed: [system atlas]
 | the camera vision pipeline on snibbly | [vision.md](docs/vision.md) |
 | voice input for the assistant | [stt.md](docs/stt.md) |
 | the LoRa mesh node | [meshtastic.md](docs/meshtastic.md) |
+| run coding agents on the server | [devbox.md](docs/devbox.md) — herdr, pi, collie, the phone workflow |
 | add a TV, or change what the TVs show | [tv-fleet.md](docs/tv-fleet.md) — inventory, provisioning, watchdog, ntfy topics + priorities |
 
 ## The machines
