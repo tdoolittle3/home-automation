@@ -30,6 +30,17 @@ something here bites, it bit on purpose.
   hold push tokens, so they are gitignored and must be recreated on a rebuild — until then those
   monitors, and their "Host and network" group, show down.
 
+## The devbox can reach the LAN
+
+The coding-agent container ([devbox.md](devbox.md)) has no docker socket, no host mounts and its
+own bridge network — but NAT still lets an agent curl anything on `192.168.0.x`, including Home
+Assistant and the Frigate API (which have no login). Accepted while tasks are human-driven and
+watched through collie; no HA token ever goes into that container. The fix, if agents ever run
+more autonomously, is a `DOCKER-USER` iptables chain allowing only snibbly `:8080`, DNS and WAN —
+an ansible-managed rule, its own PR. Related: unpushed work in its `/workspace` volume has no
+off-box copy, and collie's loopback-only bind means no Kuma monitor can see it (the compose
+healthcheck is the coverage).
+
 ## Nothing watches ladybird from outside ladybird
 
 Uptime Kuma runs on the machine it is monitoring. It notices a stale guard heartbeat while it is
