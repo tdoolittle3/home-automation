@@ -11,10 +11,15 @@
     group: "{{ admin_user }}"
   loop: [frigate, media, photos, files, archive]
 
+# The stack list lives in roles/stacks/defaults (stacks_whole_dirs) — one
+# source of truth, so a stack added there gets its admin-owned dir here too.
+# frigate and home are synced by dedicated tasks in that role, hence the
+# explicit extras. Role defaults are play-scoped, so this resolves even
+# though storage runs before stacks in ladybird.yml.
 - name: /opt/stacks layout
   ansible.builtin.file:
     path: "/opt/stacks/{{ item }}"
     state: directory
     owner: "{{ admin_user }}"
     group: "{{ admin_user }}"
-  loop: [frigate, media, immich, home, net, n8n, sdr, dns, dash, stt, mesh]
+  loop: "{{ stacks_whole_dirs + ['frigate', 'home'] }}"
