@@ -1,0 +1,26 @@
+# federal-awards — read-only MCP server over the USAspending.gov API, the
+# "which federal money came to this city/org" data source for Hermes
+# (docs/hermes.md "Federal awards"). No API key upstream, no secrets here.
+#
+# The image is BUILT BY THE CONVERGE from this pinned tag of the PRIVATE
+# tdoolittle3/federal-awards-mcp repo (ansible/roles/stacks). The tag below is
+# the single source of truth — ansible derives federal_awards_version from
+# this line, so upgrading = bump the tag here, merge, converge (the first
+# converge of a new tag fetches the source and needs FEDERAL_AWARDS_GH_TOKEN;
+# after that the image is cached and the token is never touched).
+services:
+  federal-awards:
+    image: federal-awards-mcp:v0.2.0
+    container_name: federal-awards
+    restart: unless-stopped
+    # Loopback only: the sole consumer is the Hermes gateway, which runs
+    # host-network on this box. The server binds 0.0.0.0 INSIDE the container
+    # (its DNS-rebinding guard stays off for non-loopback binds — the repo's
+    # DECISIONS.md records this), so 127.0.0.1:8766 Host headers are accepted.
+    ports:
+      - "127.0.0.1:8766:8000"
+    volumes:
+      # Audit trail (one JSONL line per tool call) — bind-mounted so it is
+      # inspectable on the host and survives container replacement. Owned by
+      # uid 1000, the image's non-root `server` user (ansible sets this).
+      - ./data:/data

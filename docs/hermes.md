@@ -173,6 +173,23 @@ compose change (not auto-up'd — see the Deploy intro). Other `data/` changes
   descriptions/instructions and in the `camera-archive` skill
   (`skills/homelab/camera-archive/`, installed to `data/skills/homelab/` like
   radio-logs). If routing regresses, sharpen those, not the prompt.
+- **Federal awards** (MCP, stacks/federal-awards): USAspending.gov answers
+  "which federal money came to this city/org" — `federal-awards-mcp` on this
+  box at `127.0.0.1:8766/mcp`, seven read-only tools (`mcp_federal-awards_*`:
+  resolve / count_awards / search_awards / search_subawards / get_award /
+  list_award_transactions / spending_summary), no upstream API key. The image
+  is built by the converge from the tag pinned in the stack's compose file
+  (private tdoolittle3/federal-awards-mcp repo — first build of a new tag
+  needs `FEDERAL_AWARDS_GH_TOKEN`, a read-only fine-grained PAT: repo `.env`
+  on the control node, `prod` environment secret in CI). The
+  `federal-awards` skill carries the resolve → count → search → subawards
+  workflow and the analyst caveats (obligations ≠ cash received; subawards
+  are a ≥$30k-floor undercount). Wiring it into the agent is a day-two step:
+  add the `mcp_servers.federal-awards` block from config.yaml.example to the
+  live `data/config.yaml` and restart the gateway — then test in a FRESH
+  Telegram topic (an old session full of camera/HA answers anchors the model
+  away from new tools). Audit trail: one JSONL line per tool call in
+  `/opt/stacks/federal-awards/data/audit-log.jsonl`.
 - **Service restart**: a narrow tool/skill with a fixed allowlist of unit names,
   not raw shell. Services on ladybird restart locally; snibbly services
   (llama-swap, vision) restart over SSH — the tool must know which host owns each.

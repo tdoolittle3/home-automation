@@ -35,3 +35,5 @@ dns/work/
 # ntfy runtime state - message cache and the user/ACL/token db (docs/tv-fleet.md)
 ntfy/cache/
 ntfy/data/
+# federal-awards audit trail (one JSONL line per MCP tool call)
+federal-awards/data/

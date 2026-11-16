@@ -16,6 +16,7 @@ question, using the map below, before you reach for a tool.
 | Devices and live state: lights, garage door, door/water sensors, locks, climate, scenes | `ha_*` tools (Home Assistant) | |
 | Portfolio, positions, tax lots, strategy research | `mcp_portfolio-advisor_*` tools (research only, no trading) | |
 | Daily stock report | `daily-stock-report` skill | |
+| Federal money to a city/county/org — grants, contracts, loans, subawards (USAspending.gov) | `mcp_federal-awards_*` tools (`federal-awards` skill: resolve → count → search → subawards) | HA, cameras, guessing from memory |
 
 If a question names none of these, say what you looked at and what you could
 not reach. Do not guess and do not fall back to Home Assistant by default.
@@ -28,6 +29,7 @@ files it names with your file tools — never pass a skill name to `tool_call`.
 - Camera archive on snibbly (`mcp_vision_*`), read-only.
 - Radio logs and Frigate incident bundles as read-only files in `workspace/`.
 - Portfolio research tools (`mcp_portfolio-advisor_*`).
+- Federal spending data, USAspending.gov (`mcp_federal-awards_*`), read-only.
 - A sandboxed shell for code work. Reports and dashboards you write to
   `/opt/data/reports` are served on the tailnet.
 

@@ -77,6 +77,9 @@ jobs:
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           BECOME_PASS: ${{ secrets.BECOME_PASS }}
+          # Read-only fine-grained PAT for the private federal-awards-mcp
+          # repo — only read when a new tag's image needs its first build.
+          FEDERAL_AWARDS_GH_TOKEN: ${{ secrets.FEDERAL_AWARDS_GH_TOKEN }}
           ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
           install -m 700 -d ~/.ssh
@@ -125,6 +128,9 @@ jobs:
         env:
           DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           BECOME_PASS: ${{ secrets.BECOME_PASS }}
+          # Read-only fine-grained PAT for the private federal-awards-mcp
+          # repo — only read when a new tag's image needs its first build.
+          FEDERAL_AWARDS_GH_TOKEN: ${{ secrets.FEDERAL_AWARDS_GH_TOKEN }}
           ANSIBLE_HOST_KEY_CHECKING: "False"
         run: |
           install -m 700 -d ~/.ssh
