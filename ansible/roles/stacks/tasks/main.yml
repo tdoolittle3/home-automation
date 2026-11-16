@@ -123,14 +123,14 @@
 
 # federal-awards: the USAspending MCP server (docs/hermes.md "Federal
 # awards"). Its image is built HERE from the tag pinned in the stack's
-# compose file (federal_awards_version derives from that line — defaults).
+# compose file (stacks_federal_awards_version derives from that line — defaults).
 # The source repo is PRIVATE, so the first converge of a new tag needs the
 # FEDERAL_AWARDS_GH_TOKEN env var on the controller (read-only fine-grained
 # PAT: repo .env on the WSL control node, prod environment secret in CI).
 # Once the tag's image exists the whole block is a no-op and no token is read.
 - name: federal-awards image present check
-  ansible.builtin.command: docker image inspect federal-awards-mcp:{{ federal_awards_version }}
-  register: federal_awards_image
+  ansible.builtin.command: docker image inspect federal-awards-mcp:{{ stacks_federal_awards_version }}
+  register: stacks_federal_awards_image
   changed_when: false
   failed_when: false
   check_mode: false
@@ -139,41 +139,41 @@
   ansible.builtin.assert:
     that: lookup('env', 'FEDERAL_AWARDS_GH_TOKEN') | length > 0
     fail_msg: >-
-      federal-awards-mcp:{{ federal_awards_version }} is not built on this
+      federal-awards-mcp:{{ stacks_federal_awards_version }} is not built on this
       host and FEDERAL_AWARDS_GH_TOKEN is empty — export it (WSL: repo .env;
       CI: prod environment secret) so the tagged source can be fetched.
-  when: federal_awards_image.rc != 0
+  when: stacks_federal_awards_image.rc != 0
 
-- name: federal-awards source tarball {{ federal_awards_version }}
+- name: federal-awards source tarball {{ stacks_federal_awards_version }}
   ansible.builtin.get_url:
-    url: "https://api.github.com/repos/{{ federal_awards_repo }}/tarball/{{ federal_awards_version }}"
-    dest: "/tmp/federal-awards-{{ federal_awards_version }}.tar.gz"
+    url: "https://api.github.com/repos/{{ stacks_federal_awards_repo }}/tarball/{{ stacks_federal_awards_version }}"
+    dest: "/tmp/federal-awards-{{ stacks_federal_awards_version }}.tar.gz"
     mode: "0644"
     headers:
       Authorization: "Bearer {{ lookup('env', 'FEDERAL_AWARDS_GH_TOKEN') }}"
-  when: federal_awards_image.rc != 0
+  when: stacks_federal_awards_image.rc != 0
 
 - name: federal-awards build dir
   ansible.builtin.file:
-    path: "/tmp/federal-awards-build-{{ federal_awards_version }}"
+    path: "/tmp/federal-awards-build-{{ stacks_federal_awards_version }}"
     state: directory
     mode: "0755"
-  when: federal_awards_image.rc != 0
+  when: stacks_federal_awards_image.rc != 0
 
 - name: federal-awards source unpacked
   ansible.builtin.unarchive:
-    src: "/tmp/federal-awards-{{ federal_awards_version }}.tar.gz"
+    src: "/tmp/federal-awards-{{ stacks_federal_awards_version }}.tar.gz"
     remote_src: true
-    dest: "/tmp/federal-awards-build-{{ federal_awards_version }}"
+    dest: "/tmp/federal-awards-build-{{ stacks_federal_awards_version }}"
     extra_opts: ["--strip-components=1"]
-  when: federal_awards_image.rc != 0
+  when: stacks_federal_awards_image.rc != 0
   ignore_errors: "{{ ansible_check_mode }}"
 
 - name: federal-awards image built
   ansible.builtin.command: >-
-    docker build -t federal-awards-mcp:{{ federal_awards_version }}
-    /tmp/federal-awards-build-{{ federal_awards_version }}
-  when: federal_awards_image.rc != 0
+    docker build -t federal-awards-mcp:{{ stacks_federal_awards_version }}
+    /tmp/federal-awards-build-{{ stacks_federal_awards_version }}
+  when: stacks_federal_awards_image.rc != 0
   changed_when: true
 
 # The container's non-root `server` user is uid 1000; the audit log lands in

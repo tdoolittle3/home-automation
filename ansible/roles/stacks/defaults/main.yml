@@ -31,8 +31,8 @@ stacks_auto_up: [frigate, home, media, immich, net, n8n, stt, vaultwarden, ntfy,
 # The version is DERIVED from the image tag in the stack's compose file — one
 # source of truth, so the tag bump that upgrades the container is also what
 # the build tasks fetch, and the two can't drift.
-federal_awards_repo: tdoolittle3/federal-awards-mcp
-federal_awards_version: >-
+stacks_federal_awards_repo: tdoolittle3/federal-awards-mcp
+stacks_federal_awards_version: >-
   {{ (lookup('file', repo_root ~ '/stacks/federal-awards/docker-compose.yml')
       | regex_search('federal-awards-mcp:(v[0-9][\w.+-]*)', '\1'))
      | first }}
