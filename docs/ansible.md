@@ -69,11 +69,17 @@ deleting its line from `~/.ssh/authorized_keys`.
 sign` on ladybird) and update the `TS_AUTHKEY` secret in the `prod` environment. An expired
 key fails the tailnet join loudly; nothing deploys.
 
+**One more `prod` secret:** `FEDERAL_AWARDS_GH_TOKEN`, a read-only fine-grained PAT for the
+private federal-awards-assistant repo. The stacks role only reads it when the tag pinned in
+[stacks/federal-awards/docker-compose.yml](../stacks/federal-awards/docker-compose.yml) has no
+image on the host yet (first converge after a version bump); every other run never touches
+it. Local converges from WSL want the same variable exported (repo `.env`).
+
 ## What it covers, what it doesn't
 
 | Managed by ansible | Still manual (and why) |
 |---|---|
-| ladybird: apt sources + base packages, docker + daemon.json, directory layout, camera-island interface + chrony allow, sysctl/grub/rasdaemon crash forensics, NUT (password generated on-host, once), guard + playlist systemd timers, samba share, tailscale install, stack sync + `compose up` for the safe set | **Secrets** — every `.env`, push URL and token in rebuild.md's table; machine-local by design, ansible never reads or writes them |
+| ladybird: apt sources + base packages, docker + daemon.json, directory layout, camera-island interface + chrony allow, sysctl/grub/rasdaemon crash forensics, NUT (password generated on-host, once), guard + playlist systemd timers, samba share, tailscale install, stack sync + `compose up` for the safe set, federal-awards image build from its pinned tag ([hermes.md](hermes.md) "Federal awards") | **Secrets** — every `.env`, push URL and token in rebuild.md's table; machine-local by design, ansible never reads or writes them |
 | snibbly: /etc configs (litellm, llama-swap, vision, sysctl), service units, litellm/llama-swap enabled, agent runner, langfuse stack | **DNS stack cutover** — can take the whole house offline; [dns.md](dns.md) is the runbook |
 | | **SDR host prep** — one-time hardware setup, stays [host/scripts/sdr-host-prep.sh](../host/scripts/sdr-host-prep.sh) + a real lat/long `.env` ([sdr.md](sdr.md)) |
 | | **dash image build** — built from the home-dashboard clone ([operations.md](operations.md#dashboard)); compose file syncs, build doesn't |

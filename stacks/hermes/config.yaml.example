@@ -95,3 +95,10 @@ mcp_servers:
   # guard 421s a host:port that isn't in its MCP_ALLOWED_HOSTS.
   portfolio-advisor:
     url: "http://192.168.0.13:8765/mcp"
+  # Federal spending (USAspending.gov) — federal-awards-assistant on this box
+  # (stacks/federal-awards). Four read-only tools, no upstream API key; the
+  # `federal-awards` skill carries the workflow + analyst caveats. Loopback is
+  # fine here (unlike portfolio-advisor): its MCP SDK ships DNS-rebinding
+  # protection off by default in the stateless transport the image runs.
+  federal-awards:
+    url: "http://127.0.0.1:8766/mcp"
