@@ -1,13 +1,13 @@
 ---
 name: camera-archive
 description: Answer questions about what or who the security cameras saw — people, vehicles (garbage truck, delivery van, mail truck, school bus), animals, by day or description — using the mcp_vision_* tools, which hold the full detection archive. Home Assistant's frigate sensors are the wrong source for these questions, and so is this archive for aircraft (planes come from the radio-logs skill, not the cameras).
-version: 1.3.0
+version: 1.4.0
 author: homelab
 license: MIT
 platforms: [linux]
 metadata:
   hermes:
-    tags: [cameras, security, frigate, vision, driveway, backyard, garbage truck, homelab]
+    tags: [cameras, security, frigate, vision, driveway, backyard, simplicam, indoor, garbage truck, homelab]
     category: homelab
 ---
 
@@ -75,7 +75,11 @@ around 0.28+ and say it's a visual-similarity match.
 - Lead with yes/no and the time: "Yes — a garbage truck passed at 09:53
   Wednesday (driveway camera)", then the footage link (`url`).
 - No hit is an answer too, but state the window you searched and that the
-  archive only knows what the two cameras (driveway, backyard) could see.
+  archive only knows what the three cameras could see: driveway, backyard,
+  and simplicam (the indoor camera in a room by the hallway door — "inside",
+  "indoor" or "in the house" questions mean camera='simplicam'). Simplicam has
+  a privacy shutter: while it is closed the camera sees nothing, so no
+  simplicam events is not proof that nobody was there.
 - Group repeats: many events of the same parked car or person minutes apart
   are one thing, not a list of twenty.
 - Times in results are already house-local.
