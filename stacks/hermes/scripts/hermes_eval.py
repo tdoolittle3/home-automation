@@ -23,6 +23,9 @@ sessions are deleted afterwards so they don't pollute session_search.
 Stdlib only. Env (already in the gateway's .env): OPENAI_BASE_URL/KEY,
 HASS_URL/TOKEN. Optional: VISION_MCP_URL, EVAL_ONLY=id1,id2 (subset),
 EVAL_JUDGE_MODEL, EVAL_TIMEOUT (per question, s), REPORT_DIR.
+Model A/B: EVAL_MODEL=<llama-swap name> (+ EVAL_REASONING=low|high|...) runs
+the agent on that model for this eval only; point REPORT_DIR elsewhere so the
+nightly history and latest.html stay clean.
 """
 import datetime
 import html
@@ -48,6 +51,24 @@ PUBLIC = "https://ladybird.tail0e6756.ts.net:9123/hermes-eval"
 TZ = ZoneInfo(os.environ.get("EVAL_TZ", "America/Denver"))
 Q_TIMEOUT = int(os.environ.get("EVAL_TIMEOUT", "420"))
 TIME_TOLERANCE_MIN = 3
+# Model A/B: run the agent on another llama-swap model for this eval only
+# (config.yaml untouched). The custom provider sends the bare name, which
+# litellm's wildcard route forwards to llama-swap as-is.
+AGENT_MODEL = os.environ.get("EVAL_MODEL", "")
+AGENT_REASONING = os.environ.get("EVAL_REASONING", "")
+AGENT_LABEL = os.environ.get("EVAL_AGENT_MODEL") or (
+    AGENT_MODEL + (f" (reasoning {AGENT_REASONING})" if AGENT_REASONING else "")
+    if AGENT_MODEL else "config default")
+
+
+def hermes_cmd(prompt):
+    cmd = ["hermes", "chat", "-q", prompt, "--format", "stream-json"]
+    if AGENT_MODEL:
+        cmd += ["--provider", "custom", "--base-url", os.environ.get("OPENAI_BASE_URL", ""),
+                "--api-key", LLM_KEY, "-m", AGENT_MODEL]
+    if AGENT_REASONING:
+        cmd += ["--reasoning", AGENT_REASONING]
+    return cmd
 
 
 # ---------------- vision-mcp: minimal streamable-http client ----------------
@@ -227,7 +248,8 @@ def parse_stream(lines):
         text = "".join(e.get("text", "") for e in events if e.get("type") == "text")
     return {"answer": (text or "").strip(), "tools": flatten_tools(events),
             "calls": call_transcript(events),
-            "session_id": result.get("session_id"), "exit_code": result.get("exit_code")}
+            "session_id": result.get("session_id"), "exit_code": result.get("exit_code"),
+            "usage": result.get("tokens") or {}}
 
 
 def call_transcript(events, cap=400):
@@ -251,8 +273,7 @@ def call_transcript(events, cap=400):
 def ask_hermes(prompt):
     t0 = time.time()
     try:
-        p = subprocess.run(["hermes", "chat", "-q", prompt, "--format", "stream-json"],
-                           capture_output=True, text=True, timeout=Q_TIMEOUT)
+        p = subprocess.run(hermes_cmd(prompt), capture_output=True, text=True, timeout=Q_TIMEOUT)
         out = parse_stream(p.stdout.splitlines())
         if not out["answer"] and p.returncode:
             out["error"] = (p.stderr or "")[-400:]
@@ -496,7 +517,10 @@ def main():
     today = datetime.datetime.now(TZ).date()
     t0 = time.time()
     mcp = MCP(VISION_MCP).init()
-    results = []
+    # Two phases: every question first, then grading. The judge is a different
+    # model, so grading between questions would evict the agent model (and its
+    # prompt cache) each time — slow, and unfair to slow-prefill models.
+    asked = []
     for q in questions:
         run = ask_hermes(q["prompt"])
         delete_session(run.get("session_id"))
@@ -508,13 +532,16 @@ def main():
             truth = truth_for(spec, mcp)
         except Exception as e:  # noqa: BLE001 — record, keep going
             truth = {"facts": f"[ground truth unavailable: {e}]"}
+        asked.append((q, run, truth))
+    results = []
+    for q, run, truth in asked:
         checks = grade(q, run, truth, today)
         results.append({"id": q["id"], "why": q.get("why", ""), "prompt": q["prompt"],
                         "pass": verdict(checks), "checks": checks, "answer": run["answer"],
                         "tools": run["tools"], "calls": run.get("calls", []),
-                        "secs": run["secs"], "truth": truth})
+                        "secs": run["secs"], "usage": run.get("usage", {}), "truth": truth})
     prev = (history_tail(1) or [None])[-1]
-    run = {"date": today.isoformat(), "model": os.environ.get("EVAL_AGENT_MODEL", "config default"),
+    run = {"date": today.isoformat(), "model": AGENT_LABEL,
            "total": len(results), "passed": sum(r["pass"] for r in results),
            "secs": round(time.time() - t0), "results": results}
     os.makedirs(REPORT_DIR, exist_ok=True)

@@ -189,3 +189,21 @@ def test_no_stale_flags_callsigns_from_outside_the_window():
     bad = he.grade(q, {"answer": "UAL504, and earlier SKW5551.", "tools": []}, truth, today)
     assert he.verdict(good)
     assert not he.verdict(bad) and "SKW5551" in bad[0][2]
+
+
+def test_hermes_cmd_default_uses_live_config(monkeypatch):
+    monkeypatch.setattr(he, "AGENT_MODEL", "")
+    monkeypatch.setattr(he, "AGENT_REASONING", "")
+    assert he.hermes_cmd("hi") == ["hermes", "chat", "-q", "hi", "--format", "stream-json"]
+
+
+def test_hermes_cmd_model_override(monkeypatch):
+    monkeypatch.setattr(he, "AGENT_MODEL", "vl-30b")
+    monkeypatch.setattr(he, "AGENT_REASONING", "low")
+    monkeypatch.setattr(he, "LLM_KEY", "k")
+    monkeypatch.setenv("OPENAI_BASE_URL", "http://x:8080/v1")
+    cmd = he.hermes_cmd("hi")
+    assert cmd[cmd.index("--provider") + 1] == "custom"
+    assert cmd[cmd.index("--base-url") + 1] == "http://x:8080/v1"
+    assert cmd[cmd.index("-m") + 1] == "vl-30b"
+    assert cmd[cmd.index("--reasoning") + 1] == "low"
