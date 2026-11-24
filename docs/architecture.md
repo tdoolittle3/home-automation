@@ -16,7 +16,7 @@ atlas's [fleet view](diagrams/fleet.svg).
 | OS | Debian 13 (Trixie), kernel 6.12 — bare metal, no hypervisor |
 | Hostname / LAN | `ladybird` · `192.168.0.13` (DHCP, reserved for MAC `38:05:25:35:71:69`) |
 | Everything runs as | Docker Compose stacks in `/opt/stacks`, plus a handful of host services |
-| Exact image digests | [VERSIONS.txt](../VERSIONS.txt) |
+| Exact versions | image tag + digest in each compose file; host layer + hand-built parts in [VERSIONS.txt](../VERSIONS.txt) |
 
 One disk. `/srv/storage` (recordings, media, photos, file share) and `/opt/stacks` (config and app
 state) share the root ext4 filesystem, deliberately: the planned second drive becomes a remount

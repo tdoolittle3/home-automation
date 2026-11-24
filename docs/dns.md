@@ -305,9 +305,10 @@ docker compose up -d
 - **`version.bind` is blocked by default**, so the usual trick for fingerprinting
   a resolver from another machine returns nothing. Use the UI or
   `docker exec adguardhome ...` instead.
-- **The `:latest` tag can move across a major version.** The digest that was
-  deployed is recorded in `VERSIONS.txt`; pin to it in `docker-compose.yml` if a
-  `docker compose pull` ever needs to be reversible on short notice.
+- **The image is pinned (tag + digest) in `docker-compose.yml`.** Upgrades arrive as
+  Renovate PRs; this stack is not auto-started by converge, so after the deploy run
+  `docker compose up -d` here yourself — and rollback is reverting that PR and doing the
+  same. [upgrades.md](upgrades.md).
 - **Files under `conf/` and `work/` are owned by root** — the container writes
   as root. Reading or editing them from the host needs `sudo`, same as the
   Frigate recordings.

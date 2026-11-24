@@ -1,0 +1,102 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Upgrades arrive as PRs; a merge goes through CI + the gated deploy. Policy and per-service runbooks: docs/upgrades.md",
+  "extends": ["config:recommended", "docker:pinDigests", ":dependencyDashboard"],
+  "timezone": "America/Denver",
+  "schedule": ["* 0-6 1 * *"],
+  "prConcurrentLimit": 8,
+  "prHourlyLimit": 0,
+  "labels": ["upgrade"],
+  "enabledManagers": ["docker-compose", "github-actions", "custom.regex"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Manually installed components recorded in VERSIONS.txt",
+      "managerFilePatterns": ["/^VERSIONS\\.txt$/"],
+      "matchStrings": [
+        "(?<currentValue>\\S+)\\s+# renovate: datasource=(?<datasource>\\S+) depName=(?<depName>\\S+)(?: versioning=(?<versioning>\\S+))?"
+      ]
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "Locally built images — no registry. A Docker Hub lookup could match an unrelated public image of the same name.",
+      "matchDatasources": ["docker"],
+      "matchPackageNames": ["home-dashboard", "radiolog", "mesh-cli", "devbox", "hermes-agent"],
+      "enabled": false
+    },
+    {
+      "description": "ghcr returns 403 for this package (2026-11-24); profile-only service, never auto-started",
+      "matchPackageNames": ["ghcr.io/sdr-enthusiasts/docker-rtl-tcp"],
+      "enabled": false
+    },
+    {
+      "description": "Immich's database + redis images follow upstream's compose file, not their own tags (docs/operations.md#upgrading)",
+      "matchPackageNames": ["ghcr.io/immich-app/postgres", "docker.io/valkey/valkey", "valkey/valkey"],
+      "enabled": false
+    },
+    {
+      "description": "Immich server + ML move together",
+      "matchPackageNames": ["ghcr.io/immich-app/immich-server", "ghcr.io/immich-app/immich-machine-learning"],
+      "groupName": "immich",
+      "prBodyNotes": ["**Before merging:** dump the database and diff upstream's compose for database/redis digest changes — docs/operations.md → Immich → Upgrading."]
+    },
+    {
+      "description": "Langfuse web + worker move together",
+      "matchPackageNames": ["langfuse/langfuse", "langfuse/langfuse-worker"],
+      "groupName": "langfuse"
+    },
+    {
+      "description": "Frigate rewrites its live config on a schema change",
+      "matchPackageNames": ["ghcr.io/blakeblackshear/frigate"],
+      "prBodyNotes": ["**Before merging:** read docs/upgrades.md → Frigate. Back up /opt/stacks/frigate/config; after the upgrade, re-export the migrated config.yml into the repo seed."]
+    },
+    {
+      "description": "Home Assistant",
+      "matchPackageNames": ["ghcr.io/home-assistant/home-assistant"],
+      "prBodyNotes": ["**Before merging:** take an HA backup and check the HACS integrations (Frigate, Dahua) support this release — docs/upgrades.md → Home Assistant."]
+    },
+    {
+      "description": "Kuma 2.x needs kuma-provision.py ported off the 1.x socket API (uptime_kuma_api) and a DB migration — a deliberate project, not a Renovate merge",
+      "matchPackageNames": ["louislam/uptime-kuma"],
+      "allowedVersions": "<2"
+    },
+    {
+      "description": "Stacks converge does NOT start — merging only updates the file; apply by hand",
+      "matchFileNames": ["stacks/dns/**", "stacks/sdr/**", "stacks/hermes/**"],
+      "prBodyNotes": ["**Not auto-applied:** this stack is outside `stacks_auto_up`. After the deploy, run `docker compose up -d` in its /opt/stacks dir (dns: read docs/dns.md first — house DNS)."]
+    },
+    {
+      "description": "Data-store majors need a dump/restore, not a tag bump",
+      "matchPackageNames": ["postgres", "redis", "clickhouse/clickhouse-server"],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
+    },
+    {
+      "description": "Langfuse capture fails OPEN on a wrong SDK major (docs/langfuse.md)",
+      "matchPackageNames": ["langfuse"],
+      "matchDatasources": ["pypi"],
+      "allowedVersions": "<5"
+    },
+    {
+      "description": "VERSIONS.txt entries are manual installs — the PR is a reminder + record",
+      "matchFileNames": ["VERSIONS.txt"],
+      "prBodyNotes": ["**Manual install:** merging only updates the record. Install per docs/upgrades.md → snibbly components, ideally before merging."]
+    },
+    {
+      "description": "Digest-only updates (floating main/master/latest tags, and upstream rebuilds of a pinned tag): one PR a month",
+      "matchUpdateTypes": ["digest"],
+      "groupName": "image digest refresh"
+    },
+    {
+      "description": "Major upgrades get their own label",
+      "matchUpdateTypes": ["major"],
+      "addLabels": ["major"]
+    },
+    {
+      "description": "GitHub Actions in one monthly PR",
+      "matchManagers": ["github-actions"],
+      "groupName": "github-actions"
+    }
+  ]
+}

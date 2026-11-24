@@ -60,8 +60,12 @@ manually 2026-11-08; converge now keeps step-3's tracked inputs in sync).
 
 ```
 git clone https://github.com/NousResearch/hermes-agent ~/src/hermes-agent
-cd ~/src/hermes-agent && docker build -t hermes-agent:latest .
+cd ~/src/hermes-agent && git fetch --tags && git checkout <hermes-agent ref in VERSIONS.txt>
+docker build -t hermes-agent:latest .
 ```
+
+Build the ref recorded in [VERSIONS.txt](../VERSIONS.txt), not whatever `main` is today —
+upstream moves fast and has changed the config schema under us before.
 
 ### 2. Create the limited Home Assistant user + token  ← the safety boundary
 
@@ -139,8 +143,10 @@ s6/cont-init lines). Model calls trace into Langfuse on snibbly.
 Tracked-file changes (compose, examples, SOUL.md, skills) land via PR →
 converge, then `docker compose up -d` in `/opt/stacks/hermes` to apply a
 compose change (not auto-up'd — see the Deploy intro). Other `data/` changes
-(config.yaml, .env, enabling plugins) are live edits on the box, same as ever. Upstream agent updates = re-pull the
-`~/src/hermes-agent` clone, rebuild the image, `up -d`.
+(config.yaml, .env, enabling plugins) are live edits on the box, same as ever. Upstream agent updates = bump the
+`hermes-agent` ref in [VERSIONS.txt](../VERSIONS.txt) (Renovate opens that PR for new releases),
+check it out in the `~/src/hermes-agent` clone, rebuild the image, `up -d`, then run the eval
+(see [upgrades.md](upgrades.md)).
 
 ## Scoped tools — the build-out
 

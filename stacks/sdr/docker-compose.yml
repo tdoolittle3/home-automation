@@ -1,10 +1,10 @@
 services:
   # ADS-B decoding (1090 MHz) + tar1090 map UI + feeding to adsb.fi / adsb.lol.
   # This service OWNS the RTL-SDR dongle whenever it is running. Only one
-  # process can claim the device at a time — see the rtl_tcp service below.
+  # process can claim the device at a time â€” see the rtl_tcp service below.
   ultrafeeder:
     container_name: ultrafeeder
-    image: ghcr.io/sdr-enthusiasts/docker-adsb-ultrafeeder:latest
+    image: ghcr.io/sdr-enthusiasts/docker-adsb-ultrafeeder:latest@sha256:1a2f94009ed235f6c24ceab92864c5a0e198bac2b238ad2fefe1341f2def407f
     restart: unless-stopped
     hostname: ladybird
     ports:
@@ -12,7 +12,7 @@ services:
       # host port (80/3000/3001/5000/5678/8096/8123/8554/8555/8971 are taken).
       # LAN-only. To reach it over Tailscale only, change to "127.0.0.1:8080:80".
       - "8080:80"
-      # Beast output — lets SDR++/Virtual Radar/other tools pull decoded data
+      # Beast output â€” lets SDR++/Virtual Radar/other tools pull decoded data
       # over the network without touching the dongle. Loopback-only by design.
       - "127.0.0.1:30005:30005"
     # USB passthrough. The sdr-enthusiasts images recommend the cgroup-rule +
@@ -29,7 +29,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     tmpfs:
       # readsb writes aircraft.json here several times a second. On tmpfs so it
-      # never touches the SSD — this is the single biggest write-amplifier in
+      # never touches the SSD â€” this is the single biggest write-amplifier in
       # the stack if left on disk.
       - /run:exec,size=256M
       - /tmp:size=128M
@@ -42,7 +42,7 @@ services:
       # solves aircraft positions by comparing signal arrival times across
       # receivers; a position that is off by even a few hundred metres poisons
       # those solutions for everyone, and aggregators will flag or drop the
-      # feed. Set these in .env — see .env.example.
+      # feed. Set these in .env â€” see .env.example.
       READSB_LAT: "${ADSB_LAT}"
       READSB_LON: "${ADSB_LON}"
       READSB_ALT: "${ADSB_ALT}"
@@ -54,7 +54,7 @@ services:
       # explicitly matters the moment a second dongle is added.
       READSB_RTLSDR_DEVICE: "${ADSB_SERIAL:-00000001}"
       # readsb's built-in auto-gain. NOTE: "auto" and "autogain" are two
-      # different things here — "autogain" selects the slow legacy script,
+      # different things here â€” "autogain" selects the slow legacy script,
       # "auto" is the quick-adjusting built-in and is the recommended one.
       # Once the install has been stable for a week, check the gain graph in
       # graphs1090 and consider pinning a fixed dB value instead.
@@ -67,13 +67,13 @@ services:
       READSB_STATS_EVERY: "3600"
 
       # ---- Aggregator feeding ----------------------------------------------
-      # adsb.fi and adsb.lol both accept anonymous feeds — no account, no key.
+      # adsb.fi and adsb.lol both accept anonymous feeds â€” no account, no key.
       # NOTE: adsb.lol ingests on in.adsb.lol, NOT feed.adsb.lol.
       # MLAT_USER is the station name shown on aggregator maps.
       # Kept on ONE line deliberately. Both the folded form (">-") and a
       # double-quoted scalar with escaped newlines leave the continuation
       # lines' indentation in the value, yielding entries like
-      # " mlat,feed.adsb.fi,31090" — the leading space breaks the parser.
+      # " mlat,feed.adsb.fi,31090" â€” the leading space breaks the parser.
       # Verified with `docker compose config` that this renders clean.
       ULTRAFEEDER_CONFIG: "adsb,feed.adsb.fi,30004,beast_reduce_plus_out;mlat,feed.adsb.fi,31090;adsb,in.adsb.lol,30004,beast_reduce_plus_out;mlat,in.adsb.lol,31090"
       MLAT_USER: "${ADSB_STATION_NAME:-ladybird}"
@@ -92,7 +92,7 @@ services:
       # FR24 issues the key by email after a short signup form.
       # FEEDER_FR24_SHARING_KEY: "replace-me"
       #
-      # Both also need their feeder container added — see the ultrafeeder
+      # Both also need their feeder container added â€” see the ultrafeeder
       # README section "Optional containers" before uncommenting.
 
       # ---- UI ---------------------------------------------------------------
@@ -114,7 +114,7 @@ services:
           memory: 1G
 
   # ---------------------------------------------------------------------------
-  # rtl_tcp — stream raw IQ to SDR++/SDRangel/GQRX on a laptop.
+  # rtl_tcp â€” stream raw IQ to SDR++/SDRangel/GQRX on a laptop.
   #
   # THIS CANNOT RUN AT THE SAME TIME AS ULTRAFEEDER. There is one dongle and
   # librtlsdr takes an exclusive USB claim on it; whichever process grabs it
@@ -136,6 +136,9 @@ services:
   #   docker compose up -d ultrafeeder
   rtl_tcp:
     container_name: rtl_tcp
+    # Not pinned: as of 2026-11-24 ghcr refuses anonymous pulls of this package
+    # (403) — it may have been withdrawn upstream. Re-check before ever needing it.
+    # Renovate ignores it (renovate.json).
     image: ghcr.io/sdr-enthusiasts/docker-rtl-tcp:latest
     profiles: ["rtltcp"]
     # Deliberately NOT unless-stopped: this is a hands-on, temporary service.
@@ -144,7 +147,7 @@ services:
     restart: "no"
     ports:
       # LAN-exposed so SDR++ on a laptop can reach it. rtl_tcp has no auth
-      # whatsoever — anyone on the LAN can retune your radio. Keep it off
+      # whatsoever â€” anyone on the LAN can retune your radio. Keep it off
       # any port-forward.
       - "1234:1234"
     device_cgroup_rules:
@@ -160,20 +163,20 @@ services:
       RTLTCP_SAMPLE_RATE: "2400000"
 
   # ---------------------------------------------------------------------------
-  # rtl_433 — ISM-band decoding on the SECOND dongle (serial 00000002,
+  # rtl_433 â€” ISM-band decoding on the SECOND dongle (serial 00000002,
   # flashed with `rtl_eeprom -s` 2026-09-27), published to Mosquitto.
   #
   # Band-hopping: one process, three bands, `-H 60` seconds on each.
-  #   433.92 MHz — temp/humidity sensor (tx every ~30-60 s) + some TPMS
-  #   315 MHz    — TPMS on most US vehicles (only transmits while driving,
+  #   433.92 MHz â€” temp/humidity sensor (tx every ~30-60 s) + some TPMS
+  #   315 MHz    â€” TPMS on most US vehicles (only transmits while driving,
   #                so catches are opportunistic by nature)
-  #   912.6 MHz  — ERT water meter (SCM/SCM+/IDM). The meter hops across
+  #   912.6 MHz  â€” ERT water meter (SCM/SCM+/IDM). The meter hops across
   #                902-928 MHz while we listen to one ~1 MHz slice, so only
-  #                a fraction of its transmissions land here — fine, the
+  #                a fraction of its transmissions land here â€” fine, the
   #                reading is a cumulative counter and a few catches per
   #                hour is plenty. If catches are too sparse, rtlamr with a
   #                wider capture is the upgrade path.
-  # While parked on one band the radio is deaf to the other two — all three
+  # While parked on one band the radio is deaf to the other two â€” all three
   # targets are periodic beacons or counters, so nothing needs continuity.
   #
   # -s 1024k applies to ALL hops (rtl_433 has one global sample rate); it is
@@ -185,22 +188,22 @@ services:
   # MQTT target is pre-filled and verified against the running broker:
   # Mosquitto is on the `home` stack, listener 1883, allow_anonymous true,
   # so no username/password is needed. Bridge networking means we address it
-  # by LAN IP, not container name — it is a separate compose project.
+  # by LAN IP, not container name â€” it is a separate compose project.
   #
   # Two MQTT shapes on purpose: `devices=` per-field topics feed the HA
-  # sensors (don't rename — entity ids hang off them), `events=` is the
+  # sensors (don't rename â€” entity ids hang off them), `events=` is the
   # whole decode as one JSON message, which is what the radiolog stack
   # subscribes to (docs/radiolog.md). Naming any key suppresses the unnamed
   # defaults, so both must be listed explicitly.
   rtl_433:
     container_name: rtl_433
-    image: ghcr.io/hertzg/rtl_433_docker:master
+    image: ghcr.io/hertzg/rtl_433_docker:master@sha256:f8d39da6d7588cccebd5fd9450a474c009fe9a91e40506d73d3b891c42197527
     restart: unless-stopped
     ports:
       # rtl_433's built-in HTTP server: / is a live status/events UI, and the
       # Kuma "rtl_433 (ISM)" monitor points here. If the dongle dies rtl_433
       # exits and the container crash-loops, so a plain 200 check does prove
-      # the radio side is alive — unlike tar1090, which serves happily with a
+      # the radio side is alive â€” unlike tar1090, which serves happily with a
       # dead SDR. LAN-only like everything else.
       - "8433:8433"
     device_cgroup_rules:

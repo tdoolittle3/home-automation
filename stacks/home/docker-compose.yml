@@ -1,7 +1,7 @@
 services:
   mosquitto:
     container_name: mosquitto
-    image: eclipse-mosquitto:2
+    image: eclipse-mosquitto:2.1.2-alpine@sha256:6f8d8a947c506f8a2290ec65cd4bd2bc7cb4d43fb5f6271f861cb013e2ef9797
     restart: unless-stopped
     volumes:
       - ./mosquitto/config:/mosquitto/config
@@ -10,7 +10,7 @@ services:
       - "1883:1883"
   homeassistant:
     container_name: homeassistant
-    image: ghcr.io/home-assistant/home-assistant:stable
+    image: ghcr.io/home-assistant/home-assistant:2026.8.3@sha256:14931c6b13756317849f46da1d01b45937a1150db66c081cfe529d48215943fe
     restart: unless-stopped
     network_mode: host
     volumes:
