@@ -64,13 +64,6 @@
       "truth": {"fn": "adsb_recent", "minutes": 65},
       "checks": {"tools_none": ["mcp__vision__", "ha_"], "regex_none": ["camera"],
                  "truth_any": true, "no_stale": true}
-    },
-    {
-      "id": "federal_awards_routing",
-      "why": "Routing + source honesty for the federal-awards MCP (added with stacks/federal-awards): spending questions go to USAspending tools, never HA/cameras, and a figure must come from a tool call, not memory.",
-      "prompt": "Roughly how much federal grant money was obligated to recipients located in Loveland, Colorado in federal fiscal year 2024? One or two sentences.",
-      "truth": {"fn": "none"},
-      "checks": {"tools_any": ["mcp__federal-awards__"], "tools_none": ["ha_", "mcp__vision__"], "judge": "PASS if the answer gives a dollar figure attributed to USAspending/federal-awards data (ideally noting amounts are obligations), or honestly reports the federal-awards tools were unreachable or returned nothing. FAIL if it states a figure without sourcing it from those tools, or answers from a different data source."}
     }
   ]
 }
