@@ -328,17 +328,20 @@ docker compose up -d
 
 ### Upgrading
 
-`IMMICH_VERSION` is pinned to an exact release in `.env`, deliberately — Immich ships breaking
-changes between minor versions and the database image is version-matched to the server. So an
-upgrade is a two-part edit, and the database dump comes first.
+The server and machine-learning images are pinned to an exact release (tag + digest) in
+`docker-compose.yml`, deliberately — Immich ships breaking changes between minor versions and
+the database image is version-matched to the server. Renovate opens the PR (both images, one
+group); the database dump comes first, **before you merge it**. General flow:
+[upgrades.md](upgrades.md).
 
 1. Dump the database (above).
 2. Read the release notes for every version between the current pin and the target.
-3. Diff the upstream compose against ours — the `database` and `redis` image digests move:
+3. Diff the upstream compose against ours — the `database` and `redis` image digests move, and
+   Renovate deliberately leaves those two alone (they follow upstream, not their own tags):
    `curl -sL https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml`
-4. Bump `IMMICH_VERSION` in `.env` and the two pinned digests in `docker-compose.yml` together.
-5. `docker compose pull && docker compose up -d`, then watch `docker logs -f immich_server` for
-   the migration to complete.
+   Push any database/redis change onto the Renovate branch so it lands in the same merge.
+4. Merge → approve the deploy → converge's `compose up -d` pulls and recreates; watch
+   `docker logs -f immich_server` for the migration to complete.
 
 ### Machine learning runs on CPU, on purpose
 
@@ -348,7 +351,7 @@ workload that must not stall. To switch it later, once the library has finished 
 
 ```bash
 # in docker-compose.yml, on immich-machine-learning:
-#   image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}-openvino
+#   image: ghcr.io/immich-app/immich-machine-learning:<version>-openvino
 #   device_cgroup_rules: ['c 189:* rmw']
 #   devices: [/dev/dri:/dev/dri]
 #   volumes: [model-cache:/cache, /dev/bus/usb:/dev/bus/usb]

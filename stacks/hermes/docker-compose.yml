@@ -11,10 +11,15 @@
 # restarts after a compose change stay manual — `docker compose up -d` here.
 # First-ever run has extra steps: docs/hermes.md.
 #
-# Image is BUILT from upstream (NousResearch/hermes-agent), not a registry pull.
-# Build once on ladybird:
+# Image is BUILT from upstream (NousResearch/hermes-agent), not a registry pull,
+# at the ref recorded in VERSIONS.txt (`hermes-agent`) — never a bare `main`,
+# or a rebuild silently gets a different agent (its config schema has moved
+# under us before). Build on ladybird:
 #   git clone https://github.com/NousResearch/hermes-agent ~/src/hermes-agent
-#   (cd ~/src/hermes-agent && docker build -t hermes-agent:latest .)
+#   cd ~/src/hermes-agent && git fetch --tags && git checkout <ref from VERSIONS.txt>
+#   docker build -t hermes-agent:latest .
+# Upgrading = bump the ref in VERSIONS.txt (Renovate proposes releases), then
+# rebuild + `up -d` here. docs/upgrades.md.
 #
 # Secrets (litellm key, HA token, Telegram token) live in ./data/.env
 # (gitignored), NEVER in this file.
@@ -92,7 +97,7 @@ services:
     # on the tailnet by `tailscale serve --https=9123` (tailnet-only — the ntfy
     # link it sends is useless to anyone not on the tailnet). Static files only,
     # no secrets, no GPU.
-    image: nginx:alpine
+    image: nginx:1.31.8-alpine@sha256:713fc2ebfd92e8217db451477182ee91944b123d2b1ee9fd5a8c6e91ca6c3a11
     container_name: hermes-reports
     restart: unless-stopped
     ports:

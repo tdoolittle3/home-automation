@@ -1,7 +1,7 @@
 services:
   stt:
     container_name: whisper-stt
-    image: ghcr.io/ggml-org/whisper.cpp:main
+    image: ghcr.io/ggml-org/whisper.cpp:main@sha256:9399cb3f6cf80088ffa7accd4b7a055adb830896678065e0b85032591d1a49f5
     restart: unless-stopped
     # The image's default entrypoint is a bare `bash -c`; run the server
     # directly. --convert lets it accept whatever the browser records

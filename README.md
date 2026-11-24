@@ -121,6 +121,7 @@ Full notes, the hardware inventory and what is still unconfirmed: [system atlas]
 | apply configs / check drift | [ansible.md](docs/ansible.md) — the playbooks behind most of those steps |
 | avoid a trap someone already hit | [gotchas.md](docs/gotchas.md) |
 | know what is *not* done | [known-gaps.md](docs/known-gaps.md) |
+| upgrade a service, patch the OS | [upgrades.md](docs/upgrades.md) — Renovate PRs, per-service runbooks, the monthly patch window |
 | add or reconfigure a camera | [cameras.md](docs/cameras.md) |
 | touch DNS | [dns.md](docs/dns.md) |
 | touch the radio | [sdr.md](docs/sdr.md) |
@@ -144,6 +145,8 @@ Full notes, the hardware inventory and what is still unconfirmed: [system atlas]
 | Address | `192.168.0.13` | `192.168.0.19` |
 | Config in repo | `stacks/` (Compose, → `/opt/stacks`) and `host/` (→ `/etc`) | `snibbly/` (systemd units, `/etc` files, the vision worker, one Compose stack) |
 
-Exact ladybird image versions at the last capture are in [VERSIONS.txt](VERSIONS.txt). Passwords
+Every container image is pinned (tag + digest) in its compose file; the host layer and hand-built
+components are recorded in [VERSIONS.txt](VERSIONS.txt), and upgrades arrive as Renovate PRs
+([upgrades.md](docs/upgrades.md)). Passwords
 and tokens are never in this repo — the list of what to recreate by hand is at the end of
 [rebuild.md](docs/rebuild.md#secrets--not-in-this-repo) and in each machine's guide.

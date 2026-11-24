@@ -15,7 +15,7 @@ name: immich
 services:
   immich-server:
     container_name: immich_server
-    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    image: ghcr.io/immich-app/immich-server:v3.1.0@sha256:b434cb9287eea1471c9974845914d4dd328c9c2d652e446ed4930f99944f0ceb
     restart: unless-stopped
     # QuickSync — the same iGPU Frigate and Jellyfin use. Transcoding here is bursty
     # and short (uploaded videos only), so it coexists fine with Frigate's detector.
@@ -46,7 +46,7 @@ services:
     # integrated GPUs are more failure-prone and that OpenVINO raises memory use — this
     # host has 16 GB already carrying Frigate, HA, Jellyfin and the EPG grabber.
     # Revisit once the library is imported and steady-state, not before.
-    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    image: ghcr.io/immich-app/immich-machine-learning:v3.1.0@sha256:5a0839dc5303cd7215bcd2180a26aed3af41675aefb3e75e5157e9f10ad16e6e
     restart: unless-stopped
     volumes:
       - model-cache:/cache

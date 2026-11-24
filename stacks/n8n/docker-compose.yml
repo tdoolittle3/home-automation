@@ -1,7 +1,7 @@
 services:
   n8n:
     container_name: n8n
-    image: docker.n8n.io/n8nio/n8n:latest
+    image: docker.n8n.io/n8nio/n8n:2.38.1@sha256:9f21fbf422982bbdddc31085c180bef82d59cc608ba16dfec4fc48611d0b51b8
     restart: unless-stopped
     ports:
       # LAN-only. To lock it down to the host (access via Tailscale or an SSH

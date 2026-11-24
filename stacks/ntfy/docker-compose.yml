@@ -16,7 +16,7 @@
 services:
   ntfy:
     container_name: ntfy
-    image: binwiederhier/ntfy:latest
+    image: binwiederhier/ntfy:v2.38.0@sha256:771309aecfce18d8fe2bfb8069994ddd6be6ca6ccdd7badace3d791a0045ff0d
     command: serve
     restart: unless-stopped
     volumes:
