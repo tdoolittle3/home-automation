@@ -1,0 +1,13 @@
+[Unit]
+Description=Immich off-box backup (originals + Immich's own database dumps to snibbly)
+# Not a hard dependency: the dumps are files on disk, and a stopped Immich must
+# not also stop its backup.
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/stacks/net/immich-backup.sh
+# Bulk copy at background priority - Frigate and DNS come first.
+Nice=10
+IOSchedulingClass=idle

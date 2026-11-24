@@ -363,6 +363,17 @@ monitors:
     # sqlite3 .backup, a full disk, a broken rsync and a hung timer all
     # surface the same way: silence. Same pattern as Storage guard.
 
+  - name: Immich backup
+    group: Host and network
+    type: push
+    heartbeat_interval: 100800     # backup runs nightly at 04:15; 28h of silence is down
+    retries: 0
+    push_url_file: /opt/stacks/net/kuma-immich-backup-push-url.txt
+    # immich-backup.sh beats this ONLY after it has verified Immich's own
+    # nightly database dump is fresh (<26h) and valid, and copied the
+    # originals + dumps to snibbly. A disabled Immich backup job, a failed
+    # rsync and a hung run all surface as silence.
+
   - name: UPS power
     group: Host and network
     type: push
