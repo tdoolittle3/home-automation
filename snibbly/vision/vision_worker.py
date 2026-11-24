@@ -6,9 +6,10 @@ Two ingest paths feed one SQLite database:
   * fast path — MQTT `frigate/events` on ladybird; every ended event's
     full-resolution clip is fetched from Frigate's API and sampled at a few fps.
   * sweep path — the continuous recordings (full quality, 2-day retention) are
-    pulled in chunks and sampled at 1 fps, independent of Frigate's opinion of
-    what moved. The cameras record a 1-second GOP, so 1 fps sampling is
-    keyframe-only extraction (`-skip_frame nokey`) — no full decode.
+    pulled in chunks and sampled keyframe-only (`-skip_frame nokey`, no full
+    decode), independent of Frigate's opinion of what moved. Keyframes come
+    every 1-2 s depending on the camera's GOP; each file is named by its real
+    pts (`pts<ms>.jpg`) so timestamps don't assume any particular spacing.
 
 Phase 2 analyzes what Phase 1 ingests (analyzer.py, GPU): event frames get an
 `analyze` job after sampling; sweep keyframes are detected inline and only the
@@ -259,12 +260,20 @@ def sample_clip(url, out_dir, fps=None, keyframes_only=False, timeout=900):
     """ffmpeg samples frames straight from the URL into out_dir. Returns count."""
     os.makedirs(out_dir, exist_ok=True)
     cmd = ["ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error"]
+    pattern = "%06d.jpg"
     if keyframes_only:
         cmd += ["-skip_frame", "nokey", "-i", url]
-        cmd += ["-vf", f"fps={fps}"] if fps else ["-fps_mode", "passthrough"]
+        if fps:
+            cmd += ["-vf", f"fps={fps}"]
+        else:
+            # every keyframe, each file named by its pts in ms from clip start
+            # (analyzer.frame_ts reads it back) — GOP spacing varies by camera
+            cmd += ["-fps_mode", "passthrough", "-frame_pts", "1",
+                    "-enc_time_base", "1/1000"]
+            pattern = "pts%012d.jpg"
     else:
         cmd += ["-i", url, "-vf", f"fps={fps}"]
-    cmd += ["-q:v", "4", os.path.join(out_dir, "%06d.jpg")]
+    cmd += ["-q:v", "4", os.path.join(out_dir, pattern)]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg: {proc.stderr.strip()[:300]}")
@@ -326,11 +335,13 @@ def handle_event(cfg, db, p):
         for i in set(range(len(names))) - set(keep):
             os.unlink(os.path.join(out_dir, names[i]))
         n = len(keep)
+    from analyzer import frame_ts  # numpy-only at import; torch loads lazily
     with db.lock, db.conn:
         for i in keep:
             db.conn.execute(
                 "INSERT INTO frames(event_id, camera, ts, path) VALUES(?,?,?,?)",
-                (event_id, camera, start_ts + i * step, os.path.join(out_dir, names[i])))
+                (event_id, camera, frame_ts(start_ts, names[i], i, step),
+                 os.path.join(out_dir, names[i])))
         db.conn.execute("UPDATE events SET status='sampled' WHERE id=?", (event_id,))
     db.bump("event_frames_kept", n)
     enqueue(db, "analyze", {"id": event_id})
