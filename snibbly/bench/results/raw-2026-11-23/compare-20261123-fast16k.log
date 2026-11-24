@@ -1,0 +1,50 @@
+== fast-8b-32k
+    speed prefill 3627 tok @ 1746 t/s, decode 61.4 t/s
+    speed prefill 3627 tok @ 1737 t/s, decode 61.2 t/s
+    speed prefill 3627 tok @ 1728 t/s, decode 61.1 t/s
+    math   easy PASS   618 tok    9.0s
+    math   easy PASS  1273 tok   18.9s
+    math   easy PASS  3110 tok   49.9s
+    math   easy PASS  1110 tok   17.4s
+    math   easy PASS  1934 tok   30.8s
+    math   easy PASS  1550 tok   24.4s
+    math   easy PASS  1768 tok   28.0s
+    math   easy PASS  1465 tok   23.2s
+    math   hard PASS  2059 tok   32.8s
+    math   hard fail  2533 tok   40.9s
+    math   hard fail  6764 tok  118.8s
+    math   hard fail  9778 tok  182.1s
+    math   hard fail  5795 tok  100.1s
+    math   hard PASS  2794 tok   45.5s
+    math   hard PASS  3531 tok   58.2s
+    math   hard fail  3624 tok   60.1s
+    logic  easy PASS   521 tok    8.1s
+    logic  easy fail 16384 tok  344.8s
+    logic  easy PASS   730 tok   11.8s
+    logic  easy PASS  1148 tok   18.1s
+    logic  hard PASS   694 tok   10.9s
+    logic  hard PASS  1000 tok   15.8s
+    logic  hard PASS 14934 tok  306.5s
+    logic  hard PASS  2387 tok   38.9s
+    code   easy PASS  1501 tok   23.8s
+    code   easy PASS  1059 tok   16.6s
+    code   easy PASS  1320 tok   20.9s
+    code   easy PASS  1587 tok   25.2s
+    code   hard fail 16384 tok  344.1s
+    code   hard PASS  1682 tok   27.2s
+    code   hard PASS  4323 tok   72.8s
+    code   hard PASS  4804 tok   82.4s
+    long   hard PASS   368 tok   11.2s
+    long   hard PASS 12339 tok  292.0s
+    instr  easy PASS   320 tok    5.3s
+    instr  easy PASS   150 tok    2.3s
+    tool   easy PASS   125 tok    2.2s
+    tool   easy PASS   103 tok    1.6s
+    tool   easy PASS   183 tok    2.8s
+    tool   hard PASS   159 tok    2.5s
+    tool   hard PASS   102 tok    1.6s
+    tool   hard PASS   298 tok    4.7s
+
+| model | load+1st (s) | prefill t/s | decode t/s | math | logic | code | instr | tool | long | vision | easy | hard | total | avg tok/item | quality wall (min) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| fast-8b-32k | 5.6 | 1737 | 61.2 | 11/16 | 7/8 | 7/8 | 2/2 | 6/6 | 2/2 | — | 20/21 | 15/21 | 35/42 | 3198 | 42.2 |

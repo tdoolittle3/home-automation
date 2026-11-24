@@ -1,0 +1,455 @@
+[
+ {
+  "spec": "fast-8b-32k",
+  "model": "fast-8b-32k",
+  "effort": null,
+  "started": "2026-11-24T07:16:05",
+  "load_and_first_s": 5.6,
+  "speed": [
+   {
+    "prompt_n": 3627,
+    "prefill_tps": 1746.342647160785,
+    "decode_tps": 61.376095382784655,
+    "completion_tokens": 256
+   },
+   {
+    "prompt_n": 3627,
+    "prefill_tps": 1737.433427126955,
+    "decode_tps": 61.2301203207882,
+    "completion_tokens": 256
+   },
+   {
+    "prompt_n": 3627,
+    "prefill_tps": 1728.0743715183614,
+    "decode_tps": 61.09862516113265,
+    "completion_tokens": 256
+   }
+  ],
+  "quality": [
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 618,
+    "wall": 9.0,
+    "err": null,
+    "tail": "he total cost for 27 pens**:  \n   Multiply the cost per pen by the number of pens:  \n   $$\n   27 \\times \\frac{4}{3} = \\frac{108}{3} = 36\n   $$\n\nThus, the total cost for 27 pens is **$36**.\n\nANSWER: 36"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1273,
+    "wall": 18.9,
+    "err": null,
+    "tail": "o 13:15:\n     - From 9:40 to 12:40 is 3 hours (180 minutes).\n     - From 12:40 to 13:15 is 35 minutes.\n     - Total: $180 + 35 = 215$ minutes.\n\nThus, the trip duration is **215 minutes**.\n\nANSWER: 215"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 3110,
+    "wall": 49.9,
+    "err": null,
+    "tail": " = 1365\n  $$\n\n---\n\n### Step 4: Apply inclusion-exclusion\n\n$$\n\\text{Total Sum} = \\text{Sum}(3) + \\text{Sum}(5) - \\text{Sum}(15)\n$$\n$$\n= 6633 + 4100 - 1365 = 9368\n$$\n\n---\n\n### Final Answer\n\nANSWER: 9368"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1110,
+    "wall": 17.4,
+    "err": null,
+    "tail": "At a net rate of 16 liters per hour, the time required to fill the tank is:\n\n$$\n\\text{Time} = \\frac{240 \\text{ liters}}{16 \\text{ liters/hour}} = 15 \\text{ hours}\n$$\n\n---\n\n### Final Answer\n\nANSWER: 15"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1934,
+    "wall": 30.8,
+    "err": null,
+    "tail": "t takes for 100 machines to produce 100 widgets. Using the formula:\n\n$$\n\\text{Time} = \\frac{\\text{Total widgets}}{\\text{Rate}} = \\frac{100}{20} = 5 \\text{ minutes}\n$$\n\n---\n\n### Final Answer\n\nANSWER: 5"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1550,
+    "wall": 24.4,
+    "err": null,
+    "tail": "actorization.\n\nFor $ 360 = 2^3 \\times 3^2 \\times 5^1 $, the exponents are 3, 2, and 1.\n\nSo:\n\n$$\n(3 + 1)(2 + 1)(1 + 1) = 4 \\times 3 \\times 2 = 24\n$$\n\n---\n\n### Final Answer\n\n$$\n\\boxed{24}\n$$\n\nANSWER: 24"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1768,
+    "wall": 28.0,
+    "err": null,
+    "tail": " = 17^2 = 289$\n   - $ab = 17 \\times 13 = 221$\n   - $b^2 = 13^2 = 169$\n   - Sum: $289 + 221 + 169 = 679$\n3. Multiply: $4 \\times 679 = 2716$\n\nThus, the final result is:\n\n$$\n\\boxed{2716}\n$$\n\nANSWER: 2716"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1465,
+    "wall": 23.2,
+    "err": null,
+    "tail": "ginal price.\n\n---\n\n### Step 2: Calculate the Equivalent Single Discount\n\nIf the final price is 68% of the original, the total discount is:\n\n$$\n100\\% - 68\\% = 32\\%\n$$\n\n---\n\n### Final Answer\n\nANSWER: 32"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 2059,
+    "wall": 32.8,
+    "err": null,
+    "tail": "rfloor = 8$\n- $\\left\\lfloor \\frac{1000}{625} \\right\\rfloor = 1$\n\nAdding these together:\n\n$$\n200 + 40 + 8 + 1 = 249\n$$\n\nThus, the number of trailing zeros in $1000!$ is:\n\n$$\n\\boxed{249}\n$$\n\nANSWER: 249"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 2533,
+    "wall": 40.9,
+    "err": null,
+    "tail": " remainder } 4 \\Rightarrow 100 \\equiv 4 \\pmod{12}\n$$\n\nThus:\n$$\n2^{100} \\equiv 2^4 \\pmod{13}\n$$\n\nNow compute $ 2^4 $:\n$$\n2^4 = 16 \\Rightarrow 16 \\mod 13 = 3\n$$\n\n---\n\n**Final Answer:**  \n$$\n\\boxed{3}\n$$"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 6764,
+    "wall": 118.8,
+    "err": null,
+    "tail": "f(6) + f(5) = 13 + 8 = 21 \\\\\nf(8) &= f(7) + f(6) = 21 + 13 = 34 \\\\\nf(9) &= f(8) + f(7) = 34 + 21 = 55 \\\\\nf(10) &= f(9) + f(8) = 55 + 34 = 89 \\\\\n\\end{align*}\n$$\n\n---\n\n### Final Answer\n\n$$\n\\boxed{89}\n$$"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 9778,
+    "wall": 182.1,
+    "err": null,
+    "tail": "9 = 26 \\\\\n26 + 9 = 35 \\\\\n35 + 9 = 44 \\\\\n44 + 0 = 44 \\\\\n44 + 6 = 50 \\\\\n50 + 8 = 58 \\\\\n58 + 4 = 62 \\\\\n62 + 2 = 64 \\\\\n64 + 6 = 70 \\\\\n70 + 2 = 72 \\\\\n72 + 4 = 76\n$$\n\n---\n\n### Final Answer\n\n$$\n\\boxed{76}\n$$"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 5795,
+    "wall": 100.1,
+    "err": null,
+    "tail": "\\frac{405}{25} \\right\\rfloor + \\left\\lfloor \\frac{405}{125} \\right\\rfloor = 81 + 16 + 3 = 100 $\n\nSo, $ n = 405 $ is the first integer where $ Z(n) \\geq 100 $.\n\n---\n\n### Final Answer\n\n$$\n\\boxed{405}\n$$"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 2794,
+    "wall": 45.5,
+    "err": null,
+    "tail": "6 = \\frac{924}{7} = 132\n$$\n\n---\n\n### Conclusion\n\nThus, the number of monotonic lattice paths from $(0,0)$ to $(6,6)$ that never rise above the line $y = x$ is:\n\n$$\n\\boxed{132}\n$$\n\n---\n\n**ANSWER: 132**"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 3531,
+    "wall": 58.2,
+    "err": null,
+    "tail": "e any digit from 1 to 9 (9 choices)\n- **B** can be either 0 or 7 (2 choices)\n\nThus, the total number of 4-digit palindromes divisible by 7 is:\n\n$$\n9 \\times 2 = 18\n$$\n\n---\n\n### Final Answer\n\nANSWER: 18"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 3624,
+    "wall": 60.1,
+    "err": null,
+    "tail": "1}{5} + \\frac{1}{6}\n$$\n\nLet\u2019s compute this sum:\n\n$$\nH_6 = 1 + 0.5 + 0.3333 + 0.25 + 0.2 + 0.1667 = 2.45\n$$\n\nNow multiply by 6:\n\n$$\nE = 6 \\cdot 2.45 = 14.7\n$$\n\n---\n\n### Final Answer\n\n$$\n\\boxed{14.7}\n$$"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 521,
+    "wall": 8.1,
+    "err": null,
+    "tail": "ANSWER: Bob"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": false,
+    "tokens": 16384,
+    "wall": 344.8,
+    "err": null,
+    "tail": ""
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 730,
+    "wall": 11.8,
+    "err": null,
+    "tail": "The farmer starts with 17 sheep. The phrase \"all but 9 run away\" means that 9 sheep remain, and the rest (17 - 9 = 8) run away. Thus, the number of sheep left is 9.\n\nANSWER: 9"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1148,
+    "wall": 18.1,
+    "err": null,
+    "tail": "d the remainder to the starting day\n\nStarting from **Wednesday**, we add 2 days:\n\n- Wednesday + 1 day = **Thursday**\n- Thursday + 1 day = **Friday**\n\n---\n\n### Final Answer\n\n$$\n\\text{ANSWER: Friday}\n$$"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 694,
+    "wall": 10.9,
+    "err": null,
+    "tail": "ANSWER: knave"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 1000,
+    "wall": 15.8,
+    "err": null,
+    "tail": "ish because the fish belongs to Ben's sister, who is Ann. Since Ann does not own the dog, she must own the fish. Cal cannot own the cat, so he must own the dog. Ben is left with the cat. \n\nANSWER: Cal"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 14934,
+    "wall": 306.5,
+    "err": null,
+    "tail": "ANSWER: Saturday"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 2387,
+    "wall": 38.9,
+    "err": null,
+    "tail": "ANSWER: Finn"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1501,
+    "wall": 23.8,
+    "err": null,
+    "tail": "char in matching:\n            if not stack:\n                return False\n            top = stack.pop()\n            if top != matching[char]:\n                return False\n    return len(stack) == 0\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1059,
+    "wall": 16.6,
+    "err": null,
+    "tail": "rrent in iv[1:]:\n        last = merged[-1]\n        if current[0] <= last[1]:\n            merged[-1][1] = max(last[1], current[1])\n        else:\n            merged.append(current)\n    return merged\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1320,
+    "wall": 20.9,
+    "err": null,
+    "tail": "'X'), (9, 'IX'), (5, 'V'), (4, 'IV'), (1, 'I')\n    ]\n    res = ''\n    for value, symbol in roman_numerals:\n        while n >= value:\n            res += symbol\n            n -= value\n    return res\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1587,
+    "wall": 25.2,
+    "err": null,
+    "tail": "t)\n    words = [word.lower() for word in words]\n    counts = Counter(words)\n    sorted_words = sorted(counts.items(), key=lambda x: (-x[1], x[0]))\n    return [word for word, _ in sorted_words[:k]]\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 16384,
+    "wall": 344.1,
+    "err": null,
+    "tail": ""
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 1682,
+    "wall": 27.2,
+    "err": null,
+    "tail": "ve_to_end(key)\n            self.cache[key] = value\n        else:\n            if len(self.cache) >= self.capacity:\n                self.cache.popitem(last=False)\n            self.cache[key] = value\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 4323,
+    "wall": 72.8,
+    "err": null,
+    "tail": "         if a[i - 1] == b[j - 1]:\n                dp[i][j] = dp[i - 1][j - 1]\n            else:\n                dp[i][j] = 1 + min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])\n    return dp[m][n]\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 4804,
+    "wall": 82.4,
+    "err": null,
+    "tail": "   \n        if right1 - left1 > end - start:\n            start, end = left1, right1\n        if right2 - left2 > end - start:\n            start, end = left2, right2\n    \n    return s[start:end + 1]\n```"
+   },
+   {
+    "kind": "long",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 368,
+    "wall": 11.2,
+    "err": null,
+    "tail": "ANSWER: 4721"
+   },
+   {
+    "kind": "long",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 12339,
+    "wall": 292.0,
+    "err": null,
+    "tail": "ANSWER: 40"
+   },
+   {
+    "kind": "instr",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 320,
+    "wall": 5.3,
+    "err": null,
+    "tail": "[\"red\", \"green\", \"blue\"]"
+   },
+   {
+    "kind": "instr",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 150,
+    "wall": 2.3,
+    "err": null,
+    "tail": "ACKNOWLEDGED"
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 125,
+    "wall": 2.2,
+    "err": null,
+    "calls": [
+     [
+      "get_garage_door_state",
+      {}
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 103,
+    "wall": 1.6,
+    "err": null,
+    "calls": [
+     [
+      "set_light",
+      {
+       "area": "kitchen",
+       "state": "off"
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 183,
+    "wall": 2.8,
+    "err": null,
+    "calls": [
+     [
+      "search_camera_events",
+      {
+       "label": "person",
+       "camera": "driveway",
+       "since_hours": 6
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 159,
+    "wall": 2.5,
+    "err": null,
+    "calls": [
+     [
+      "set_light",
+      {
+       "area": "kitchen",
+       "state": "on"
+      }
+     ],
+     [
+      "set_light",
+      {
+       "area": "living room",
+       "state": "on"
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 102,
+    "wall": 1.6,
+    "err": null,
+    "calls": []
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 298,
+    "wall": 4.7,
+    "err": null,
+    "calls": [
+     [
+      "search_camera_events",
+      {
+       "label": "car",
+       "camera": "backyard",
+       "since_hours": 24
+      }
+     ]
+    ]
+   }
+  ]
+ }
+]

@@ -1,3 +1,40 @@
+# Model comparison — 2026-11-23
+
+Inkling 2 Mini vs. the Snibbly lineup (Qwen3.6-35B stock + heretic, Qwen3-VL-30B,
+the production coder-30b / big-30b-thinking / fast-8b / vlm-8b), right after the
+llama.cpp upgrade to `2392423`. Report: `report-2026-11-23.html` (self-contained;
+open in a browser).
+
+- Harness: `compare_models.py` — 42 auto-graded text items (math, logic, code run
+  against unit tests, instruction following, tool calls, long context; easy + hard
+  tiers) + 6 vision items, temperature 0, straight to llama-swap `:9292` (no Langfuse).
+- Answer cap: 16k tokens for thinking models, 4k for instruct models — the first
+  4k pass cut off unfinished thinking (Qwen3.6 lost 7 points to it).
+- Reproduce the report: `python results/merge_2026_11_23.py`, then
+  `python make_report.py results/compare-2026-11-23.json --baseline results/baseline-oldbuild-2026-11-23.json --limit results/compare-2026-11-23-4k.json --findings results/findings-2026-11-23.html --build 2392423 --date 2026-11-23 --out report-2026-11-23.html`.
+- Raw per-run JSON + logs: `results/raw-2026-11-23/`.
+
+| Model | Text | Vision | Decode t/s | Prefill t/s | Tok/answer | Suite min |
+|---|---|---|---|---|---|---|
+| inkling-mini (high) | 41/42 | 6/6 | 10.6 | 20 | 821 | 68 |
+| inkling-mini@low | 41/42 | 6/6 | 10.5 | 20 | 273 | 27 |
+| big-30b-thinking | 41/42 | — | 20.3 | 320 | 2701 | 96 |
+| vl-30b | 40/42 | 6/6 | 20.9 | 272 | 404 | 17 |
+| vlm-8b | 39/42 | 6/6 | 3.7 | 599 | 240 | 30 |
+| qwen36-35b | 38/42 | 6/6 | 30.5 | 259 | 2757 | 79 |
+| coder-30b | 38/42 | — | 20.9 | 306 | 380 | 13 |
+| qwen36-35b-heretic | 37/42 | 6/6 | 31.6 | 261 | 3934 | 106 |
+| fast-8b | 35/42 | — | 64.7 | 1774 | 3198 | 42 |
+
+Takeaways: Inkling is the most accurate but its ~20 t/s prefill (forced by
+`--no-op-offload` to fit 8 GB) rules it out as an agent model here; vl-30b is the
+best all-rounder and the candidate for a Hermes (layer-3) A/B against coder-30b;
+Qwen3.6 over-thinks; the llama.cpp upgrade shows no regression. Prefill numbers
+other than coder-30b's were measured with the vision captioner sharing the CPU
+(~20% low).
+
+---
+
 # snibbly LLM bench — 2026-11-07
 
 Post-fix validation run after setting RAM to JEDEC DDR4-2666 in BIOS (was XMP

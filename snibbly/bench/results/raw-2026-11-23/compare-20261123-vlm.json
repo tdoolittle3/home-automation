@@ -1,0 +1,505 @@
+[
+ {
+  "spec": "vlm-8b",
+  "model": "vlm-8b",
+  "effort": null,
+  "started": "2026-11-24T06:26:49",
+  "load_and_first_s": 13.1,
+  "speed": [
+   {
+    "prompt_n": 3627,
+    "prefill_tps": 598.0825739811819,
+    "decode_tps": 3.760467260619936,
+    "completion_tokens": 256
+   },
+   {
+    "prompt_n": 3627,
+    "prefill_tps": 598.8789224340342,
+    "decode_tps": 3.7374547932857727,
+    "completion_tokens": 256
+   },
+   {
+    "prompt_n": 3627,
+    "prefill_tps": 598.7071095767717,
+    "decode_tps": 3.736204449678843,
+    "completion_tokens": 256
+   }
+  ],
+  "quality": [
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 107,
+    "wall": 15.7,
+    "err": null,
+    "tail": "3 for $4**.\n\nThat means:\n\n> 3 pens \u2192 $4  \n> So, 1 pen \u2192 $4 \u00f7 3 = $4/3\n\nNow, we want the cost of **27 pens**:\n\n> 27 pens \u00d7 ($4/3 per pen) = (27 \u00d7 4) / 3 = 108 / 3 = **$36**\n\n\u2705 Final Answer:\n\nANSWER: 36"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 219,
+    "wall": 32.0,
+    "err": null,
+    "tail": "irectly:\n\nFrom 9:40 to 13:15:\n\n- From 9:40 to 13:40 = 4 hours = 240 minutes\n- But we arrive at 13:15, which is 25 minutes earlier \u2192 240 - 25 = 215 minutes\n\n\u2705 Final Answer: **215 minutes**\n\nANSWER: 215"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": false,
+    "tokens": 599,
+    "wall": 90.7,
+    "err": null,
+    "tail": "95) = \\frac{13}{2} \\cdot 210 = 13 \\cdot 105 = 1365 $\n\n---\n\n### Step 4: Apply inclusion-exclusion\n\nSum of numbers divisible by 3 or 5:\n\n$ 6633 + 4100 - 1365 = 9768 $\n\n---\n\n\u2705 Final Answer:\n\nANSWER: 9768"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 163,
+    "wall": 23.8,
+    "err": null,
+    "tail": "(fill) - 24 (empty) = **16 liters/hour**\n\nWe want to know how long it takes to fill the tank (240 liters) at this net rate:\n\n> Time = Total volume / Net rate = 240 / 16 = **15 hours**\n\n---\n\nANSWER: 15"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 248,
+    "wall": 36.6,
+    "err": null,
+    "tail": "t / 5 minutes) = **20 widgets per minute**.\n\nSo, to make 100 widgets at 20 widgets per minute:\n\n\u2192 Time = 100 widgets \u00f7 20 widgets/minute = **5 minutes**.\n\n---\n\n\u2705 Final Answer: **5 minutes**\n\nANSWER: 5"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 292,
+    "wall": 46.7,
+    "err": null,
+    "tail": "is to 360:\n\n- Exponent of 2: 3 \u2192 (3+1) = 4  \n- Exponent of 3: 2 \u2192 (2+1) = 3  \n- Exponent of 5: 1 \u2192 (1+1) = 2  \n\nMultiply:  \n**4 \u00d7 3 \u00d7 2 = 24**\n\n---\n\n\u2705 So, 360 has **24 positive divisors**.\n\nANSWER: 24"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 420,
+    "wall": 65.7,
+    "err": null,
+    "tail": "ubtract\n\n$ 4913 - 2197 = ? $\n\nBreak it down:\n\n$ 4913 - 2000 = 2913 $\n\n$ 2913 - 197 = 2716 $\n\nAlternatively:\n\n$ 4913 - 2197 = (4913 - 2200) + 3 = 2713 + 3 = 2716 $\n\n---\n\n### Final Answer:\n\nANSWER: 2716"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 323,
+    "wall": 54.3,
+    "err": null,
+    "tail": "20% discount: multiply by 0.8\n- After 15% discount: multiply by 0.85\n\nTotal multiplier = $0.8 \\times 0.85 = 0.68$\n\nSo, final price is 68% of original \u2192 discount = 100% - 68% = **32%**\n\n---\n\nANSWER: 32"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 408,
+    "wall": 59.7,
+    "err": null,
+    "tail": "5} \\right\\rfloor = 1$\n- $\\left\\lfloor \\frac{1000}{3125} \\right\\rfloor = 0$ (and higher powers are 0)\n\nAdd them up:\n\n$$\n200 + 40 + 8 + 1 = 249\n$$\n\nThus, $1000!$ has **249 trailing zeros**.\n\nANSWER: 249"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 272,
+    "wall": 39.4,
+    "err": null,
+    "tail": ":\n\n$$\n100 = 12 \\cdot 8 + 4\n$$\n\nSo:\n\n$$\n2^{100} = (2^{12})^8 \\cdot 2^4 \\equiv 1^8 \\cdot 2^4 \\equiv 2^4 \\pmod{13}\n$$\n\nNow compute $2^4 = 16$, and $16 \\mod 13 = 3$.\n\n---\n\n\u2705 Final Answer: **3**\n\nANSWER: 3"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 1184,
+    "wall": 185.2,
+    "err": null,
+    "tail": "out the sequence:\n\n- a(0) = 1\n- a(1) = 1\n- a(2) = 2\n- a(3) = 3\n- a(4) = 5\n- a(5) = 8\n- a(6) = 13\n- a(7) = 21\n- a(8) = 34\n- a(9) = 55\n- a(10) = 89\n\nSo `a(10) = 89`\n\n---\n\n### Final Answer:\n\n`ANSWER: 89`"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 838,
+    "wall": 127.4,
+    "err": null,
+    "tail": "26  \nAdd 9 \u2192 35  \nAdd 9 \u2192 44  \nAdd 0 \u2192 44  \nAdd 6 \u2192 50  \nAdd 8 \u2192 58  \nAdd 4 \u2192 62  \nAdd 2 \u2192 64  \nAdd 6 \u2192 70  \nAdd 2 \u2192 72  \nAdd 4 \u2192 **76**\n\n\u2705 Total digit sum = **76**\n\n---\n\n### Final Answer:\n\nANSWER: 76"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 837,
+    "wall": 127.2,
+    "err": null,
+    "tail": " \\right\\rfloor = 3 $\n- $ \\left\\lfloor \\frac{404}{625} \\right\\rfloor = 0 $\n\nTotal: $ 80 + 16 + 3 = 99 $\n\nSo 404 gives 99 zeros \u2192 not enough.\n\nThus, **405 is the smallest** such $ n $.\n\n---\n\nANSWER: 405"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 318,
+    "wall": 46.5,
+    "err": null,
+    "tail": "\\binom{12}{6} $:\n\n$$\n\\binom{12}{6} = \\frac{12!}{6!6!} = \\frac{479001600}{720 \\cdot 720} = \\frac{479001600}{518400} = 924\n$$\n\nThen:\n\n$$\nC_6 = \\frac{924}{7} = 132\n$$\n\n---\n\n### Final Answer:\n\nANSWER: 132"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 762,
+    "wall": 114.7,
+    "err": null,
+    "tail": "001 \u2192 1001 \u00f7 7 = 143 \u2192 yes\n- A=1, B=7 \u2192 1771 \u2192 1771 \u00f7 7 = 253 \u2192 yes\n- A=9, B=0 \u2192 9009 \u2192 9009 \u00f7 7 = 1287 \u2192 yes\n- A=9, B=7 \u2192 9779 \u2192 9779 \u00f7 7 = 1397 \u2192 yes\n\nAll work.\n\n---\n\n### \u2705 Final Answer:\n\nANSWER: 18"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 550,
+    "wall": 82.2,
+    "err": null,
+    "tail": "0}{60} + \\frac{15}{60} + \\frac{12}{60} + \\frac{10}{60} = \\frac{147}{60} = \\frac{49}{20} = 2.45\n$$\n\nSo,\n\n$$\nE(6) = 6 \\cdot \\frac{49}{20} = \\frac{294}{20} = 14.7\n$$\n\n---\n\n### Final Answer:\n\nANSWER: 14.7"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 125,
+    "wall": 18.3,
+    "err": null,
+    "tail": "orter than Bob, and Bob is shorter than Alice, who is shorter than Dave.\n\nThus, the order from tallest to shortest is:  \n**Dave > Alice > Bob > Carol**\n\nSo the second shortest is **Bob**.\n\nANSWER: Bob"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 11,
+    "wall": 2.0,
+    "err": null,
+    "tail": "Quarter and nickel\n\nANSWER: Quarter and nickel"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 47,
+    "wall": 7.1,
+    "err": null,
+    "tail": "The phrase \u201cAll but 9 run away\u201d means that 9 sheep did **not** run away \u2014 so they are still with the farmer.\n\nTherefore, the farmer has **9 sheep left**.\n\nANSWER: 9"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 165,
+    "wall": 24.3,
+    "err": null,
+    "tail": "use 7 \u00d7 14 = 98, and 100 - 98 = 2.\n\nSo, 100 days from now is **2 days after Wednesday**.\n\nWednesday + 1 = Thursday  \nThursday + 1 = Friday\n\n\u2705 So, 100 days from Wednesday is **Friday**.\n\nANSWER: Friday"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 404,
+    "wall": 60.5,
+    "err": null,
+    "tail": "nave \u2192 so for A and C to be the same type, C must also be a **knave**.\n\nSo C = knave.\n\nAgain, C is a knave.\n\nSo in **both cases**, C is a **knave**.\n\n---\n\n\u2705 Therefore, C is a **knave**.\n\nANSWER: knave"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 326,
+    "wall": 48.7,
+    "err": null,
+    "tail": "Cal: dog \u2192 OK (he doesn\u2019t own cat \u2192 satisfied)\n- Ben: cat \u2192 OK\n\nAlso, fish belongs to Ben\u2019s sister \u2192 Ann \u2192 yes, that matches.\n\nAll constraints satisfied.\n\nTherefore, **Cal owns the dog**.\n\nANSWER: Cal"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 18,
+    "wall": 3.1,
+    "err": null,
+    "tail": "1 January 2000 was a **Saturday**.\n\nANSWER: Saturday"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 653,
+    "wall": 110.1,
+    "err": null,
+    "tail": "eat than Gus \u2192 Gus is in 5 \u2192 Ivy must be >5 \u2192 impossible.\n\nSo this case is invalid.\n\n---\n\nOnly valid assignment: Finn in 1, Gus in 2, Eve in 3, Hal in 4, Ivy in 5.\n\nThus, seat 1 is Finn.\n\nANSWER: Finn"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 89,
+    "wall": 15.6,
+    "err": null,
+    "tail": " if char in '({[':\n            stack.append(char)\n        elif char in ')}]':\n            if not stack or stack.pop() != mapping[char]:\n                return False\n    \n    return len(stack) == 0\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 110,
+    "wall": 16.3,
+    "err": null,
+    "tail": "ged[-1]\n        if current[0] <= last[1]:  # overlapping or touching\n            merged[-1] = [last[0], max(last[1], current[1])]\n        else:\n            merged.append(current)\n    return merged\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 157,
+    "wall": 22.6,
+    "err": null,
+    "tail": "', 'X', 'IX', 'V', 'IV', 'I']\n    result = \"\"\n    for i in range(len(values)):\n        count = n // values[i]\n        result += numerals[i] * count\n        n -= values[i] * count\n    return result\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 119,
+    "wall": 17.2,
+    "err": null,
+    "tail": " # Sort by frequency (descending), then alphabetically for ties\n    sorted_words = sorted(word_count.keys(), key=lambda x: (-word_count[x], x))\n    # Return top k words\n    return sorted_words[:k]\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 382,
+    "wall": 56.2,
+    "err": null,
+    "tail": "                    left = left - right\n            return left, i\n\n        result, i = parse_add_sub(tokens, 0)\n        return result\n\n    tokens = tokenize(s)\n    return parse_expression(tokens)\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 144,
+    "wall": 20.9,
+    "err": null,
+    "tail": ".remove(key)\n        elif len(self.cache) >= self.capacity:\n            oldest = self.order.pop(0)\n            del self.cache[oldest]\n        self.cache[key] = value\n        self.order.append(key)\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 230,
+    "wall": 33.1,
+    "err": null,
+    "tail": "min(\n                    dp[i - 1][j],    # deletion\n                    dp[i][j - 1],    # insertion\n                    dp[i - 1][j - 1] # substitution\n                )\n    \n    return dp[m][n]\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 228,
+    "wall": 32.9,
+    "err": null,
+    "tail": "        if right - left + 1 > max_len:\n                max_len = right - left + 1\n                start = left\n            left -= 1\n            right += 1\n    \n    return s[start:start + max_len]\n```"
+   },
+   {
+    "kind": "long",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 85,
+    "wall": 40.7,
+    "err": null,
+    "tail": "nge to the garage keypad code:\n\n```\n2026-11-04T13:07:00Z keypad[2211]: garage keypad code changed to 4721 by admin\n```\n\nThis line explicitly states that the code was changed to **4721**.\n\nANSWER: 4721"
+   },
+   {
+    "kind": "long",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 0,
+    "wall": 0.0,
+    "err": "TimeoutError('timed out')",
+    "tail": ""
+   },
+   {
+    "kind": "instr",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 10,
+    "wall": 2.9,
+    "err": null,
+    "tail": "[\"red\", \"green\", \"blue\"]"
+   },
+   {
+    "kind": "instr",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 4,
+    "wall": 1.6,
+    "err": null,
+    "tail": "ACKNOWLEDGED"
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 20,
+    "wall": 4.0,
+    "err": null,
+    "calls": [
+     [
+      "get_garage_door_state",
+      {}
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 27,
+    "wall": 5.3,
+    "err": null,
+    "calls": [
+     [
+      "set_light",
+      {
+       "area": "kitchen",
+       "state": "off"
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 36,
+    "wall": 7.0,
+    "err": null,
+    "calls": [
+     [
+      "search_camera_events",
+      {
+       "label": "person",
+       "camera": "driveway",
+       "since_hours": 6
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 54,
+    "wall": 8.8,
+    "err": null,
+    "calls": [
+     [
+      "set_light",
+      {
+       "area": "kitchen",
+       "state": "on"
+      }
+     ],
+     [
+      "set_light",
+      {
+       "area": "living room",
+       "state": "on"
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 8,
+    "wall": 1.7,
+    "err": null,
+    "calls": []
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 36,
+    "wall": 6.2,
+    "err": null,
+    "calls": [
+     [
+      "search_camera_events",
+      {
+       "label": "car",
+       "camera": "backyard",
+       "since_hours": 24
+      }
+     ]
+    ]
+   }
+  ],
+  "vision": [
+   {
+    "kind": "vision",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 28,
+    "wall": 5.2,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 7,
+    "wall": 1.9,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 7,
+    "wall": 1.9,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 61,
+    "wall": 9.4,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 117,
+    "wall": 16.8,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 292,
+    "wall": 42.6,
+    "err": null
+   }
+  ]
+ }
+]

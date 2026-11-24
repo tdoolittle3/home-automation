@@ -1,0 +1,29 @@
+[
+ {
+  "spec": "coder-30b",
+  "model": "coder-30b",
+  "effort": null,
+  "started": "2026-11-24T08:03:10",
+  "load_and_first_s": 17.8,
+  "speed": [
+   {
+    "prompt_n": 3627,
+    "prefill_tps": 304.60986337991477,
+    "decode_tps": 20.781561099460305,
+    "completion_tokens": 256
+   },
+   {
+    "prompt_n": 3627,
+    "prefill_tps": 306.03607428702963,
+    "decode_tps": 21.03925851382473,
+    "completion_tokens": 256
+   },
+   {
+    "prompt_n": 3627,
+    "prefill_tps": 305.65875740571477,
+    "decode_tps": 20.940509736351594,
+    "completion_tokens": 256
+   }
+  ]
+ }
+]
