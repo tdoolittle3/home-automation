@@ -299,6 +299,16 @@ monitors:
     retries: 3
     retry_interval: 60
 
+  # The indoor SimpliCam is on the home LAN over Wi-Fi, not the PoE island,
+  # so it gets more slack before alerting than the wired cameras.
+  - name: Camera simplicam
+    group: Cameras
+    type: ping
+    hostname: 192.168.0.26
+    interval: 120
+    retries: 5
+    retry_interval: 60
+
   # ---- Snibbly (the LLM box, 192.168.0.19) ----------------------------------
   # Service checks; the host itself is the "snibbly" ping under Host and
   # network. Kuma stays on ladybird, which is the right place: a monitor on

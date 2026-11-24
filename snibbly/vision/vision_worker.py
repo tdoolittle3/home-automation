@@ -45,7 +45,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 CONFIG_PATH = os.environ.get("VISION_CONFIG", "/etc/vision/config.toml")
 
 DEFAULTS = {
-    "frigate": {"base_url": "http://192.168.0.13:5000", "cameras": ["driveway", "backyard"]},
+    "frigate": {"base_url": "http://192.168.0.13:5000", "cameras": ["driveway", "backyard",
+                                                                 "simplicam"]},
     "mqtt": {"host": "192.168.0.13", "port": 1883, "topic": "frigate/events"},
     "http": {"bind": "0.0.0.0", "port": 8098},
     "web": {"bind": "0.0.0.0", "port": 8099},

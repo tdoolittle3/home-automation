@@ -34,6 +34,13 @@ Every item here cost real debugging time. Read the relevant ones before changing
 - **Frigate 0.17 defaults `detect.enabled` to false.** Without the explicit global `detect:` block
   the cameras record happily and detect nothing, with no error anywhere. Zero events is not proof
   that the driveway was quiet.
+- **Offline `frigate --validate-config` must run with `--network none`.** Otherwise the throwaway
+  container starts the whole stack. It joins the real MQTT broker as client id `frigate`, which
+  kicks live Frigate off MQTT, and it retries the Dahua cameras with the dummy password until they
+  lock the admin account out. A lockout breaks every reconnect until it expires. Piping it into
+  `head` kills only the docker client, and the container keeps running (2026-11-23).
+- **go2rtc's native RTSP client drops the SimpliCam's video track** (its SDP marks it
+  `a=sendonly`). Use the `ffmpeg:...#video=copy#audio=copy` source. See [cameras.md](cameras.md).
 
 ## Cameras
 

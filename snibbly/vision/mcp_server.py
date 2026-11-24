@@ -51,7 +51,8 @@ log = logging.getLogger("vision-mcp")
 # live problem they solve is the model answering camera questions from Home
 # Assistant's coarse frigate occupancy sensors instead of coming here
 server = MCPServer("vision", instructions=(
-    "Security-camera archive for the house (driveway + backyard cameras). "
+    "Security-camera archive for the house (driveway, backyard and simplicam "
+    "— simplicam is the indoor camera in a room by the hallway door). "
     "Use these tools for ANY question about what or who the cameras saw — "
     "'who was by the driveway?', 'any people last night?', 'when did the "
     "mail truck come?'. Do NOT answer camera questions from Home Assistant: "
@@ -239,7 +240,7 @@ def _event_summary(c, event_id):
 @server.tool()
 def search(query: str, since: str = "24h", until: str = "", camera: str = "",
            top_k: int = 8, min_score: float = 0.22) -> dict:
-    """Search the security-camera archive (driveway, backyard) by plain-text
+    """Search the security-camera archive (driveway, backyard, indoor simplicam) by plain-text
     description — "white delivery van", "person carrying a box" — and get
     matching events ranked by visual similarity, each with a footage link.
     Prefer this over Home Assistant for anything about what the cameras saw.
@@ -344,7 +345,8 @@ def recent_events(since: str = "24h", until: str = "", camera: str = "",
     Home Assistant's frigate occupancy sensors — prefer this.
 
     NOT for open questions — "anything on the cameras last night?", "what
-    happened this morning?", "what did the backyard camera see?": use
+    happened this morning?", "what did the backyard (or indoor simplicam)
+    camera see?": use
     timeline(since=...), which gives written descriptions. Unfiltered, this
     list is mostly raw detections (parked-car re-detections, headlights) that
     read as noise.
@@ -458,7 +460,8 @@ def timeline(since: str = "today", until: str = "", camera: str = "",
 
     since: pass the words — 'today', 'yesterday', 'wednesday morning',
     'last night' (resolved server-side, leave until empty) — or '6h'/'2d',
-    'YYYY-MM-DD HH:MM' local. camera: '' = both cameras.
+    'YYYY-MM-DD HH:MM' local. camera: '' = all cameras (driveway, backyard,
+    simplicam).
     Events not yet described (recent ones are captioned within minutes) are
     counted in not_yet_described; summarize from the entries, don't list all.
     """

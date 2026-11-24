@@ -38,6 +38,10 @@ would like to do. Turning off P2P, UPnP and DDNS in the camera UI is policy; the
 enforcement. The server serves those cameras NTP via chrony and pulls their RTSP streams — nothing
 else crosses.
 
+The exception is the indoor **SimpliCam** (`192.168.0.26`), a rooted consumer camera that only has
+Wi-Fi. It sits on the home LAN, not the island. Its stream is unauthenticated, and only go2rtc on
+ladybird should connect to it.
+
 A **Raspberry Pi 2** sits on the same shelf and used to be the LAN's DNS resolver (Pi-hole at
 `192.168.0.14`). Since the AdGuard cutover it is the rollback, not the live resolver, and it is not
 managed by this repo. Its intended second job — watching ladybird from outside ladybird — is still
@@ -78,6 +82,7 @@ is a waste and recording a 704×480 one is a regret:
 |---|---|---|
 | Driveway (IPC-T54PRO-ZE) | 1280×720 @ 5 fps — its third stream, `subtype=2` | 2688×1520 main |
 | Backyard (IPC-T24IR-AS) | 704×480 @ 5 fps | 2688×1520 main |
+| SimpliCam (indoor, Wi-Fi) | 1920×1080 @ 5 fps — its only stream | same stream, 1080p20 H.264 + AAC |
 
 The driveway streams also go through go2rtc, so the live view in the UI can show either the full
 4MP main stream or the 720p sub stream.
