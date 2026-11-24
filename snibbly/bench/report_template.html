@@ -1,0 +1,310 @@
+<title>Snibbly Model Bake-off</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap">
+<style>
+/* Layout: one reading column of figure blocks; each figure = caption, chart, note. */
+:root {
+  --bg: #fbfbfa; --panel: #ffffff; --ink: #121417; --ink-2: #4c5058; --ink-3: #7c818b;
+  --rule: #e4e5e8; --grid: #eeeff1;
+  --hl: #2a78d6; --hl-2: #86b6ef; --base: #a3a7ae; --base-ink: #5d626b;
+  --good: #0b7a3e; --bad: #b42318;
+  --h0: #f1f5fb; --h1: #cde2fb; --h2: #9ec5f4; --h3: #5598e7; --h4: #256abf; --h5: #104281;
+  --display: "Space Grotesk", "IBM Plex Sans", system-ui, sans-serif;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #141518; --panel: #1b1c20; --ink: #eef0f3; --ink-2: #b9bdc6; --ink-3: #868b95;
+  --rule: #2c2e34; --grid: #24262b; --hl: #3987e5; --hl-2: #1c5cab; --base: #6b7079; --base-ink: #a7acb5;
+  --good: #3fbf78; --bad: #f0705f;
+  --h0: #1e2229; --h1: #133056; --h2: #184f95; --h3: #2a78d6; --h4: #5598e7; --h5: #b7d3f6;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #141518; --panel: #1b1c20; --ink: #eef0f3; --ink-2: #b9bdc6; --ink-3: #868b95;
+  --rule: #2c2e34; --grid: #24262b; --hl: #3987e5; --hl-2: #1c5cab; --base: #6b7079; --base-ink: #a7acb5;
+  --good: #3fbf78; --bad: #f0705f;
+  --h0: #1e2229; --h1: #133056; --h2: #184f95; --h3: #2a78d6; --h4: #5598e7; --h5: #b7d3f6;
+  color-scheme: dark; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 36px; }
+h1, h2 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(26px, 4vw, 36px); font-weight: 600; letter-spacing: -0.01em; }
+h2 { font-size: 19px; font-weight: 600; }
+.eyebrow { font: 500 12px/1 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
+.lede { color: var(--ink-2); max-width: 68ch; margin: 10px 0 0; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-top: 14px; font: 13px var(--mono); color: var(--ink-3); }
+.meta b { color: var(--ink-2); font-weight: 500; }
+figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+figcaption p, .note { color: var(--ink-2); margin: 4px 0 0; max-width: 72ch; font-size: 14px; }
+.chart { background: var(--panel); border: 1px solid var(--rule); border-radius: 6px; padding: 12px; overflow-x: auto; position: relative; }
+svg text { font-family: var(--mono); fill: var(--ink-2); font-size: 11px; }
+svg .lbl { fill: var(--ink); font-family: var(--body); font-size: 12px; }
+svg .lbl.hl { font-weight: 600; }
+svg .axis { stroke: var(--rule); }
+svg .grid { stroke: var(--grid); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-2); }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+th { font: 500 11px var(--mono); letter-spacing: 0.04em; text-transform: uppercase; color: var(--ink-3); }
+td.hlrow { font-weight: 600; }
+.cell { border-radius: 3px; text-align: center; font-family: var(--mono); }
+.delta-up { color: var(--good); } .delta-down { color: var(--bad); }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font: 12px/1.4 var(--mono);
+  padding: 6px 8px; border-radius: 4px; white-space: nowrap; transform: translate(-50%, -115%); }
+.findings { display: grid; gap: 8px; margin: 0; padding-left: 20px; max-width: 72ch; }
+.findings li { color: var(--ink-2); } .findings b { color: var(--ink); }
+details summary { cursor: pointer; color: var(--ink-2); font-size: 14px; }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">snibbly · llama.cpp __BUILD__ · __DATE__</div>
+    <h1>Inkling 2 Mini vs. the snibbly lineup</h1>
+    <p class="lede">Every model ran the same auto-graded suite on the same box: RTX 2070 Super 8 GB, experts offloaded to 30 GB system RAM, Q4 quants. Scores are pass counts on 42 text items (48 with images); nothing is model-judged. Small suite, so a gap of one or two items is a tie.</p>
+    <div class="meta" id="meta"></div>
+  </header>
+
+  <section>
+    <h2>Findings</h2>
+    <ul class="findings" id="findings">__FINDINGS__</ul>
+  </section>
+
+  <figure>
+    <figcaption><h2>Quality vs. speed</h2><p>Up and to the right is better. Inkling configurations in blue.</p></figcaption>
+    <div class="chart" id="scatter"></div>
+  </figure>
+
+  <figure>
+    <figcaption><h2>Score by category</h2><p>Pass rate per category; darker is better. Hard-tier items are the ones that separate models.</p></figcaption>
+    <div class="chart" id="heat"></div>
+  </figure>
+
+  <div class="two">
+    <figure>
+      <figcaption><h2>Decode speed</h2><p>Tokens per second while writing (median of 3).</p></figcaption>
+      <div class="chart" id="decode"></div>
+    </figure>
+    <figure>
+      <figcaption><h2>Prefill speed</h2><p>Tokens per second reading a ~3.6k-token prompt; sets time to first word.</p></figcaption>
+      <div class="chart" id="prefill"></div>
+    </figure>
+  </div>
+
+  <div class="two">
+    <figure>
+      <figcaption><h2>Tokens per answer</h2><p>Average completion tokens per item, thinking included.</p></figcaption>
+      <div class="chart" id="tokens"></div>
+    </figure>
+    <figure>
+      <figcaption><h2>Suite wall time</h2><p>Minutes to answer every quality item.</p></figcaption>
+      <div class="chart" id="wall"></div>
+    </figure>
+  </div>
+
+  <figure>
+    <figcaption><h2>Answer-length limit: 4k vs 16k</h2><p>Thinking models rerun with a 16,384-token cap. "Cut off" = the answer hit the cap before finishing.</p></figcaption>
+    <div class="chart" id="limit"></div>
+  </figure>
+
+  <figure>
+    <figcaption><h2>llama.cpp upgrade check</h2><p>Production models before (Oct 4 build) and after (__BUILD__) the swap.</p></figcaption>
+    <div class="chart" id="upgrade"></div>
+  </figure>
+
+  <figure>
+    <figcaption><h2>All numbers</h2></figcaption>
+    <div class="chart" id="table"></div>
+  </figure>
+
+  <details>
+    <summary>How this was run</summary>
+    <p class="note">Harness: <code>snibbly/bench/compare_models.py</code> in the home-automation repo, against llama-swap on :9292 (bypassing Langfuse). Temperature 0. Answer cap per item: 16,384 tokens for the thinking models (Inkling, Qwen3.6, big-30b-thinking, fast-8b) and 4,096 for the instruct models (vl-30b, coder-30b, vlm-8b); an answer that hits the cap fails. fast-8b's 16k quality run used a one-slot 32k-context variant (<code>fast-8b-32k</code>); its speed numbers are from the production <code>fast-8b</code> config. The production vision captioner was paused during the big-30b-thinking run. Math answers are exact-match on a final <code>ANSWER:</code> line; code is executed against unit tests; tool calls are checked by name and arguments; vision uses generated images of colored squares. Vision models other than vlm-8b load their vision projector beside the language model. vlm-8b sizes itself to leftover VRAM beside a resident model, so its decode speed reflects mostly-CPU inference. Inkling runs with <code>--no-op-offload -ub 256</code> to fit the 8 GB card, which keeps its prompt processing on the CPU.</p>
+  </details>
+</div>
+
+<script>
+const RUNS = __DATA__;
+const BASELINE = __BASELINE__;
+const LIMIT = __LIMIT__;
+const HL = s => s.startsWith("inkling");
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs, parent, text) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  if (text != null) e.textContent = text;
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const median = xs => { const s = xs.filter(x => x != null).sort((a, b) => a - b); return s.length ? s[Math.floor(s.length / 2)] : null; };
+function summarize(r) {
+  const items = (r.quality || []).concat(r.vision || []);
+  const by = (f) => { const xs = items.filter(f); return { ok: xs.filter(x => x.ok).length, n: xs.length }; };
+  const cats = {};
+  for (const k of ["math", "logic", "code", "instr", "tool", "long", "vision"]) cats[k] = by(x => x.kind === k);
+  const text = by(x => x.kind !== "vision");
+  return {
+    spec: r.spec, cats, text,
+    easy: by(x => (x.tier || "easy") === "easy"), hard: by(x => x.tier === "hard"),
+    total: by(() => true),
+    decode: median((r.speed || []).map(s => s.decode_tps)),
+    prefill: median((r.speed || []).map(s => s.prefill_tps)),
+    load: r.load_and_first_s,
+    tokens: items.length ? items.reduce((a, x) => a + (x.tokens || 0), 0) / items.length : null,
+    wall: items.reduce((a, x) => a + (x.wall || 0), 0) / 60,
+    truncated: items.filter(x => x.tokens >= (r.max_tokens || 4096)).length,
+    cap: r.max_tokens || 4096,
+  };
+}
+const S = RUNS.map(summarize);
+const pct = c => c.n ? c.ok / c.n : null;
+
+// tooltip shared by charts
+function tipFor(box) {
+  const t = document.createElement("div"); t.className = "tip"; t.hidden = true; box.appendChild(t);
+  return {
+    show(evt, html) { const r = box.getBoundingClientRect(); t.innerHTML = html; t.hidden = false;
+      t.style.left = (evt.clientX - r.left + box.scrollLeft) + "px"; t.style.top = (evt.clientY - r.top) + "px"; },
+    hide() { t.hidden = true; }
+  };
+}
+
+function scatter() {
+  const box = document.getElementById("scatter"), W = 900, H = 420, m = { l: 56, r: 30, t: 16, b: 48 };
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img",
+    "aria-label": "Scatter of text quality score against decode speed" }, box);
+  svg.style.minWidth = "560px";
+  const pts = S.filter(s => s.decode != null && s.text.n);
+  const xMax = Math.ceil(Math.max(...pts.map(p => p.decode)) / 10) * 10 + 10;
+  const yMin = Math.max(0, Math.floor(Math.min(...pts.map(p => pct(p.text))) * 10) / 10 - 0.1);
+  const x = v => m.l + (v / xMax) * (W - m.l - m.r), y = v => H - m.b - ((v - yMin) / (1 - yMin)) * (H - m.t - m.b);
+  for (let v = 0; v <= xMax; v += 10) { el("line", { class: "grid", x1: x(v), x2: x(v), y1: m.t, y2: H - m.b }, svg);
+    el("text", { x: x(v), y: H - m.b + 18, "text-anchor": "middle" }, svg, v); }
+  for (let v = yMin; v <= 1.0001; v += 0.1) { el("line", { class: "grid", x1: m.l, x2: W - m.r, y1: y(v), y2: y(v) }, svg);
+    el("text", { x: m.l - 8, y: y(v) + 4, "text-anchor": "end" }, svg, Math.round(v * 100) + "%"); }
+  el("text", { x: (m.l + W - m.r) / 2, y: H - 8, "text-anchor": "middle" }, svg, "decode tokens / second");
+  el("text", { x: 14, y: (m.t + H - m.b) / 2, "text-anchor": "middle", transform: `rotate(-90 14 ${(m.t + H - m.b) / 2})` }, svg, "text score");
+  const tip = tipFor(box);
+  const placed = [];
+  pts.sort((a, b) => HL(a.spec) - HL(b.spec)).forEach(p => {
+    const cx = x(p.decode), cy = y(pct(p.text)), hl = HL(p.spec);
+    const c = el("circle", { cx, cy, r: hl ? 7 : 6, fill: hl ? css("--hl") : css("--base"), stroke: css("--panel"), "stroke-width": 2 }, svg);
+    let ly = cy - 12; while (placed.some(q => Math.abs(q.y - ly) < 14 && Math.abs(q.x - cx) < 120)) ly += 16;
+    placed.push({ x: cx, y: ly });
+    const anchor = cx > W - 160 ? "end" : "start";
+    el("text", { class: "lbl" + (hl ? " hl" : ""), x: cx + (anchor === "end" ? -10 : 10), y: ly, "text-anchor": anchor }, svg, p.spec);
+    const hit = el("circle", { cx, cy, r: 16, fill: "transparent" }, svg);
+    hit.addEventListener("mousemove", e => tip.show(e, `<b>${p.spec}</b><br>text ${p.text.ok}/${p.text.n} · ${p.decode.toFixed(1)} tok/s<br>${Math.round(p.tokens)} tok/answer`));
+    hit.addEventListener("mouseleave", () => tip.hide());
+  });
+}
+
+function heat() {
+  const box = document.getElementById("heat");
+  const cols = ["math", "logic", "code", "instr", "tool", "long", "vision"];
+  const steps = ["--h0", "--h1", "--h2", "--h3", "--h4", "--h5"].map(css);
+  const t = document.createElement("table");
+  t.innerHTML = `<thead><tr><th>model</th>${cols.map(c => `<th>${c}</th>`).join("")}<th>easy</th><th>hard</th><th>total</th></tr></thead>`;
+  const tb = document.createElement("tbody");
+  [...S].sort((a, b) => pct(b.text) - pct(a.text) || pct(b.total) - pct(a.total)).forEach(s => {
+    const tr = document.createElement("tr");
+    const cell = c => {
+      if (!c.n) return `<td class="cell" style="color:var(--ink-3)">—</td>`;
+      const p = c.ok / c.n, i = Math.min(5, Math.round(p * 5)), dark = i >= 3;
+      return `<td class="cell" style="background:${steps[i]};color:${dark ? "#fff" : "var(--ink)"}" title="${c.ok}/${c.n}">${c.ok}/${c.n}</td>`;
+    };
+    tr.innerHTML = `<td class="${HL(s.spec) ? "hlrow" : ""}">${s.spec}</td>${cols.map(k => cell(s.cats[k])).join("")}` +
+      `${cell(s.easy)}${cell(s.hard)}<td><b>${s.total.ok}/${s.total.n}</b></td>`;
+    tb.appendChild(tr);
+  });
+  t.appendChild(tb); box.appendChild(t);
+}
+
+function bars(id, key, fmt, unit) {
+  const box = document.getElementById(id);
+  const rows = S.filter(s => s[key] != null).sort((a, b) => b[key] - a[key]);
+  const W = 440, rowH = 26, m = { l: 150, r: 64, t: 6, b: 6 }, H = m.t + m.b + rows.length * rowH;
+  const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": unit }, box);
+  const max = Math.max(...rows.map(r => r[key]));
+  const x = v => (v / max) * (W - m.l - m.r);
+  const tip = tipFor(box);
+  el("line", { class: "axis", x1: m.l, x2: m.l, y1: m.t, y2: H - m.b }, svg);
+  rows.forEach((r, i) => {
+    const yy = m.t + i * rowH, hl = HL(r.spec), w = Math.max(2, x(r[key]));
+    el("text", { class: "lbl" + (hl ? " hl" : ""), x: m.l - 8, y: yy + rowH / 2 + 4, "text-anchor": "end" }, svg, r.spec);
+    el("path", { d: `M${m.l},${yy + 5} h${w - 4} q4,0 4,4 v${rowH - 18} q0,4 -4,4 h${-(w - 4)} z`, fill: hl ? css("--hl") : css("--base") }, svg);
+    el("text", { x: m.l + w + 6, y: yy + rowH / 2 + 4 }, svg, fmt(r[key]));
+    const hit = el("rect", { x: 0, y: yy, width: W, height: rowH, fill: "transparent" }, svg);
+    hit.addEventListener("mousemove", e => tip.show(e, `<b>${r.spec}</b><br>${fmt(r[key])} ${unit}`));
+    hit.addEventListener("mouseleave", () => tip.hide());
+  });
+}
+
+function upgrade() {
+  const box = document.getElementById("upgrade");
+  if (!BASELINE.length) { box.textContent = "No baseline run."; return; }
+  const B = BASELINE.map(summarize);
+  const row = (label, a, b, f, higherBetter = true) => {
+    if (a == null || b == null) return `<td>${label}</td><td>—</td><td>—</td><td></td>`;
+    const d = b - a, rel = a ? d / a : 0, good = higherBetter ? d >= 0 : d <= 0;
+    const cls = Math.abs(rel) < 0.05 ? "" : (good ? "delta-up" : "delta-down");
+    return `<td>${label}</td><td>${f(a)}</td><td>${f(b)}</td><td class="${cls}">${d >= 0 ? "+" : ""}${(rel * 100).toFixed(0)}%</td>`;
+  };
+  let html = `<table><thead><tr><th>model · metric</th><th>Oct 4 build</th><th>new build</th><th>change</th></tr></thead><tbody>`;
+  B.forEach(b => {
+    const a = S.find(s => s.spec === b.spec); if (!a) return;
+    const sc = c => `${c.ok}/${c.n}`;
+    html += `<tr>${row(b.spec + " · decode t/s", b.decode, a.decode, v => v.toFixed(1))}</tr>`;
+    html += `<tr>${row(b.spec + " · prefill t/s", b.prefill, a.prefill, v => v.toFixed(0))}</tr>`;
+    html += `<tr><td>${b.spec} · score</td><td>${sc(b.total)}</td><td>${sc(a.total)}</td><td class="${a.total.ok < b.total.ok ? "delta-down" : ""}">${a.total.ok - b.total.ok >= 0 ? "+" : ""}${a.total.ok - b.total.ok}</td></tr>`;
+  });
+  box.innerHTML = html + "</tbody></table>";
+}
+
+function limit() {
+  const box = document.getElementById("limit");
+  if (!LIMIT.length) { box.closest("figure").hidden = true; return; }
+  let html = `<table><thead><tr><th>model</th><th>score @4k</th><th>cut off @4k</th><th>score @16k</th><th>cut off @16k</th><th>change</th></tr></thead><tbody>`;
+  LIMIT.map(summarize).forEach(a => {
+    const b = S.find(s => s.spec === a.spec); if (!b) return;
+    const d = b.total.ok - a.total.ok;
+    html += `<tr><td class="${HL(a.spec) ? "hlrow" : ""}">${a.spec}</td><td>${a.total.ok}/${a.total.n}</td><td>${a.truncated}</td>` +
+      `<td>${b.total.ok}/${b.total.n}</td><td>${b.truncated}</td><td class="${d > 0 ? "delta-up" : d < 0 ? "delta-down" : ""}">${d >= 0 ? "+" : ""}${d}</td></tr>`;
+  });
+  box.innerHTML = html + "</tbody></table>";
+}
+
+function table() {
+  const box = document.getElementById("table");
+  const f1 = v => v == null ? "—" : v.toFixed(1), f0 = v => v == null ? "—" : Math.round(v);
+  let html = `<table><thead><tr><th>model</th><th>load+1st s</th><th>prefill t/s</th><th>decode t/s</th><th>text</th><th>vision</th><th>tok/answer</th><th>cap</th><th>cut off</th><th>suite min</th></tr></thead><tbody>`;
+  S.forEach(s => html += `<tr><td class="${HL(s.spec) ? "hlrow" : ""}">${s.spec}</td><td>${f1(s.load)}</td><td>${f0(s.prefill)}</td><td>${f1(s.decode)}</td>` +
+    `<td>${s.text.ok}/${s.text.n}</td><td>${s.cats.vision.n ? s.cats.vision.ok + "/" + s.cats.vision.n : "—"}</td><td>${f0(s.tokens)}</td><td>${s.cap / 1024}k</td><td>${s.truncated}</td><td>${f1(s.wall)}</td></tr>`);
+  box.innerHTML = html + "</tbody></table>";
+}
+
+function meta() {
+  const best = [...S].sort((a, b) => pct(b.text) - pct(a.text))[0];
+  document.getElementById("meta").innerHTML =
+    `<span><b>${S.length}</b> configurations</span><span><b>${S[0] ? S[0].text.n : 0}</b> text items</span><span>top text score <b>${best ? best.spec + " " + best.text.ok + "/" + best.text.n : "—"}</b></span>`;
+}
+
+function render() {
+  for (const id of ["scatter", "heat", "decode", "prefill", "tokens", "wall", "limit", "upgrade", "table"]) document.getElementById(id).innerHTML = "";
+  meta(); scatter(); heat();
+  bars("decode", "decode", v => v.toFixed(1), "tok/s");
+  bars("prefill", "prefill", v => Math.round(v), "tok/s");
+  bars("tokens", "tokens", v => Math.round(v), "tokens per answer");
+  bars("wall", "wall", v => v.toFixed(1), "minutes");
+  limit(); upgrade(); table();
+}
+render();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
+new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+</script>

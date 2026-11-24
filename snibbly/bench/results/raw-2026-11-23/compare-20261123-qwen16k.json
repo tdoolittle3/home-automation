@@ -1,0 +1,1015 @@
+[
+ {
+  "spec": "qwen36-35b",
+  "model": "qwen36-35b",
+  "effort": null,
+  "started": "2026-11-23T22:45:38",
+  "load_and_first_s": 29.9,
+  "speed": [
+   {
+    "prompt_n": 3630,
+    "prefill_tps": 74.45749408319318,
+    "decode_tps": 27.006864191694085,
+    "completion_tokens": 256
+   },
+   {
+    "prompt_n": 3630,
+    "prefill_tps": 258.75163243411083,
+    "decode_tps": 30.50978987369306,
+    "completion_tokens": 256
+   },
+   {
+    "prompt_n": 3630,
+    "prefill_tps": 258.6552052721199,
+    "decode_tps": 30.57487601288269,
+    "completion_tokens": 256
+   }
+  ],
+  "quality": [
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1025,
+    "wall": 34.9,
+    "err": null,
+    "tail": "times \\$4/\\text{set} = \\$36$$\n\nAlternatively, you can find the unit price:\n1.  Cost per pen = $\\$4 / 3$.\n2.  Cost for 27 pens = $27 \\times (\\$4 / 3) = (27 / 3) \\times 4 = 9 \\times 4 = 36$.\n\nANSWER: 36"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1940,
+    "wall": 64.5,
+    "err": null,
+    "tail": "*Departure (9:40):** $(9 \\times 60) + 40 = 540 + 40 = 580$ minutes.\n2.  **Arrival (13:15):** $(13 \\times 60) + 15 = 780 + 15 = 795$ minutes.\n3.  **Difference:** $795 - 580 = 215$ minutes.\n\nANSWER: 215"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 4159,
+    "wall": 139.1,
+    "err": null,
+    "tail": " the Principle of Inclusion-Exclusion:\n$$\\text{Total Sum} = S_3 + S_5 - S_{15}$$\n$$\\text{Total Sum} = 6633 + 4100 - 1365$$\n$$\\text{Total Sum} = 10733 - 1365$$\n$$\\text{Total Sum} = 9368$$\n\nANSWER: 9368"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1906,
+    "wall": 64.1,
+    "err": null,
+    "tail": "t filling rate.\n$$ \\text{Time} = \\frac{\\text{Total Capacity}}{\\text{Net Rate}} $$\n$$ \\text{Time} = \\frac{240 \\text{ liters}}{16 \\text{ liters/hour}} $$\n$$ \\text{Time} = 15 \\text{ hours} $$\n\nANSWER: 15"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 944,
+    "wall": 32.2,
+    "err": null,
+    "tail": " widget. When you have 100 machines working simultaneously, each machine still takes 5 minutes to make its own widget. Therefore, 100 machines will produce 100 widgets in exactly 5 minutes.\n\nANSWER: 5"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1615,
+    "wall": 57.3,
+    "err": null,
+    "tail": "1.\n\n    Applying the formula:\n    $$ \\text{Number of divisors} = (3 + 1)(2 + 1)(1 + 1) $$\n    $$ \\text{Number of divisors} = 4 \\times 3 \\times 2 $$\n    $$ \\text{Number of divisors} = 24 $$\n\nANSWER: 24"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 3871,
+    "wall": 144.9,
+    "err": null,
+    "tail": "- b)(a^2 + ab + b^2)$:\nLet $a = 17$ and $b = 13$.\n$$a - b = 4$$\n$$a^2 = 289$$\n$$b^2 = 169$$\n$$ab = 17 \\times 13 = 221$$\n$$a^2 + ab + b^2 = 289 + 221 + 169 = 679$$\n$$4 \\times 679 = 2716$$\n\nANSWER: 2716"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": false,
+    "tokens": 16384,
+    "wall": 571.8,
+    "err": null,
+    "tail": ""
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 1954,
+    "wall": 65.3,
+    "err": null,
+    "tail": "p here as the divisor is larger than 1000).\n\nNow, we sum these counts to get the total number of factors of 5:\n$$ 200 + 40 + 8 + 1 = 249 $$\n\nThus, there are 249 trailing zeros in $1000!$.\n\nANSWER: 249"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 2917,
+    "wall": 96.2,
+    "err": null,
+    "tail": "v 1 \\times 16 \\pmod{13}$$\n$$2^{100} \\equiv 16 \\pmod{13}$$\n\nFinally, find the remainder of $16$ divided by $13$:\n$$16 = 13 \\times 1 + 3$$\n$$16 \\equiv 3 \\pmod{13}$$\n\nThus, the remainder is 3.\n\nANSWER: 3"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 4555,
+    "wall": 153.5,
+    "err": null,
+    "tail": "= 13 + 8 = 21$\n*   $a_8 = a_7 + a_6 = 21 + 13 = 34$\n*   $a_9 = a_8 + a_7 = 34 + 21 = 55$\n*   $a_{10} = a_9 + a_8 = 55 + 34 = 89$\n\nThus, there are 89 ways to tile a $2 \\times 10$ rectangle.\n\nANSWER: 89"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 16384,
+    "wall": 590.5,
+    "err": null,
+    "tail": ""
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 16384,
+    "wall": 575.3,
+    "err": null,
+    "tail": ""
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 4914,
+    "wall": 170.7,
+    "err": null,
+    "tail": "$ C_6 = \\frac{1}{6+1} \\binom{12}{6} = \\frac{1}{7} \\times 924 $$\n\n4.  **Calculate the final result:**\n    $$ C_6 = \\frac{924}{7} = 132 $$\n\nThus, there are 132 such monotonic lattice paths.\n\nANSWER: 132"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 4156,
+    "wall": 160.0,
+    "err": null,
+    "tail": "The palindromes are:\n    *   For $b=0$: 1001, 2002, 3003, 4004, 5005, 6006, 7007, 8008, 9009 (9 numbers)\n    *   For $b=7$: 1771, 2772, 3773, 4774, 5775, 6776, 7777, 8778, 9779 (9 numbers)\n\nANSWER: 18"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 2354,
+    "wall": 78.1,
+    "err": null,
+    "tail": "of the expected rolls for each stage:\n\n$$E[X] = \\frac{6}{6} + \\frac{6}{5} + \\frac{6}{4} + \\frac{6}{3} + \\frac{6}{2} + \\frac{6}{1}$$\n\n$$E[X] = 1 + 1.2 + 1.5 + 2 + 3 + 6$$\n\n$$E[X] = 14.7$$\n\nANSWER: 14.7"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 491,
+    "wall": 17.0,
+    "err": null,
+    "tail": "Bob\nANSWER: Bob"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1175,
+    "wall": 39.3,
+    "err": null,
+    "tail": "quarter and nickel\n\nANSWER: quarter and nickel"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 315,
+    "wall": 11.3,
+    "err": null,
+    "tail": "The phrase \"All but 9 run away\" means that 9 sheep did not run away. Therefore, the farmer has 9 sheep left.\n\nANSWER: 9"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 650,
+    "wall": 22.1,
+    "err": null,
+    "tail": "2$)\n\n2.  Count forward 2 days from Wednesday:\n    *   1 day after Wednesday is Thursday.\n    *   2 days after Wednesday is Friday.\n\nTherefore, 100 days from Wednesday will be a Friday.\n\nANSWER: Friday"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 1564,
+    "wall": 52.1,
+    "err": null,
+    "tail": "knave\n\nANSWER: knave"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 1240,
+    "wall": 41.5,
+    "err": null,
+    "tail": "er, we can deduce that Ann owns the fish, as she is the only female among the three. This leaves the cat and the dog for Ben and Cal. Since Cal does not own the cat, Cal must own the dog.\n\nANSWER: Cal"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 3405,
+    "wall": 128.6,
+    "err": null,
+    "tail": "1 January 2000 was a **Saturday**.\n\nANSWER: Saturday"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 1830,
+    "wall": 66.1,
+    "err": null,
+    "tail": "eat 4.\n6. This leaves **Ivy in seat 5**, which satisfies the condition that Ivy's seat number is higher than Gus's (5 > 2).\n\nThe final arrangement is: 1-Finn, 2-Gus, 3-Eve, 4-Hal, 5-Ivy.\n\nANSWER: Finn"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1766,
+    "wall": 63.4,
+    "err": null,
+    "tail": " s:\n        if char in '([{':\n            stack.append(char)\n        elif char in ')]}':\n            if not stack or stack.pop() != mapping[char]:\n                return False\n    return not stack\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1822,
+    "wall": 65.2,
+    "err": null,
+    "tail": "erged = [iv[0]]\n    for curr in iv[1:]:\n        if curr[0] <= merged[-1][1]:\n            merged[-1][1] = max(merged[-1][1], curr[1])\n        else:\n            merged.append(curr)\n    return merged\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1772,
+    "wall": 62.4,
+    "err": null,
+    "tail": " = ['M', 'CM', 'D', 'CD', 'C', 'XC', 'L', 'XL', 'X', 'IX', 'V', 'IV', 'I']\n    res = ''\n    for v, s in zip(val, syms):\n        while n >= v:\n            res += s\n            n -= v\n    return res\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 2566,
+    "wall": 87.4,
+    "err": null,
+    "tail": ") -> list[str]:\n    words = [w.lower() for w in re.findall(r'[a-zA-Z]+', text)]\n    counts = Counter(words)\n    return [word for word, _ in sorted(counts.items(), key=lambda x: (-x[1], x[0]))[:k]]\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 7898,
+    "wall": 280.0,
+    "err": null,
+    "tail": "    skip_spaces()\n            right = parse_term()\n            if op == '+':\n                res += right\n            else:\n                res -= right\n        return res\n\n    return parse_expr()\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 2191,
+    "wall": 76.5,
+    "err": null,
+    "tail": "> None:\n        if key in self.cache:\n            self.cache.move_to_end(key)\n        self.cache[key] = value\n        if len(self.cache) > self.capacity:\n            self.cache.popitem(last=False)\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 1802,
+    "wall": 59.7,
+    "err": null,
+    "tail": "         if a[i - 1] == b[j - 1]:\n                dp[i][j] = dp[i - 1][j - 1]\n            else:\n                dp[i][j] = 1 + min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1])\n    return dp[m][n]\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 4040,
+    "wall": 176.4,
+    "err": null,
+    "tail": "       l -= 1\n            r += 1\n        length = r - l - 1\n        if length > max_len:\n            max_len = length\n            start = l + 1\n                \n    return s[start:start + max_len]\n```"
+   },
+   {
+    "kind": "long",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 460,
+    "wall": 49.7,
+    "err": null,
+    "tail": "Based on the provided keypad log, there is a specific entry that records a code change:\n\n`2026-11-04T13:07:00Z keypad[2211]: garage keypad code changed to 4721 by admin`\n\nANSWER: 4721"
+   },
+   {
+    "kind": "long",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 7264,
+    "wall": 290.8,
+    "err": null,
+    "tail": "s forms an arithmetic sequence with a first term of 2000, a last term of 2156, and a common difference of 4. \nThe number of terms is calculated as: `((2156 - 2000) / 4) + 1 = 39 + 1 = 40`.\n\nANSWER: 40"
+   },
+   {
+    "kind": "instr",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 241,
+    "wall": 12.8,
+    "err": null,
+    "tail": "[\"red\", \"green\", \"blue\"]"
+   },
+   {
+    "kind": "instr",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 212,
+    "wall": 7.4,
+    "err": null,
+    "tail": "ACKNOWLEDGED"
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 517,
+    "wall": 20.1,
+    "err": null,
+    "calls": [
+     [
+      "get_garage_door_state",
+      {}
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 112,
+    "wall": 4.0,
+    "err": null,
+    "calls": [
+     [
+      "set_light",
+      {
+       "area": "kitchen",
+       "state": "off"
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 569,
+    "wall": 18.9,
+    "err": null,
+    "calls": [
+     [
+      "search_camera_events",
+      {
+       "label": "person",
+       "camera": "driveway",
+       "since_hours": 6
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 782,
+    "wall": 25.9,
+    "err": null,
+    "calls": [
+     [
+      "set_light",
+      {
+       "area": "kitchen",
+       "state": "on"
+      }
+     ],
+     [
+      "set_light",
+      {
+       "area": "living room",
+       "state": "on"
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 113,
+    "wall": 4.2,
+    "err": null,
+    "calls": []
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 231,
+    "wall": 8.0,
+    "err": null,
+    "calls": [
+     [
+      "search_camera_events",
+      {
+       "label": "car",
+       "camera": "backyard",
+       "since_hours": 24
+      }
+     ]
+    ]
+   }
+  ],
+  "vision": [
+   {
+    "kind": "vision",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 248,
+    "wall": 10.8,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 274,
+    "wall": 11.4,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 242,
+    "wall": 10.2,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 231,
+    "wall": 9.4,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 267,
+    "wall": 10.5,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 561,
+    "wall": 20.1,
+    "err": null
+   }
+  ]
+ },
+ {
+  "spec": "qwen36-35b-heretic",
+  "model": "qwen36-35b-heretic",
+  "effort": null,
+  "started": "2026-11-24T00:07:13",
+  "load_and_first_s": 24.7,
+  "speed": [
+   {
+    "prompt_n": 3630,
+    "prefill_tps": 240.66962643897068,
+    "decode_tps": 31.07346766982381,
+    "completion_tokens": 256
+   },
+   {
+    "prompt_n": 3630,
+    "prefill_tps": 260.81961306009305,
+    "decode_tps": 31.649583752121455,
+    "completion_tokens": 256
+   },
+   {
+    "prompt_n": 3630,
+    "prefill_tps": 261.4458734658151,
+    "decode_tps": 31.785725815830514,
+    "completion_tokens": 256
+   }
+  ],
+  "quality": [
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1768,
+    "wall": 57.3,
+    "err": null,
+    "tail": "of pens in a set.\n    $$27 \\div 3 = 9 \\text{ sets}$$\n\n2.  **Calculate the total cost:** Multiply the number of sets by the cost per set ($4).\n    $$9 \\times 4 = 36$$\n\nSo, 27 pens cost $36.\n\nANSWER: 36"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 2750,
+    "wall": 92.0,
+    "err": null,
+    "tail": "ours.\n    *   Minutes: $75 - 40 = 35$ minutes.\n4.  Convert the total duration (3 hours and 35 minutes) into minutes.\n    *   $3 \\times 60 = 180$ minutes.\n    *   $180 + 35 = 215$ minutes.\n\nANSWER: 215"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 6195,
+    "wall": 201.7,
+    "err": null,
+    "tail": "al Calculation\nUsing the inclusion-exclusion formula:\n$$\\text{Total Sum} = S_3 + S_5 - S_{15}$$\n$$\\text{Total Sum} = 6,633 + 4,100 - 1,365$$\n$$\\text{Total Sum} = 10,733 - 1,365 = 9,368$$\n\nANSWER: 9368"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": false,
+    "tokens": 16384,
+    "wall": 549.9,
+    "err": null,
+    "tail": ""
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1002,
+    "wall": 35.5,
+    "err": null,
+    "tail": "0 machines working simultaneously, each machine still takes 5 minutes to make its own widget.\n- Since they all work in parallel, 100 machines will produce 100 widgets in the same 5 minutes.\n\nANSWER: 5"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1488,
+    "wall": 49.6,
+    "err": null,
+    "tail": " 4$\n    *   The exponent of 3 is 2. $(2 + 1) = 3$\n    *   The exponent of 5 is 1. $(1 + 1) = 2$\n\n    Multiply these numbers:\n    $$4 \\times 3 \\times 2 = 24$$\n\n360 has 24 positive divisors.\n\nANSWER: 24"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 6948,
+    "wall": 244.9,
+    "err": null,
+    "tail": "3$$\n\n2.  **Calculate $13^3$:**\n    $$13^3 = 13 \\times 13 \\times 13 = 169 \\times 13 = 2197$$\n\n3.  **Subtract the results:**\n    $$4913 - 2197 = 2716$$\n\nBoth methods yield the same result.\n\nANSWER: 2716"
+   },
+   {
+    "kind": "math",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1884,
+    "wall": 64.9,
+    "err": null,
+    "tail": "$100 - \\$20 = \\$80$.\n*   After a 15% discount on the $\\$80$: $15\\%$ of $\\$80$ is $\\$12$.\n*   Final price: $\\$80 - \\$12 = \\$68$.\n*   Total discount: $\\$100 - \\$68 = \\$32$, which is $32\\%$.\n\nANSWER: 32%"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 1905,
+    "wall": 65.8,
+    "err": null,
+    "tail": "the numerator).\n\nFinally, we sum these values to get the total count of the factor 5:\n$$ 200 + 40 + 8 + 1 = 249 $$\n\nThus, there are 249 pairs of $(2, 5)$, resulting in 249 trailing zeros.\n\nANSWER: 249"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 2293,
+    "wall": 78.3,
+    "err": null,
+    "tail": "iv 1 \\times 16 \\pmod{13}$$\n$$2^{100} \\equiv 16 \\pmod{13}$$\n\nFinally, we find the remainder of 16 divided by 13:\n$$16 = 13 \\times 1 + 3$$\n$$16 \\equiv 3 \\pmod{13}$$\n\nThus, the remainder is 3.\n\nANSWER: 3"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 6341,
+    "wall": 224.8,
+    "err": null,
+    "tail": "8$\n*   $a_6 = 8 + 5 = 13$\n*   $a_7 = 13 + 8 = 21$\n*   $a_8 = 21 + 13 = 34$\n*   $a_9 = 34 + 21 = 55$\n*   $a_{10} = 55 + 34 = 89$\n\nThe number of ways to tile a $2 \\times 10$ rectangle is 89.\n\nANSWER: 89"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 16384,
+    "wall": 543.6,
+    "err": null,
+    "tail": ""
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 14044,
+    "wall": 473.8,
+    "err": null,
+    "tail": ") = 99$ for $n \\in \\{400, 401, 402, 403, 404\\}$.\n*   For any $n < 400$, $Z(n) \\le Z(400) = 99$.\n\nTherefore, 405 is the smallest positive integer for which $n!$ ends in at least 100 zeros.\n\nANSWER: 405"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 11066,
+    "wall": 380.1,
+    "err": null,
+    "tail": " $6$ is:\n$C_0 = 1, C_1 = 1, C_2 = 2, C_3 = 5, C_4 = 14, C_5 = 42, C_6 = 132$.\n\nThe number of monotonic lattice paths from $(0,0)$ to $(6,6)$ that never rise above the line $y = x$ is 132.\n\nANSWER: 132"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 4374,
+    "wall": 138.7,
+    "err": null,
+    "tail": "al} = 9 \\times 2 = 18$$\n\nThe 18 palindromes are:\n*   With $b=0$: 1001, 2002, 3003, 4004, 5005, 6006, 7007, 8008, 9009.\n*   With $b=7$: 1771, 2772, 3773, 4774, 5775, 6776, 7777, 8778, 9779.\n\nANSWER: 18"
+   },
+   {
+    "kind": "math",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 3566,
+    "wall": 113.0,
+    "err": null,
+    "tail": "6$.\n    Expected rolls = $1 / (1/6) = 6/1 = 6$.\n\nTo get the total expected number of rolls, we sum the expected rolls for each stage:\n$$E[X] = 1 + 1.2 + 1.5 + 2 + 3 + 6$$\n$$E[X] = 14.7$$\n\nANSWER: 14.7"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1224,
+    "wall": 39.2,
+    "err": null,
+    "tail": "Bob\nANSWER: Bob"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1362,
+    "wall": 43.5,
+    "err": null,
+    "tail": "quarter and nickel\n\nANSWER: quarter and nickel"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 183,
+    "wall": 6.7,
+    "err": null,
+    "tail": "The phrase \"All but 9 run away\" means that 9 sheep remained, while the rest (17 - 9 = 8) ran away. Therefore, the farmer has 9 sheep left.\n\nANSWER: 9"
+   },
+   {
+    "kind": "logic",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 558,
+    "wall": 18.3,
+    "err": null,
+    "tail": ".\n\n3.  Count forward 2 days from Wednesday:\n    *   1 day after Wednesday is Thursday.\n    *   2 days after Wednesday is Friday.\n\nTherefore, 100 days from a Wednesday will be a Friday.\n\nANSWER: Friday"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 1997,
+    "wall": 63.6,
+    "err": null,
+    "tail": "knave, A lies, so B is a knight. Since B is a knight, B's statement is true, meaning A and C are the same type. Since A is a knave, C must be a knave.\nIn both cases, C is a knave.\n\nKnave\nANSWER: Knave"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 1058,
+    "wall": 34.2,
+    "err": null,
+    "tail": " and Cal.\n4. **Apply the final clue:** Cal does not own the cat, so Cal must own the dog. (This leaves Ben with the cat, which is consistent with all clues.)\n\nTherefore, Cal owns the dog.\n\nANSWER: Cal"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 707,
+    "wall": 23.0,
+    "err": null,
+    "tail": "1 January 2000 was a Saturday.\n\nANSWER: Saturday"
+   },
+   {
+    "kind": "logic",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 4429,
+    "wall": 141.9,
+    "err": null,
+    "tail": "s (seat 2). This is valid.\n\n5.  **Final Arrangement:**\n    *   Seat 1: Finn\n    *   Seat 2: Gus\n    *   Seat 3: Eve\n    *   Seat 4: Hal\n    *   Seat 5: Ivy\n\nThe person in seat 1 is Finn.\n\nANSWER: Finn"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 1677,
+    "wall": 54.7,
+    "err": null,
+    "tail": "in s:\n        if char in '([{':\n            stack.append(char)\n        elif char in ')]}':\n            if not stack or stack.pop() != pairs[char]:\n                return False\n    return not stack\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 3246,
+    "wall": 109.8,
+    "err": null,
+    "tail": "erged = [iv[0]]\n    for curr in iv[1:]:\n        if curr[0] <= merged[-1][1]:\n            merged[-1][1] = max(merged[-1][1], curr[1])\n        else:\n            merged.append(curr)\n    return merged\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 7124,
+    "wall": 233.1,
+    "err": null,
+    "tail": "), (9, 'IX'), (5, 'V'), (4, 'IV'),\n        (1, 'I')\n    ]\n    res = []\n    for val, sym in val_map:\n        while n >= val:\n            res.append(sym)\n            n -= val\n    return \"\".join(res)\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 3287,
+    "wall": 104.1,
+    "err": null,
+    "tail": "er\n\ndef top_k_words(text: str, k: int) -> list[str]:\n    words = re.findall(r'[a-z]+', text.lower())\n    counts = Counter(words)\n    return sorted(counts.keys(), key=lambda w: (-counts[w], w))[:k]\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 16384,
+    "wall": 532.8,
+    "err": null,
+    "tail": ""
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 16384,
+    "wall": 547.7,
+    "err": null,
+    "tail": ""
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 3054,
+    "wall": 96.8,
+    "err": null,
+    "tail": "a[i-1] == b[j-1]:\n                curr[j] = prev[j-1]\n            else:\n                curr[j] = 1 + min(prev[j], curr[j-1], prev[j-1])\n        prev, curr = curr, prev\n        \n    return prev[n]\n```"
+   },
+   {
+    "kind": "code",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 6475,
+    "wall": 205.8,
+    "err": null,
+    "tail": "n and s[l] == s[r]:\n            l -= 1\n            r += 1\n        if r - l - 1 > max_len:\n            max_len = r - l - 1\n            start = l + 1\n            \n    return s[start:start + max_len]\n```"
+   },
+   {
+    "kind": "long",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 752,
+    "wall": 45.5,
+    "err": null,
+    "tail": "ad log, there is a specific entry indicating a code change:\n\n`2026-11-04T13:07:00Z keypad[2211]: garage keypad code changed to 4721 by admin`\n\nThe garage keypad code was changed to 4721.\n\nANSWER: 4721"
+   },
+   {
+    "kind": "long",
+    "tier": "hard",
+    "ok": false,
+    "tokens": 16384,
+    "wall": 550.4,
+    "err": null,
+    "tail": ""
+   },
+   {
+    "kind": "instr",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 807,
+    "wall": 26.6,
+    "err": null,
+    "tail": "[\"red\", \"green\", \"blue\"]"
+   },
+   {
+    "kind": "instr",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 163,
+    "wall": 6.2,
+    "err": null,
+    "tail": "ACKNOWLEDGED"
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 72,
+    "wall": 5.2,
+    "err": null,
+    "calls": [
+     [
+      "get_garage_door_state",
+      {}
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 112,
+    "wall": 4.3,
+    "err": null,
+    "calls": [
+     [
+      "set_light",
+      {
+       "area": "kitchen",
+       "state": "off"
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 564,
+    "wall": 20.3,
+    "err": null,
+    "calls": [
+     [
+      "search_camera_events",
+      {
+       "label": "person",
+       "camera": "driveway",
+       "since_hours": 6
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 405,
+    "wall": 13.8,
+    "err": null,
+    "calls": [
+     [
+      "set_light",
+      {
+       "area": "kitchen",
+       "state": "on"
+      }
+     ],
+     [
+      "set_light",
+      {
+       "area": "living room",
+       "state": "on"
+      }
+     ]
+    ]
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 92,
+    "wall": 3.3,
+    "err": null,
+    "calls": []
+   },
+   {
+    "kind": "tool",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 216,
+    "wall": 7.4,
+    "err": null,
+    "calls": [
+     [
+      "search_camera_events",
+      {
+       "label": "car",
+       "camera": "backyard",
+       "since_hours": 24
+      }
+     ]
+    ]
+   }
+  ],
+  "vision": [
+   {
+    "kind": "vision",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 255,
+    "wall": 10.7,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 241,
+    "wall": 10.8,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "easy",
+    "ok": true,
+    "tokens": 241,
+    "wall": 31.4,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 248,
+    "wall": 12.0,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 255,
+    "wall": 10.8,
+    "err": null
+   },
+   {
+    "kind": "vision",
+    "tier": "hard",
+    "ok": true,
+    "tokens": 486,
+    "wall": 17.5,
+    "err": null
+   }
+  ]
+ },
+ {
+  "spec": "big-30b-thinking",
+  "model": "big-30b-thinking",
+  "effort": null,
+  "started": "2026-11-24T01:54:31",
+  "fatal": "<HTTPError 500: 'Internal Server Error'>"
+ }
+]

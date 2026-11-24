@@ -1,0 +1,56 @@
+== vlm-8b
+    speed prefill 3627 tok @ 598 t/s, decode 3.8 t/s
+    speed prefill 3627 tok @ 599 t/s, decode 3.7 t/s
+    speed prefill 3627 tok @ 599 t/s, decode 3.7 t/s
+    math   easy PASS   107 tok   15.7s
+    math   easy PASS   219 tok   32.0s
+    math   easy fail   599 tok   90.7s
+    math   easy PASS   163 tok   23.8s
+    math   easy PASS   248 tok   36.6s
+    math   easy PASS   292 tok   46.7s
+    math   easy PASS   420 tok   65.7s
+    math   easy PASS   323 tok   54.3s
+    math   hard PASS   408 tok   59.7s
+    math   hard PASS   272 tok   39.4s
+    math   hard PASS  1184 tok  185.2s
+    math   hard PASS   838 tok  127.4s
+    math   hard PASS   837 tok  127.2s
+    math   hard PASS   318 tok   46.5s
+    math   hard PASS   762 tok  114.7s
+    math   hard PASS   550 tok   82.2s
+    logic  easy PASS   125 tok   18.3s
+    logic  easy PASS    11 tok    2.0s
+    logic  easy PASS    47 tok    7.1s
+    logic  easy PASS   165 tok   24.3s
+    logic  hard PASS   404 tok   60.5s
+    logic  hard PASS   326 tok   48.7s
+    logic  hard PASS    18 tok    3.1s
+    logic  hard PASS   653 tok  110.1s
+    code   easy PASS    89 tok   15.6s
+    code   easy PASS   110 tok   16.3s
+    code   easy PASS   157 tok   22.6s
+    code   easy PASS   119 tok   17.2s
+    code   hard fail   382 tok   56.2s
+    code   hard PASS   144 tok   20.9s
+    code   hard PASS   230 tok   33.1s
+    code   hard PASS   228 tok   32.9s
+    long   hard PASS    85 tok   40.7s
+    long   hard fail     0 tok    0.0s
+    instr  easy PASS    10 tok    2.9s
+    instr  easy PASS     4 tok    1.6s
+    tool   easy PASS    20 tok    4.0s
+    tool   easy PASS    27 tok    5.3s
+    tool   easy PASS    36 tok    7.0s
+    tool   hard PASS    54 tok    8.8s
+    tool   hard PASS     8 tok    1.7s
+    tool   hard PASS    36 tok    6.2s
+    vision easy PASS    28 tok    5.2s
+    vision easy PASS     7 tok    1.9s
+    vision easy PASS     7 tok    1.9s
+    vision hard PASS    61 tok    9.4s
+    vision hard PASS   117 tok   16.8s
+    vision hard PASS   292 tok   42.6s
+
+| model | load+1st (s) | prefill t/s | decode t/s | math | logic | code | instr | tool | long | vision | easy | hard | total | avg tok/item | quality wall (min) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| vlm-8b | 13.1 | 599 | 3.7 | 15/16 | 8/8 | 7/8 | 2/2 | 6/6 | 1/2 | 6/6 | 23/24 | 22/24 | 45/48 | 240 | 29.9 |

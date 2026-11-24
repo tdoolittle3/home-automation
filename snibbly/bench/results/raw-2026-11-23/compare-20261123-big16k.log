@@ -1,0 +1,50 @@
+== big-30b-thinking
+    speed prefill 3627 tok @ 319 t/s, decode 20.3 t/s
+    speed prefill 3627 tok @ 320 t/s, decode 20.3 t/s
+    speed prefill 3627 tok @ 320 t/s, decode 20.2 t/s
+    math   easy PASS   500 tok   24.3s
+    math   easy PASS  1042 tok   49.7s
+    math   easy PASS  2845 tok  141.5s
+    math   easy PASS  1204 tok   63.6s
+    math   easy PASS  1071 tok   50.2s
+    math   easy PASS  1397 tok   65.2s
+    math   easy PASS  1470 tok   68.7s
+    math   easy PASS  1062 tok   49.9s
+    math   hard PASS  1968 tok   92.2s
+    math   hard PASS  1853 tok   87.0s
+    math   hard PASS  3515 tok  166.9s
+    math   hard PASS  4717 tok  225.7s
+    math   hard PASS  5478 tok  273.9s
+    math   hard PASS  3718 tok  184.1s
+    math   hard PASS  7457 tok  365.1s
+    math   hard PASS  3192 tok  151.1s
+    logic  easy PASS   905 tok   42.6s
+    logic  easy PASS  2897 tok  136.7s
+    logic  easy PASS   463 tok   22.2s
+    logic  easy PASS   699 tok   33.1s
+    logic  hard PASS  1362 tok   64.6s
+    logic  hard PASS  4121 tok  204.9s
+    logic  hard PASS  8762 tok  442.7s
+    logic  hard PASS  3886 tok  185.2s
+    code   easy PASS   601 tok   28.6s
+    code   easy PASS   497 tok   23.9s
+    code   easy PASS  1971 tok   92.5s
+    code   easy PASS  3773 tok  179.6s
+    code   hard PASS 12491 tok  656.1s
+    code   hard PASS  1635 tok   77.0s
+    code   hard PASS   591 tok   28.0s
+    code   hard PASS  8004 tok  394.1s
+    long   hard PASS   320 tok   33.0s
+    long   hard fail 16384 tok  960.9s
+    instr  easy PASS    92 tok    5.4s
+    instr  easy PASS   206 tok    9.5s
+    tool   easy PASS    98 tok    5.9s
+    tool   easy PASS   118 tok    5.5s
+    tool   easy PASS   317 tok   14.6s
+    tool   hard PASS   242 tok   11.3s
+    tool   hard PASS   158 tok    7.4s
+    tool   hard PASS   344 tok   15.8s
+
+| model | load+1st (s) | prefill t/s | decode t/s | math | logic | code | instr | tool | long | vision | easy | hard | total | avg tok/item | quality wall (min) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| big-30b-thinking | 18.8 | 320 | 20.3 | 16/16 | 8/8 | 8/8 | 2/2 | 6/6 | 1/2 | — | 21/21 | 20/21 | 41/42 | 2701 | 95.7 |

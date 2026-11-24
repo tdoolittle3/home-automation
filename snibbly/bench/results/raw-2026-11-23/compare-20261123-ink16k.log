@@ -1,0 +1,109 @@
+== inkling-mini
+    speed prefill 2861 tok @ 20 t/s, decode 8.7 t/s
+    speed prefill 2861 tok @ 20 t/s, decode 10.6 t/s
+    speed prefill 2861 tok @ 20 t/s, decode 10.6 t/s
+    math   easy PASS   121 tok   13.3s
+    math   easy PASS   442 tok   42.9s
+    math   easy PASS   402 tok   39.1s
+    math   easy PASS   257 tok   26.8s
+    math   easy PASS   236 tok   24.2s
+    math   easy PASS   180 tok   18.0s
+    math   easy PASS   301 tok   29.2s
+    math   easy PASS   188 tok   19.8s
+    math   hard PASS   267 tok   26.2s
+    math   hard PASS   368 tok   35.5s
+    math   hard PASS   503 tok   48.3s
+    math   hard PASS   768 tok   72.2s
+    math   hard PASS   457 tok   43.9s
+    math   hard PASS   477 tok   46.6s
+    math   hard PASS   679 tok   64.1s
+    math   hard PASS   550 tok   53.1s
+    logic  easy PASS   145 tok   16.1s
+    logic  easy PASS   833 tok   80.4s
+    logic  easy PASS   130 tok   14.6s
+    logic  easy PASS   101 tok   11.8s
+    logic  hard PASS   446 tok   46.7s
+    logic  hard PASS   853 tok   90.6s
+    logic  hard PASS   309 tok   32.1s
+    logic  hard PASS   493 tok   49.6s
+    code   easy PASS   456 tok   44.6s
+    code   easy PASS   376 tok   38.2s
+    code   easy PASS   447 tok   43.2s
+    code   easy PASS   709 tok   68.2s
+    code   hard fail 16384 tok 1558.2s
+    code   hard PASS   668 tok   65.7s
+    code   hard PASS   437 tok   42.3s
+    code   hard PASS  2731 tok  255.8s
+    long   hard PASS   236 tok  260.6s
+    long   hard PASS  5710 tok  549.0s
+    instr  easy PASS    85 tok    9.5s
+    instr  easy PASS    67 tok    7.1s
+    tool   easy PASS    80 tok   24.6s
+    tool   easy PASS    78 tok    7.7s
+    tool   easy PASS   108 tok   10.9s
+    tool   hard PASS   126 tok   12.4s
+    tool   hard PASS    68 tok    7.0s
+    tool   hard PASS   190 tok   18.3s
+    vision easy PASS   103 tok   15.1s
+    vision easy PASS   111 tok   15.8s
+    vision easy PASS   110 tok   15.7s
+    vision hard PASS   222 tok   25.7s
+    vision hard PASS   212 tok   22.1s
+    vision hard PASS   167 tok   20.2s
+== inkling-mini@low
+    speed prefill 2861 tok @ 20 t/s, decode 10.5 t/s
+    speed prefill 2861 tok @ 20 t/s, decode 9.4 t/s
+    speed prefill 2861 tok @ 20 t/s, decode 10.6 t/s
+    math   easy PASS   121 tok   13.3s
+    math   easy PASS   199 tok   20.6s
+    math   easy PASS   411 tok   39.9s
+    math   easy PASS   157 tok   17.6s
+    math   easy PASS   175 tok   18.6s
+    math   easy PASS   203 tok   20.1s
+    math   easy PASS   173 tok   17.5s
+    math   easy PASS   168 tok   18.0s
+    math   hard PASS   173 tok   17.5s
+    math   hard PASS   178 tok   18.1s
+    math   hard PASS   277 tok   27.6s
+    math   hard fail   428 tok   41.0s
+    math   hard PASS   461 tok   44.3s
+    math   hard PASS   239 tok   24.7s
+    math   hard PASS   437 tok   41.9s
+    math   hard PASS   259 tok   26.2s
+    logic  easy PASS    97 tok   11.5s
+    logic  easy PASS   377 tok   37.3s
+    logic  easy PASS   128 tok   14.2s
+    logic  easy PASS    99 tok   11.5s
+    logic  hard PASS   424 tok   42.7s
+    logic  hard PASS   510 tok   51.0s
+    logic  hard PASS   141 tok   15.0s
+    logic  hard PASS   527 tok   52.6s
+    code   easy PASS   217 tok   22.7s
+    code   easy PASS   283 tok   29.7s
+    code   easy PASS   364 tok   35.6s
+    code   easy PASS   329 tok   33.3s
+    code   hard PASS  1611 tok  153.7s
+    code   hard PASS   291 tok   31.6s
+    code   hard PASS   417 tok   40.9s
+    code   hard PASS   770 tok   79.4s
+    long   hard PASS   111 tok  244.5s
+    long   hard PASS  1217 tok  126.7s
+    instr  easy PASS    67 tok    7.9s
+    instr  easy PASS    58 tok    6.3s
+    tool   easy PASS    55 tok   17.9s
+    tool   easy PASS    78 tok    7.7s
+    tool   easy PASS    92 tok    9.5s
+    tool   hard PASS   110 tok   10.9s
+    tool   hard PASS    54 tok    5.8s
+    tool   hard PASS   120 tok   11.9s
+    vision easy PASS    36 tok    9.0s
+    vision easy PASS    81 tok   13.1s
+    vision easy PASS    87 tok   13.6s
+    vision hard PASS   110 tok   15.5s
+    vision hard PASS    98 tok   11.7s
+    vision hard PASS   106 tok   14.6s
+
+| model | load+1st (s) | prefill t/s | decode t/s | math | logic | code | instr | tool | long | vision | easy | hard | total | avg tok/item | quality wall (min) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| inkling-mini | 19.7 | 20 | 10.6 | 16/16 | 8/8 | 7/8 | 2/2 | 6/6 | 2/2 | 6/6 | 24/24 | 23/24 | 47/48 | 821 | 68.0 |
+| inkling-mini@low | 2.5 | 20 | 10.5 | 15/16 | 8/8 | 8/8 | 2/2 | 6/6 | 2/2 | 6/6 | 24/24 | 23/24 | 47/48 | 273 | 26.6 |

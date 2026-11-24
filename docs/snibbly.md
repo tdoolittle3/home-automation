@@ -12,7 +12,7 @@ ladybird's.
 | **GPU 1** | GTX 1050 Ti, 4 GB — reserved for the vision pipeline since 2026-10-20 (a quarter of GPU 0's memory bandwidth; LLM inference on it was dismal, vision CNNs fit it fine) |
 | **Door** | LiteLLM proxy (`litellm.service`) on `0.0.0.0:8080`, capturing every conversation to [Langfuse](langfuse.md) |
 | **Router** | [llama-swap](https://github.com/mostlygeek/llama-swap) v265 at `/opt/llama-swap`, listening on `0.0.0.0:9292` (ufw-restricted to the LAN) |
-| **Backend** | llama.cpp CUDA build (b11382) at `/opt/llama.cpp/build-cuda/bin/llama-server` |
+| **Backend** | llama.cpp CUDA build (commit `2392423`, 2026-11-23; static binaries) at `/opt/llama.cpp/build-cuda/bin/llama-server`. Previous build (b11382, Oct 4) kept at `/opt/llama.cpp-20261004` for rollback |
 | **Models** | GGUF files in `/opt/models/` (thomas-writable) |
 | **Observability** | Langfuse v3 at `http://192.168.0.19:3000` (`/opt/stacks/langfuse`) — see [langfuse.md](langfuse.md) |
 
@@ -131,7 +131,20 @@ together, restart both services. The Langfuse stack keeps its own secrets — se
 
 1. Ubuntu + NVIDIA driver; verify both cards in `nvidia-smi`.
 2. Build llama.cpp with CUDA into `/opt/llama.cpp/build-cuda`; download a llama-swap release to
-   `/opt/llama-swap`.
+   `/opt/llama-swap`. Build static so the tree can be moved and swapped atomically (a shared-lib
+   build bakes absolute rpaths into the binaries):
+
+   ```bash
+   cmake -B build-cuda -DGGML_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES="61;75" \
+         -DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release
+   cmake --build build-cuda -j6
+   ```
+
+   **Upgrading:** build the new checkout in a side directory, then
+   `mv /opt/llama.cpp /opt/llama.cpp-<date> && mv <new> /opt/llama.cpp`. Running llama-server
+   processes keep their already-open binary; the next model load picks up the new one. Rollback is
+   the same two `mv`s in reverse. Re-run `snibbly/bench/compare_models.py` on the production
+   models before and after to catch regressions.
 3. Create user `llama`; then `ansible-playbook snibbly.yml -K` places everything under
    [snibbly/etc/](../snibbly/etc/), the agent runner, and the Langfuse compose file
    ([ansible.md](ansible.md)). Fill in a fresh `LLAMA_API_KEY` by hand (see Secrets above).

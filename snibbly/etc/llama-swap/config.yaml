@@ -52,6 +52,65 @@ models:
     env: ["CUDA_VISIBLE_DEVICES=0"]
     ttl: 0
 
+  # ---- 2026-11-23 model comparison trial (snibbly/bench/compare_models.py).
+  # All use the coder-30b recipe: every expert in system RAM (--n-cpu-moe 99 =
+  # all layers), attention + KV on GPU 0. 32k context while on trial.
+  # Requires llama.cpp >= 2392423 (2026-11-23), which /opt/llama.cpp now is.
+  #
+  # Thinking Machines Inkling 2 Mini — 26.4B looped MoE (~3.4B active; layers
+  # 6-17 run 3x per token, each pass with its own KV), text+image in.
+  # Reasoning depth is a request param: reasoning_effort none..max (default high).
+  # VRAM (measured 2026-11-23, build 2392423): KV is tiny (hybrid
+  # recurrent/attention, ~0.7 GB at 32k), but with default op offload the CUDA
+  # compute buffer is 7-10 GB whatever -ub is — the staging for CPU-resident
+  # experts appears sized for the looped graph — so it OOMs an empty 8 GB card.
+  # --no-op-offload drops that (experts compute on CPU during prefill too);
+  # -ub 256 then lands at 4.5 GB total, leaving room for vlm-8b beside it.
+  "inkling-mini":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/Inkling-2-Mini-UD-Q4_K_M.gguf
+      --mmproj /opt/models/Inkling-2-Mini-mmproj-F16.gguf
+      -ngl 99 --n-cpu-moe 99 --no-op-offload -t 4 -c 32768 -ub 256
+      -ctk q8_0 -ctv q8_0 -fa on -np 1 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=0"]
+    ttl: 0
+  "qwen36-35b":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/Qwen3.6-35B-A3B-UD-Q4_K_M.gguf
+      --mmproj /opt/models/Qwen3.6-35B-A3B-mmproj-F16.gguf
+      -ngl 99 --n-cpu-moe 99 -t 4 -c 32768 -ctk q8_0 -ctv q8_0 -fa on -np 1 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=0"]
+    ttl: 0
+  # Abliterated variant (Lab profile material) — same arch, so the stock
+  # Qwen3.6 vision projector applies.
+  "qwen36-35b-heretic":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/Qwen3.6-35B-A3B-uncensored-heretic-Q4_K_M.gguf
+      --mmproj /opt/models/Qwen3.6-35B-A3B-mmproj-F16.gguf
+      -ngl 99 --n-cpu-moe 99 -t 4 -c 32768 -ctk q8_0 -ctv q8_0 -fa on -np 1 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=0"]
+    ttl: 0
+  "vl-30b":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/Qwen3-VL-30B-A3B-Instruct-Q4_K_M.gguf
+      --mmproj /opt/models/Qwen3-VL-30B-A3B-mmproj-F16.gguf
+      -ngl 99 --n-cpu-moe 99 -t 4 -c 32768 -ctk q8_0 -ctv q8_0 -fa on -np 1 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=0"]
+    ttl: 0
+  # Same weights as fast-8b, one 32k slot, so a thinking answer can run to 16k
+  # tokens (fast-8b's -c 16384 -np 2 gives each slot only 8k). Trial-only.
+  "fast-8b-32k":
+    cmd: |
+      /opt/llama.cpp/build-cuda/bin/llama-server --port ${PORT} --host 127.0.0.1
+      -m /opt/models/Qwen3-8B-Q4_K_M.gguf -ngl 99 -t 4 -c 32768
+      -ctk q8_0 -ctv q8_0 -fa on -np 1 --jinja
+    env: ["CUDA_VISIBLE_DEVICES=0"]
+    ttl: 0
+
   # Vision captions for the camera archive (snibbly/vision/captioner.py). No -ngl:
   # --fit sizes the GPU layers to whatever VRAM is free when it loads — ~2.2 GB
   # beside a resident coder-30b, ~8-13 s per caption — so it never needs the agent
@@ -82,7 +141,9 @@ routing:
         "big":
           swap: true
           exclusive: true
-          members: ["coder-30b", "big-30b-thinking", "big-14b"]
+          members: ["coder-30b", "big-30b-thinking", "big-14b",
+                    "inkling-mini", "qwen36-35b", "qwen36-35b-heretic", "vl-30b",
+                    "fast-8b-32k"]
         "ablit":
           swap: false
           exclusive: true
