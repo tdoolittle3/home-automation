@@ -39,6 +39,14 @@ go2rtc:
       - rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.202:554/cam/realmonitor?channel=1&subtype=0
     backyard_sub:
       - rtsp://admin:{FRIGATE_RTSP_PASSWORD}@10.10.10.202:554/cam/realmonitor?channel=1&subtype=1
+    # SimpliCam (rooted, home LAN over Wi-Fi, no auth, one stream only). Pulled
+    # through go2rtc's ffmpeg source, not its native RTSP client: the camera's
+    # SDP marks the H.264 track a=sendonly, and go2rtc's native client drops that
+    # track and restreams audio only (tested 2026-11-23, go2rtc 1.9.10). The
+    # comma in the URL is fine. The camera allows at most 5 RTSP clients, so
+    # nothing else should connect to it directly; read rtsp://<ladybird>:8554/simplicam.
+    simplicam:
+      - ffmpeg:rtsp://192.168.0.26/video=video0,audio=aac#video=copy#audio=copy
 # ---- Tiered retention ----
 # Tier 1: full footage, short window
 # Tier 2: motion/event clips, medium window
@@ -128,4 +136,28 @@ cameras:
       streams:
         Main 2MP: backyard
         Sub 480p: backyard_sub
+  # Indoor SimpliCam. A single 1080p20 H.264 + AAC stream feeds both detect and
+  # record (no sub stream exists). Detect runs at native size; drop to 1280x720
+  # only if iGPU load says so. With the privacy shutter closed the frames are
+  # black: zero events from this camera does not prove nothing happened.
+  simplicam:
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/simplicam
+          input_args: preset-rtsp-restream
+          roles: [detect, record]
+      output_args:
+        record: preset-record-generic-audio-copy
+    detect:
+      width: 1920
+      height: 1080
+      fps: 5
+    # A PC with cycling RGB lighting sits in the bottom-left corner and reads
+    # as constant motion. The SimpliSafe logo (top left) is static and needs no mask.
+    motion:
+      mask:
+        - 0.03,0.84,0.25,0.84,0.25,1,0.03,1
+    live:
+      streams:
+        Main 1080p: simplicam
 version: 0.17-0

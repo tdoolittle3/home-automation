@@ -5,7 +5,7 @@
 
 [frigate]
 base_url = "http://192.168.0.13:5000"   # unauthenticated Frigate API — LAN only
-cameras = ["driveway", "backyard"]      # swept cameras; MQTT events are taken from any camera
+cameras = ["driveway", "backyard", "simplicam"]   # swept cameras; MQTT events are taken from any camera
 
 [mqtt]
 host = "192.168.0.13"
@@ -80,3 +80,4 @@ retry_secs = 120      # llama-swap busy/evicted: back off this long
 [caption.camera_notes]
 driveway = "The camera looks down the house's driveway toward the street; vehicles near the top of the frame are passing on the street, not in the driveway."
 backyard = "The camera looks across the fenced back yard (shed, kayaks, lawn)."
+simplicam = "Indoor camera inside the house, looking across a room toward its open doorway to the hallway. Everything in frame is indoors: there is no street, yard or vehicle, and the lit computer in the bottom-left corner changes color on its own. A completely black frame means the privacy shutter is closed."

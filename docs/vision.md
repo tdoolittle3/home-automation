@@ -31,8 +31,14 @@ Two ingest paths feed one database, each event marked by source:
   the cap, single events reached 10–20 GB of JPGs and filled snibbly's disk (2026-11-12).
 * **Sweep path** — periodically pull the continuous recordings (retained 2 days at full quality)
   and sample **1 fps**, running detection on everything, Frigate's opinion not required. The
-  cameras record with a 1-second GOP, so 1 fps sampling is keyframe-only extraction — no full
-  decode. Where detections cluster in time, the sweep creates its own events. Downtime is
+  Dahua cameras record with a 1-second GOP, so 1 fps sampling is keyframe-only extraction — no full
+  decode. **SimpliCam is the exception: its GOP measured 2.0 s (2026-11-23).** The sweep both
+  gets half the frames from it *and* stamps keyframe *n* as `chunk start + n` seconds
+  (`analyzer.analyze_sweep_chunk`), so with a 2 s GOP every sweep timestamp is squeezed into the
+  first half of its chunk. Set the camera's encoder to a 1 s GOP (20 frames at 20 fps) before it
+  is swept, or make the sweep read real keyframe times
+  (`ffmpeg -frame_pts 1 -enc_time_base 1/1000` names each file by its pts in ms). Measure with
+  `ffprobe -v error -skip_frame nokey -select_streams v -show_entries frame=pts_time -of csv=p=0 -read_intervals %+10 <url>`. Where detections cluster in time, the sweep creates its own events. Downtime is
   caught up from the retention window, which a live-RTSP tap could not do.
 
 ## How it runs (Phase 1)

@@ -1,6 +1,6 @@
 # Camera provisioning
 
-Both cameras are Dahua-family (Amcrest OEM) and expose the same HTTP CGI API. **Almost all
+The two outdoor cameras are Dahua-family (Amcrest OEM) and expose the same HTTP CGI API. **Almost all
 configuration can be done over that API from the server** — far faster and more repeatable than
 clicking through the web UI. Only the initial admin-password setup needs a browser.
 
@@ -10,8 +10,9 @@ clicking through the web UI. Only the initial admin-password setup needs a brows
 |---|---|---|---|
 | `driveway` | IPC-T54PRO-ZE | 10.10.10.201 | has a controllable white light |
 | `backyard` | IPC-T24IR-AS-2.8mm-S2 | 10.10.10.202 | IR; white light not verified |
+| `simplicam` | SimpliCam (rooted) | 192.168.0.26 | indoor, home LAN over Wi-Fi, no auth — see [below](#simplicam-not-dahua) |
 
-Both use the **admin** account. The same password is `CAMERA_PW` in `.env` and
+The two Dahua cameras use the **admin** account. The same password is `CAMERA_PW` in `.env` and
 `FRIGATE_RTSP_PASSWORD` in `/opt/stacks/frigate/.env`.
 
 Sub stream 1 (`ExtraFormat[0]`, RTSP `subtype=1`) caps at **704×480 (D1)** on both cameras — the
@@ -19,6 +20,28 @@ only other options are VGA and CIF. The T54PRO-ZE also has a **sub stream 2** (`
 RTSP `subtype=2`) that supports 1080P and 720P; the driveway camera runs it at 1280×720 for
 Frigate detection. Check what a camera offers with `encode.cgi?action=getConfigCaps&channel=1`.
 Frigate's `detect` block must match the stream it reads.
+
+### SimpliCam (not Dahua)
+
+`simplicam` is a rooted SimpliSafe SimpliCam watching a room indoors. None of the Dahua material in
+this file applies to it:
+
+* **Home LAN over Wi-Fi** at `192.168.0.26`, not on the camera island. ladybird and snibbly reach it
+  directly, with no tunnel.
+* **No Dahua API and no credentials.** Its RTSP needs the `video=` URL form:
+  `rtsp://192.168.0.26/video=video0,audio=aac` (`/video0` returns 400). Its encoder is configured
+  from the private camera repo, not from here.
+* **One stream, no sub stream:** H.264 Main 1920×1080, 20 fps, about 1.5 Mbps, with AAC 16 kHz mono
+  audio. Frigate detects and records from the same stream.
+* **GOP is 2 s** (keyframes about 1.997 s apart, measured 2026-11-23). See
+  [vision.md](vision.md#the-plan) for why that matters to the sweep.
+* **At most 5 RTSP clients.** Only go2rtc connects to it. Everything else, including ad-hoc
+  `ffprobe`, should read `rtsp://127.0.0.1:8554/simplicam` on ladybird.
+* **go2rtc uses its `ffmpeg:` source for it**, not the native RTSP client. The camera's SDP marks
+  the H.264 track `a=sendonly`, and go2rtc 1.9.10's native client drops that track and restreams
+  audio only.
+* **Privacy shutter:** with it closed, the frames are black. That is normal, and zero events from
+  this camera does not prove nothing happened.
 
 ---
 
