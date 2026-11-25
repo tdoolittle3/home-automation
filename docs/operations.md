@@ -299,23 +299,52 @@ curl -s http://127.0.0.1:2283/api/server/ping     # expect {"res":"pong"}
 
 ### Backing it up
 
+**Automated, nightly, off-box.** Two pieces, in this order:
+
+1. **02:00 — Immich's own Database Backup job** (Administration → Settings → Backup) writes a
+   logical dump to `/srv/storage/photos/backups/immich-db-backup-*.sql.gz`, keeping 14. Leave it
+   enabled: it is the database half of the backup.
+2. **04:15 — [immich-backup.sh](../stacks/net/immich-backup.sh)** (`immich-backup.timer`, root)
+   fails unless the newest dump is under 26 h old and a valid gzip, then rsyncs the originals
+   (`upload/`, `library/`, `profile/`) and the dumps (`db/`) to snibbly under
+   `~thomas/backups/immich/`. Settings: [immich-backup.conf](../stacks/net/immich-backup.conf).
+   It beats the **Immich backup** Kuma push monitor only on full success.
+
+The rsync uses `--ignore-existing` and never deletes, the same rule as the Vaultwarden backup: a
+photo deleted or damaged on ladybird never propagates, and a compromised ladybird cannot rewrite
+the copies. The flip side is that **nothing prunes snibbly** — deleted photos stay there, and the
+dumps accumulate at ~40 MB a night (~15 GB a year). Once a year or so, on snibbly:
+`find ~/backups/immich/db -name '*.sql.gz' -mtime +90 -delete`.
+
+It reuses root@ladybird's ssh key that the Vaultwarden backup already has authorized on snibbly
+([vaultwarden.md](vaultwarden.md#backups) — redo that setup after rebuilding either box). Still
+in the same house as ladybird: this covers a dead disk, not fire or theft.
+
+Manual run and check:
+
+```bash
+sudo systemctl start immich-backup.service && journalctl -u immich-backup -n 5 --no-pager
+ssh thomas@192.168.0.19 'du -sh ~/backups/immich/*; ls -t ~/backups/immich/db | head -2'
+```
+
 **Copying the `postgres/` directory is not a valid backup.** Immich's database carries vector
 extension state; restore it from a logical dump, not a file copy. Dump the database *first*, then
 the library — the other order leaves database rows pointing at files that were not captured yet.
+
+An ad-hoc dump (before an upgrade, say):
 
 ```bash
 cd /opt/stacks/immich
 docker exec -t immich_postgres pg_dump --clean --if-exists --dbname=immich --username=postgres | gzip > /srv/storage/archive/immich-db.sql.gz
 ```
 
-Then the originals. `/srv/storage/photos/library`, `upload`, and `profile` are the three that
-matter; `thumbs` and `encoded-video` are regenerable.
+`library`, `upload`, and `profile` are the originals that matter; `thumbs` and `encoded-video`
+are regenerable, so the off-box copy skips them.
 
-```bash
-rsync -aHAX /srv/storage/photos/{library,upload,profile} /path/to/backup/
-```
-
-To restore, per Immich's documented procedure — note the `sed`, which is required, not optional:
+To restore from snibbly, copy `~thomas/backups/immich/{upload,library,profile}` back under
+`/srv/storage/photos/` (owned root:root, as Immich writes them), copy the newest
+`db/immich-db-backup-*.sql.gz` to `/srv/storage/archive/immich-db.sql.gz` (the path the commands
+below read), then follow Immich's documented procedure — note the `sed`, which is required, not optional:
 
 ```bash
 cd /opt/stacks/immich
@@ -443,7 +472,7 @@ Worth capturing periodically, none of it in git:
 | Stack configs | this repo — the live `/opt/stacks` is reproducible via [ansible.md](ansible.md) |
 | HA configuration + state | `/opt/stacks/home/homeassistant/` including `.storage/` |
 | Frigate event database | `/opt/stacks/frigate/config/*.db` |
-| Immich database + library | see the Immich section above — **a copy of `postgres/` is not a valid backup** |
+| Immich database + library | **automated** — Immich's nightly dump + `immich-backup.timer` to snibbly; see the Immich section above |
 | Camera credentials | `.env` here, `/opt/stacks/frigate/.env`, `.camcreds` |
 | Immich database password | `/opt/stacks/immich/.env` |
 | n8n database + encryption key | `/opt/stacks/n8n/n8n-data/` — SQLite holds every credential; the workflow JSON alone does not restore them |

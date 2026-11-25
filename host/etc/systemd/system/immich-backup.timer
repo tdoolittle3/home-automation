@@ -1,0 +1,12 @@
+[Unit]
+Description=Run the Immich off-box backup nightly
+
+[Timer]
+# After Immich's own 02:00 database dump and vaultwarden-backup's 03:30.
+OnCalendar=*-*-* 04:15
+RandomizedDelaySec=10min
+# Catch up after downtime - a box that was off at 04:15 still backs up.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -39,6 +39,8 @@
     - iptv-playlist.timer
     - vaultwarden-backup.service
     - vaultwarden-backup.timer
+    - immich-backup.service
+    - immich-backup.timer
     - tv-fleet-check.service
     - tv-fleet-check.timer
     - tv-fleet-status.service
@@ -62,6 +64,7 @@
     - kuma-watchdog.timer
     - iptv-playlist.timer
     - vaultwarden-backup.timer
+    - immich-backup.timer
     - tv-fleet-check.timer
     # long-running, not a timer: polls every TV every 30s for the HA sensors
     - tv-fleet-status.service

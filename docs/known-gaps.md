@@ -7,11 +7,11 @@ something here bites, it bit on purpose.
 
 ## Backups
 
-- **Immich has no automated backup, and no off-box destination exists.** The photo library is
-  irreplaceable in a way recordings are not, and a copy of the Postgres directory does not count —
-  it needs a logical dump. The procedure is in [operations.md](operations.md#immich); it is not on a
-  timer, and until an off-box location exists, even a scheduled dump dies with the disk. **This is
-  the biggest gap on the list.**
+- **Immich's off-box copy is in the same house.** Since 2026-11-24 the originals and Immich's own
+  nightly database dumps go to snibbly every night ([operations.md](operations.md#backing-it-up)),
+  which covers ladybird's disk dying but not fire or theft taking both machines. The photo library
+  is the one irreplaceable thing here; an out-of-house copy (cloud bucket, a drive at someone
+  else's house) is the next step.
 - **n8n's database is not backed up.** Workflows can be re-imported from
   [stacks/n8n/workflows/](../stacks/n8n/workflows/), but the credentials and the encryption key
   exist only in `/opt/stacks/n8n/n8n-data/` — losing it means recreating every credential by hand.
