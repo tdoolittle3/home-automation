@@ -159,8 +159,9 @@ look:
 
 1. **Uptime Kuma** (`:3001`) polls every service and hosts the push monitors.
 2. **systemd guards** — `disk-guard`, `ups-guard`, `frigate-guard`, `kuma-watchdog` — run on timers,
-   publish to MQTT for Home Assistant, and beat a Kuma push monitor *only while healthy*. A dead
-   guard therefore alerts by going quiet.
+   publish to MQTT for Home Assistant, and beat a Kuma push monitor while healthy. A dead
+   guard therefore alerts by going quiet; `disk-guard` and `ups-guard` also push an active down
+   carrying the reason when they find a problem.
 3. **NUT** talks to the CyberPower UPS over USB and halts the box cleanly on low battery.
 
 The gap: Kuma runs on the machine it is watching, so it cannot alert after the whole host stops.

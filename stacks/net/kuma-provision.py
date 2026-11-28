@@ -148,13 +148,23 @@ def main():
             print("notification  ntfy: skipped (NTFY_TOPIC unset) - monitors will alert nowhere")
 
         # ---- groups first, so children have a parent to point at ----------
+        # Groups never carry a notification. A group goes down ("Child
+        # inaccessible") whenever any child does, so a notifying group just
+        # doubles every child alert with a message that names nothing - that
+        # is how a storage warning also arrived as "Host and network down".
+        # The ntfy notification was created with applyExisting, which attached
+        # it to the groups too; the edit below strips it on every apply.
         group_ids = {}
         for g in spec.get("groups", []):
             if g["name"] in existing:
                 group_ids[g["name"]] = existing[g["name"]]["id"]
-                print(f"group         {g['name']}: exists")
+                if apply:
+                    api.edit_monitor(existing[g["name"]]["id"], notificationIDList={})
+                    print(f"group         {g['name']}: exists (notifications cleared)")
+                else:
+                    print(f"group         {g['name']}: exists (would clear notifications)")
             elif apply:
-                res = api.add_monitor(type=MonitorType.GROUP, name=g["name"])
+                res = api.add_monitor(type=MonitorType.GROUP, name=g["name"], notificationIDList={})
                 group_ids[g["name"]] = res["monitorID"]
                 print(f"group         {g['name']}: created")
             else:
