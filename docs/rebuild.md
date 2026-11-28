@@ -268,7 +268,6 @@ Recreate these by hand on a fresh deploy. Nothing here is recoverable from this 
 | `/opt/stacks/vaultwarden/.env` | optional: `SIGNUPS_ALLOWED` toggle, `ADMIN_TOKEN` — see [.env.example](../stacks/vaultwarden/.env.example) |
 | `/opt/stacks/net/kuma-vw-backup-push-url.txt` | the backup job's Kuma push URL, mode 600 — regenerated per Kuma rebuild |
 | `/opt/stacks/net/kuma-immich-backup-push-url.txt` | the Immich backup's Kuma push URL, root-owned mode 600 — regenerated per Kuma rebuild |
-| `/opt/stacks/net/kuma-frigate-archive-push-url.txt` | the Frigate archive's Kuma push URL, root-owned mode 600 — regenerated per Kuma rebuild |
 | `/opt/stacks/net/tv-fleet.env` | TV ntfy tokens + phone ntfy URL, thomas-owned mode 600 — see [tv-fleet.md](tv-fleet.md#secrets) |
 | `/opt/stacks/ntfy/data/user.db` | TV ntfy users, ACLs, tokens — recreate per [tv-fleet.md](tv-fleet.md#ntfy-server), then update the two token secrets |
 
