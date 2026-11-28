@@ -124,3 +124,20 @@ command_line:
         "http://10.10.10.201/cgi-bin/configManager.cgi?action=getConfig&name=Lighting_V2"
         | grep -cF "Lighting_V2[0][0][1].Mode=Manual" || true
       value_template: "{{ value | int(0) > 0 }}"
+
+  # Privacy shutter on the indoor SimpliCam (192.168.0.26). on = open (the
+  # camera can see), off = closed (black frames). The camera's only remote door
+  # is a root telnet shell, so bin/simplicam_shutter.sh does the talking and
+  # passes nothing but open|close|status. There is no position sensor: the
+  # state is the last one commanded this way and reads off after a camera
+  # reboot, whatever the shutter is really doing. Details: docs/cameras.md.
+  - switch:
+      name: SimpliCam Shutter
+      unique_id: simplicam_privacy_shutter
+      icon: mdi:camera-iris
+      scan_interval: 60
+      command_timeout: 10
+      command_on: sh /config/bin/simplicam_shutter.sh open
+      command_off: sh /config/bin/simplicam_shutter.sh close
+      command_state: sh /config/bin/simplicam_shutter.sh status
+      value_template: "{{ value | trim == 'open' }}"
