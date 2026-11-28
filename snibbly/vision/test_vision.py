@@ -26,7 +26,7 @@ with open(os.path.join(_TMP, "config.toml"), "w", newline="\n") as f:
 os.environ["VISION_CONFIG"] = os.path.join(_TMP, "config.toml")
 
 import vision_worker
-from analyzer import Analyzer, _iou, _static_mask
+from analyzer import Analyzer, _iou, _static_mask, frame_ts
 
 CAR = [100, 100, 200, 200]
 
@@ -162,6 +162,61 @@ def test_cluster_sweep_events_splits_on_time_gap(ana):
                     "WHERE event_id='sweep-driveway-1000'")[0]["n"] == 3
     assert db.query("SELECT COUNT(*) n FROM detections "
                     "WHERE event_id='sweep-driveway-1200'")[0]["n"] == 1
+
+
+# ---- keyframe timestamps (GOP is 1.25 s on the driveway, 2 s on simplicam) ----
+
+def test_frame_ts_reads_pts_names_else_index_step():
+    assert frame_ts(1000.0, "pts000000002000.jpg", 1) == 1002.0
+    assert frame_ts(1000.0, "/x/y/pts000000119818.jpg", 96) == pytest.approx(1119.818)
+    assert frame_ts(1000.0, "000007.jpg", 6) == 1006.0             # fixed 1/s
+    assert frame_ts(1000.0, "000007.jpg", 6, step=0.5) == 1003.0   # fixed 2 fps
+
+
+def test_sweep_chunk_uses_real_keyframe_times(ana, tmp_path, monkeypatch):
+    # 20-minute chunk from a 2 s-GOP camera: 600 keyframes, not 1200. The old
+    # "frame n = n seconds" put the last one at start+599 instead of start+1198.
+    tmp = tmp_path / "chunk"
+    tmp.mkdir()
+    names = [f"pts{i * 2000:012d}.jpg" for i in range(600)]
+    for n in names:
+        (tmp / n).write_bytes(b"")
+    person = ("person", 0.9, [10, 10, 60, 120])
+    seen = {}
+
+    def detect(paths):  # a person only in the last keyframe
+        return [[person] if p.endswith(names[-1]) else [] for p in paths]
+
+    def learn(camera, clusters, ts):
+        seen["learn_ts"] = ts
+        return set()
+
+    monkeypatch.setattr(ana, "_ensure_models", lambda: None)
+    monkeypatch.setattr(ana, "_detect", detect)
+    monkeypatch.setattr(ana, "_persist", lambda frame, live, event_id=None: None)
+    monkeypatch.setattr(ana, "_registry_learn", learn)
+    monkeypatch.setattr(ana, "_registry_expire", lambda camera, active: None)
+    assert ana.analyze_sweep_chunk("simplicam", 10_000.0, str(tmp)) == (600, 1, 1)
+    assert ana.db.query("SELECT ts FROM frames")[0]["ts"] == 10_000.0 + 1198
+    assert seen["learn_ts"] == 10_000.0 + 1198  # spans 20 min, so it learns
+
+
+def test_sample_clip_keyframes_named_by_pts(tmp_path, monkeypatch):
+    calls = {}
+
+    def run(cmd, **kw):
+        calls["cmd"] = cmd
+        return type("P", (), {"returncode": 0, "stderr": ""})()
+
+    monkeypatch.setattr(vision_worker.subprocess, "run", run)
+    vision_worker.sample_clip("http://x/clip.mp4", str(tmp_path / "k"), keyframes_only=True)
+    cmd = calls["cmd"]
+    assert cmd[cmd.index("-frame_pts") + 1] == "1"
+    assert cmd[cmd.index("-enc_time_base") + 1] == "1/1000"
+    assert os.path.basename(cmd[-1]) == "pts%012d.jpg"
+    vision_worker.sample_clip("http://x/clip.mp4", str(tmp_path / "e"), fps=2.0)
+    assert "-frame_pts" not in calls["cmd"]
+    assert os.path.basename(calls["cmd"][-1]) == "%06d.jpg"
 
 
 # ---- webapp ----
