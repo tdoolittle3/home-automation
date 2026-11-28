@@ -9,6 +9,7 @@ home/homeassistant/*
 !home/homeassistant/automations.yaml
 !home/homeassistant/scripts.yaml
 !home/homeassistant/scenes.yaml
+!home/homeassistant/bin/
 home/mosquitto/data/
 # Jellyfin/Kuma runtime state
 media/config/
