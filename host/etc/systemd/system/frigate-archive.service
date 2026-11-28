@@ -1,0 +1,13 @@
+[Unit]
+Description=Frigate full-footage archive (hour directories to snibbly before they are thinned)
+# Not a hard dependency: the recordings are files on disk, and a stopped
+# Frigate must not also stop yesterday's footage from being archived.
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/stacks/net/frigate-archive.sh
+# Bulk copy at background priority - Frigate and DNS come first.
+Nice=10
+IOSchedulingClass=idle

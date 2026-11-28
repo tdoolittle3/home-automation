@@ -1,0 +1,13 @@
+[Unit]
+Description=Run the Frigate full-footage archive hourly
+
+[Timer]
+# Hourly: each run ships the one hour that just became old enough. Off the top
+# of the hour, away from Frigate's own cleanup.
+OnCalendar=*:20
+RandomizedDelaySec=5min
+# Catch up after downtime - the copy window is 8 hours wide for this reason.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -480,6 +480,50 @@ Worth capturing periodically, none of it in git:
 | Vaultwarden vault | **automated** — `vaultwarden-backup.timer` snapshots nightly to `/srv/storage/backups/vaultwarden/`, optional off-box rsync; see [vaultwarden.md](vaultwarden.md) |
 
 Recordings in `/srv/storage/frigate` are intentionally *not* backed up — they age out by design.
+The newest few days of full footage are copied to snibbly, which is an archive tier, not a backup
+(below).
+
+### Frigate recordings archive
+
+Three cameras write about **120 GB of full footage a day** (driveway 64, backyard 37, simplicam 19,
+measured 2026-11-27), and that tier is nearly all of the disk Frigate uses. So ladybird keeps it
+short and snibbly holds the next two days:
+
+| Tier | Where | How long |
+|---|---|---|
+| Full footage | ladybird, in Frigate's timeline | 1 day (`record.continuous.days`) |
+| Full footage | snibbly, `~thomas/backups/frigate-recordings/` | until 3 days old (`KEEP_HOURS=72`) |
+| Motion-only | ladybird, in Frigate's timeline | 5 days (`record.motion.days`) |
+| Alerts / detections | ladybird, in Frigate's timeline | 10 / 7 days |
+
+[frigate-archive.sh](../stacks/net/frigate-archive.sh) (`frigate-archive.timer`, hourly at :20,
+root) rsyncs each hour directory once it is 18 h old, then deletes snibbly's copies past 72 h.
+Settings: [frigate-archive.conf](../stacks/net/frigate-archive.conf). It refuses to copy when
+snibbly has under 60 GB free, and beats the **Frigate archive** Kuma push monitor only on full
+success. It reuses root@ladybird's ssh key that the Vaultwarden and Immich backups use.
+
+Things that are true about it:
+
+* **The snibbly copies are not in Frigate.** They are plain files in Frigate's own layout,
+  `<UTC date>/<UTC hour>/<camera>/MM.SS.mp4`, ten seconds each. To watch an hour:
+  `cd ~/backups/frigate-recordings/2026-11-27/05/driveway && ls *.mp4 | sed "s/^/file '/;s/$/'/" > /tmp/l.txt && ffmpeg -f concat -safe 0 -i /tmp/l.txt -c copy /tmp/hour.mp4`
+  (run it from that directory so the relative names resolve).
+* **snibbly holds about 270 GB of it** ((72 - 18) h at 120 GB/day). Its root volume was extended
+  by 200 GB on 2026-11-27 for this; 28 GB of the volume group is still unallocated.
+* **snibbly is on Wi-Fi, and that is the tight spot.** The link carried about 28 Mbps in total when
+  measured. The archive needs about 11 Mbps on average and the vision sweep reads the same footage
+  over the same link. A cable to snibbly's wired port removes the problem.
+* **If snibbly is unreachable for more than 6 hours**, the hours that pass 24 h in the meantime are
+  thinned to motion-only on ladybird before they are copied. Kuma pages after 3 silent hours.
+* **Do not take `continuous.days` below 1**: the vision sweep reads these recordings.
+
+Manual run and check:
+
+```bash
+sudo /opt/stacks/net/frigate-archive.sh --dry-run
+sudo systemctl start frigate-archive.service && journalctl -u frigate-archive -n 5 --no-pager
+ssh thomas@192.168.0.19 'du -sh ~/backups/frigate-recordings; ls ~/backups/frigate-recordings'
+```
 
 ---
 

@@ -33,6 +33,7 @@ stacks_root_scripts:
   - kuma-watchdog.sh
   - vaultwarden-backup.sh
   - immich-backup.sh
+  - frigate-archive.sh
   - vault-render.sh
 
 # Run as the admin user (iptv-playlist.service has User=thomas;

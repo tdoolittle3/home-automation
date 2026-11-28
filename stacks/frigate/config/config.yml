@@ -61,10 +61,16 @@ record:
     retain:
       days: 7
       mode: motion
+  # One day of everything, then five days of anything that moved. Three cameras
+  # write ~120 GB/day of full footage (measured 2026-11-27), and that tier is
+  # nearly all of the disk Frigate uses; the motion-only days cost a few GB each.
+  # frigate-archive.timer copies each hour to snibbly before it is thinned, so
+  # three days of full footage exist in total (docs/operations.md). The vision
+  # sweep on snibbly reads these recordings: do not take continuous below 1.
   continuous:
-    days: 2
+    days: 1
   motion:
-    days: 2
+    days: 5
 snapshots:
   enabled: true
   retain:
