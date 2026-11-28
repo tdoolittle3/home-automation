@@ -374,6 +374,19 @@ monitors:
     # originals + dumps to snibbly. A disabled Immich backup job, a failed
     # rsync and a hung run all surface as silence.
 
+  - name: Frigate archive
+    group: Host and network
+    type: push
+    heartbeat_interval: 10800      # archive runs hourly; three silent hours is down
+    retries: 0
+    push_url_file: /opt/stacks/net/kuma-frigate-archive-push-url.txt
+    # frigate-archive.sh beats this ONLY after it has copied the hours that
+    # are about to be thinned to snibbly and pruned snibbly's old copies.
+    # Frigate thins an hour at 24 h and the copy starts at 18 h, so there are
+    # six hours to act on this before full footage is actually lost. snibbly
+    # down, its disk under the free-space floor and a failed rsync all
+    # surface as silence.
+
   - name: UPS power
     group: Host and network
     type: push
