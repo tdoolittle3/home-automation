@@ -66,9 +66,13 @@ B=$(du -sb /srv/storage/frigate | cut -f1)
 echo "$(( (B-A)*288/1000000 )) MB/day"
 ```
 
-External watchdog: the guard beats the Uptime Kuma push monitor "Storage guard" (id 12, 900 s
-interval) only while healthy, so a hung or dead server alerts by silence. It reads the URL from
-`/opt/stacks/net/kuma-push-url.txt` and appends `&status=up&msg=...` to the first line, so the file
+External watchdog: the guard reports to the Uptime Kuma push monitor "Storage guard" (id 12, 900 s
+interval): `status=up` while healthy, and an active `status=down` on a warning or critical whose
+message is the reason (e.g. `storage warning: disk 76% >= 75% (free 89.1GB)`), so the phone alert
+names the problem. A hung or dead server still alerts by silence. A disk warning clears only below
+`WARN_PCT - CLEAR_MARGIN_PCT` (default 2), so usage parked on the threshold does not flap. The
+"Host and network" group no longer notifies; groups never do (see `kuma-monitors.yml`). It reads the URL from
+`/opt/stacks/net/kuma-push-url.txt` and appends `&status=...&msg=...` to the first line, so the file
 must end in `?ping=`. The file is gitignored (it holds the push token); recreate it after a rebuild:
 
 ```bash

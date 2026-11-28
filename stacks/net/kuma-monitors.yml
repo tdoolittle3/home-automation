@@ -22,6 +22,11 @@ notifications:
     priority: 4                                # 4 = high; arrives with sound
     default_enabled: true                      # applied to every monitor below
 
+# Groups are folders, not alerts: the provisioner keeps every group's
+# notification list EMPTY. A group goes down with "Child inaccessible" the
+# moment any child does, so a notifying group only duplicates the child's alert
+# without saying what broke (2026-11-27: every storage warning also arrived as
+# "Host and network down").
 groups:
   - name: Core services
   - name: Cameras
@@ -349,8 +354,11 @@ monitors:
     heartbeat_interval: 900        # guard beats every 10 min; 15 min of silence is down
     retries: 0
     push_url_file: /opt/stacks/net/kuma-push-url.txt
-    # disk-guard.sh beats this ONLY while healthy, so a warning, a critical, a
-    # hung timer, and a dead server all surface the same way: silence.
+    # disk-guard.sh beats up while healthy and pushes status=down ACTIVELY on
+    # a warning or critical, with the reason as the message ("storage warning:
+    # disk 76% >= 75%"), so the alert says what is wrong. A hung timer or dead
+    # server still surfaces as silence. Disk warnings have hysteresis (clear
+    # below WARN_PCT - 2), so a disk parked on the line does not flap.
 
   - name: Vaultwarden backup
     group: Host and network
