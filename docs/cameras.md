@@ -33,8 +33,9 @@ this file applies to it:
   from the private camera repo, not from here.
 * **One stream, no sub stream:** H.264 Main 1920×1080, 20 fps, about 1.5 Mbps, with AAC 16 kHz mono
   audio. Frigate detects and records from the same stream.
-* **GOP is 2 s** (keyframes about 1.997 s apart, measured 2026-11-23). See
-  [vision.md](vision.md#the-plan) for why that matters to the sweep.
+* **GOP is 2 s** (keyframes about 1.997 s apart, measured 2026-11-23). The vision sweep reads
+  real keyframe times, so this only means it samples this camera every 2 s
+  ([vision.md](vision.md#the-plan)).
 * **At most 5 RTSP clients.** Only go2rtc connects to it. Everything else, including ad-hoc
   `ffprobe`, should read `rtsp://127.0.0.1:8554/simplicam` on ladybird.
 * **go2rtc uses its `ffmpeg:` source for it**, not the native RTSP client. The camera's SDP marks

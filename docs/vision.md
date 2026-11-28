@@ -30,14 +30,16 @@ Two ingest paths feed one database, each event marked by source:
   car stays tracked (hours), so a long event gets a lower fps spread over its whole span; before
   the cap, single events reached 10–20 GB of JPGs and filled snibbly's disk (2026-11-12).
 * **Sweep path** — periodically pull the continuous recordings (retained 2 days at full quality)
-  and sample **1 fps**, running detection on everything, Frigate's opinion not required. The
-  Dahua cameras record with a 1-second GOP, so 1 fps sampling is keyframe-only extraction — no full
-  decode. **SimpliCam is the exception: its GOP measured 2.0 s (2026-11-23).** The sweep both
-  gets half the frames from it *and* stamps keyframe *n* as `chunk start + n` seconds
-  (`analyzer.analyze_sweep_chunk`), so with a 2 s GOP every sweep timestamp is squeezed into the
-  first half of its chunk. Set the camera's encoder to a 1 s GOP (20 frames at 20 fps) before it
-  is swept, or make the sweep read real keyframe times
-  (`ffmpeg -frame_pts 1 -enc_time_base 1/1000` names each file by its pts in ms). Measure with
+  and sample **keyframes only** — no full decode — running detection on everything, Frigate's
+  opinion not required. Keyframe spacing is each camera's GOP, and it isn't 1 s everywhere:
+  measured 2026-11-23, the driveway's keyframes come every ~1.25 s and the SimpliCam's every 2.0 s.
+  So ffmpeg names each keyframe by its real presentation time
+  (`-frame_pts 1 -enc_time_base 1/1000` → `pts<ms>.jpg`) and `analyzer.frame_ts` turns that back
+  into a timestamp. Until 2026-11-23 the sweep assumed one keyframe per second and stamped
+  keyframe *n* as `chunk start + n` s. That squeezed every sweep timestamp toward the start of
+  its chunk, by ~20% on the driveway; sweep frames and events stored before the fix carry those
+  compressed times. A longer GOP only means fewer sweep frames (one every 2 s from the
+  SimpliCam). Measure a camera's GOP with
   `ffprobe -v error -skip_frame nokey -select_streams v -show_entries frame=pts_time -of csv=p=0 -read_intervals %+10 <url>`. Where detections cluster in time, the sweep creates its own events. Downtime is
   caught up from the retention window, which a live-RTSP tap could not do.
 

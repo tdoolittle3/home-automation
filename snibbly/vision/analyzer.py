@@ -32,8 +32,22 @@ import numpy as np
 log = logging.getLogger("vision")
 
 YOLO_WEIGHTS = "/opt/vision/models/yolo11s.pt"
-REGISTER_MIN_FRAMES = 120  # sweep chunk must span >= this many keyframes (2 min)
-                           # before its static clusters are trusted into the registry
+REGISTER_MIN_SECS = 120  # sweep chunk's keyframes must span >= this (2 min) before
+                         # its static clusters are trusted into the registry
+# Keyframe files named by their real presentation time (ms from clip start) —
+# vision_worker.sample_clip writes these. GOPs are not 1 s everywhere: the
+# driveway keyframes land every ~1.25 s and the SimpliCam's every 2 s, so
+# "frame n = n seconds in" squeezed sweep timestamps toward the chunk start.
+PTS_PREFIX = "pts"
+
+
+def frame_ts(start, name, index, step=1.0):
+    """Wall-clock time of a sampled frame: clip start + the pts encoded in a
+    `pts<ms>.jpg` name, else start + index * step (fixed-fps sampling)."""
+    stem = os.path.splitext(os.path.basename(name))[0]
+    if stem.startswith(PTS_PREFIX) and stem[len(PTS_PREFIX):].isdigit():
+        return start + int(stem[len(PTS_PREFIX):]) / 1000.0
+    return start + index * step
 # the -quickgelu variant matters: OpenAI weights use QuickGELU, and plain
 # ViT-B-16 silently runs them with the wrong activation (open_clip warns)
 CLIP_MODEL, CLIP_PRETRAINED = "ViT-B-16-quickgelu", "openai"
@@ -389,15 +403,14 @@ class Analyzer:
         keep_thr = self.cfg["sweep_keep_threshold"]
         with self.gpu_lock:
             per_frame = self._detect([os.path.join(tmp_dir, n) for n in names])
-        ts_list = [start + i for i in range(len(names))]  # keyframes are 1/s
+        ts_list = [frame_ts(start, n, i) for i, n in enumerate(names)]
         per_frame, matched = self._registry_filter(camera, per_frame, ts_list)
         masks, clusters = _static_mask(per_frame, self.cfg["static_presence"])
         # a tiny partial chunk (camera offline most of it) is too little
         # context to learn scenery from — filter against the registry, but
         # don't let it teach or expire entries
-        if len(names) >= REGISTER_MIN_FRAMES:
-            active = matched | self._registry_learn(camera, clusters,
-                                                    start + len(names) - 1)
+        if ts_list[-1] - ts_list[0] >= REGISTER_MIN_SECS - 1:
+            active = matched | self._registry_learn(camera, clusters, ts_list[-1])
             self._registry_expire(camera, active)
         kept = []  # (frame row, live dets)
         stamp = time.strftime("%Y%m%d-%H%M", time.localtime(start))
