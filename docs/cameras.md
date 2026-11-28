@@ -43,6 +43,17 @@ this file applies to it:
   audio only.
 * **Privacy shutter:** with it closed, the frames are black. That is normal, and zero events from
   this camera does not prove nothing happened.
+  It is `switch.simplicam_shutter` in Home Assistant (on = open) and a toggle in the dashboard's
+  Controls panel. HA runs [bin/simplicam_shutter.sh](../stacks/home/homeassistant/bin/simplicam_shutter.sh),
+  which opens the camera's telnet shell and runs its `/opt/simplisafe/camera/bin/shutter.sh
+  open|close|status` (a half-second pulse on GPIO105 to open, GPIO104 to close).
+  **There is no position sensor.** The state is the last one commanded through that script, kept in
+  the camera's `/tmp`: after a camera reboot it reads `unknown` (the switch shows off), and the
+  SimpliSafe app on the camera can still move the shutter without telling anyone. The picture is the
+  truth. If the switch and the picture disagree, toggle the switch to the state you want.
+* **The camera's telnet is a root shell with no login**, reachable from anything on the LAN. The
+  shutter switch does not add to that exposure, but it is the reason the camera should stay off any
+  network that guests or untrusted devices use.
 
 ---
 
